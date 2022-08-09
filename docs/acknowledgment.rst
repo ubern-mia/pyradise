@@ -8,7 +8,7 @@ Contributors
 Following people contributed to PyRaDiSe (in alphabetical order by last name):
 
  - Amith Kamath
- - Yannik Sutter
+ - Yannik Suter
 
 Thank you very much, guys!
 

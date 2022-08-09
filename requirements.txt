@@ -2,3 +2,5 @@ pydicom>=2.2.2
 SimpleITK>=2.1.1
 itk>=5.2.1.post1
 pymia>=0.3.2
+jupyter>=1.0.0
+opencv-python~=4.5.5.63

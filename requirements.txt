@@ -1,0 +1,4 @@
+pydicom>=2.2.2
+SimpleITK>=2.1.1
+itk>=5.2.1.post1
+pymia>=0.3.2

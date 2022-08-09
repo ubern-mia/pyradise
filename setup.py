@@ -16,7 +16,7 @@ with open(os.path.join('README.md'), 'r', encoding='utf-8') as f:
 
 REQUIRED_PACKAGES = [
     'pydicom >= 2.2.0',
-    'numpy >= 1.12.1',
+    'numpy >= 1.21.5',
     'SimpleITK >= 2.1.1',
     'itk >= 5.2.1.post1',
     'pymia >= 0.3.2'

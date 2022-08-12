@@ -2,8 +2,8 @@ import os
 import sys
 from setuptools import find_packages, setup
 
-if sys.version_info < (3, 7):
-    sys.exit("Requires Python 3.7 or higher")
+if sys.version_info < (3, 8):
+    sys.exit("Requires Python 3.8 or higher")
 
 directory = os.path.abspath(os.path.dirname(__file__))
 
@@ -19,7 +19,8 @@ REQUIRED_PACKAGES = [
     'numpy >= 1.21.5',
     'SimpleITK >= 2.1.1',
     'itk >= 5.2.1.post1',
-    'pymia >= 0.3.2'
+    'pymia >= 0.3.2',
+    'opencv-python ~= 4.5.5.63'
 ]
 
 TEST_PACKAGES = [
@@ -37,7 +38,7 @@ setup(
     author_email=about['__author_email__'],
     url=about['__url__'],
     license=about['__license__'],
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     packages=find_packages(exclude=['docs', 'examples', 'test']),
     install_requires=REQUIRED_PACKAGES,
     tests_require=REQUIRED_PACKAGES + TEST_PACKAGES,

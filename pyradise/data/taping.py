@@ -13,6 +13,9 @@ from copy import deepcopy
 import SimpleITK as sitk
 import numpy as np
 
+
+__all__ = ['Tape', 'TransformTape', 'TransformationInformation']
+
 # pylint: disable=no-member
 
 # Forward declaration of image types
@@ -30,7 +33,7 @@ class Tape(ABC):
 
     @abstractmethod
     def record(self, value: Any) -> None:
-        """Records a value on the tape.
+        """Record a value on the tape.
 
         Args:
             value (Any): The value to be recorded.
@@ -70,7 +73,7 @@ class Tape(ABC):
         return tuple(self.recordings)
 
     def reset(self) -> None:
-        """Resets the transformation tape.
+        """Reset the transformation tape.
 
         Returns:
             None
@@ -79,7 +82,22 @@ class Tape(ABC):
 
 
 class TransformationInformation:
-    """A class holding information about a transformation of an image."""
+    """A class holding information about a transformation of an image.
+
+    Args:
+        name (str): The name of the operation.
+        transform (sitk.Transform): The transformation.
+        pre_transform_origin (Tuple[float]): The origin of the pre-transform image.
+        pre_transform_direction (Tuple[float]): The direction of the pre-transform image.
+        pre_transform_spacing (Tuple[float]): The spacing of the pre-transform image.
+        pre_transform_size (Tuple[float]): The size of the pre-transform image.
+        post_transform_origin (Tuple[float]): The origin of the transformed image.
+        post_transform_direction (Tuple[float]): The direction of the transformed image.
+        post_transform_spacing (Tuple[float]): The spacing of the transformed image.
+        post_transform_size (Tuple[float]): The size of the transformed image.
+        pre_transform_orientation (Optional[str]): The orientation identifier of the pre-transform image (e.g. RAS).
+        post_transform_orientation (Optional[str]): The orientation identifier of the transformed image (e.g. RAS).
+    """
 
     def __init__(self,
                  name: str,
@@ -95,22 +113,6 @@ class TransformationInformation:
                  pre_transform_orientation: Optional[str] = None,
                  post_transform_orientation: Optional[str] = None,
                  ) -> None:
-        """Constructs a class holding information about a transformation of an image.
-
-        Args:
-            name (str): The name of the operation.
-            transform (sitk.Transform): The transformation.
-            pre_transform_origin (Tuple[float]): The origin of the pre-transform image.
-            pre_transform_direction (Tuple[float]): The direction of the pre-transform image.
-            pre_transform_spacing (Tuple[float]): The spacing of the pre-transform image.
-            pre_transform_size (Tuple[float]): The size of the pre-transform image.
-            post_transform_origin (Tuple[float]): The origin of the transformed image.
-            post_transform_direction (Tuple[float]): The direction of the transformed image.
-            post_transform_spacing (Tuple[float]): The spacing of the transformed image.
-            post_transform_size (Tuple[float]): The size of the transformed image.
-            pre_transform_orientation (Optional[str]): The orientation identifier of the pre-transform image (e.g. RAS).
-            post_transform_orientation (Optional[str]): The orientation identifier of the transformed image (e.g. RAS).
-        """
         # pylint: disable=too-many-arguments
 
         super().__init__()
@@ -155,7 +157,7 @@ class TransformationInformation:
                     pre_transform_image: sitk.Image,
                     post_transform_image: sitk.Image
                     ) -> "TransformationInformation":
-        """Constructs a transformation information from the pre- and post-transform images.
+        """Construct a transformation information from the pre- and post-transform images.
 
         Args:
             name (str): The name
@@ -184,7 +186,7 @@ class TransformationInformation:
 
     @staticmethod
     def get_matrix_from_direction(direction: Tuple[float]) -> np.ndarray:
-        """Reshapes a direction tuple into a direction matrix.
+        """Reshape a direction tuple into a direction matrix.
 
         Args:
             direction (Tuple[float]): The direction as a tuple of floats.
@@ -307,13 +309,12 @@ class TransformTape(Tape):
     """A class representing a tape for accumulating transformations."""
 
     def __init__(self) -> None:
-        """Constructs a transformation tape which holds information about transforms."""
         super().__init__()
 
         self.recordings: List[TransformationInformation] = []
 
     def record(self, value: TransformationInformation) -> None:
-        """Records a transformation information on the tape.
+        """Record a transformation information on the tape.
 
         Args:
             value (TransformationInformation): The transformation information to be recorded.

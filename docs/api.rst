@@ -13,5 +13,6 @@ The functionality of PyRaDiSe is split into the following packages:
     :maxdepth: 3
     :caption: Packages
 
+    pyradise.data
     pyradise.conversion
     pyradise.curation

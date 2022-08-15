@@ -6,13 +6,16 @@ from typing import (
 import os
 import json
 
-from pyradise.curation.data import (
+from pyradise.data import (
     Modality,
     ModalityFactory)
 from .series_information import (
     DicomSeriesInfo,
     DicomSeriesImageInfo)
 from .utils import check_is_file_and_existing
+
+__all__ = ['ModalityConfiguration']
+
 
 ModalityConfigurationEntry = NamedTuple('ModalityConfigurationEntry',
                                         SOPClassUID=str,
@@ -42,13 +45,13 @@ class ModalityConfiguration:
             ModalityConfiguration: The loaded modality configuration.
         """
         config = ModalityConfiguration()
-        config.load_modality_file(path, False)
+        config._load_modality_file(path, False)
         return config
 
-    def load_modality_file(self,
-                           path: str,
-                           append: bool = False
-                           ) -> None:
+    def _load_modality_file(self,
+                            path: str,
+                            append: bool = False
+                            ) -> None:
         """Load a modality file.
 
         Args:
@@ -192,7 +195,7 @@ class ModalityConfiguration:
             info.set_modality(modality)
 
     def add_modalities_to_info(self, infos: Tuple[DicomSeriesImageInfo]) -> None:
-        """Add the modality information from the modality configuration to the provided DicomSeriesImageInfo if
+        """Add the modality information from the modality configuration to the provided DicomSeriesImageInfos if
         available.
 
         Args:

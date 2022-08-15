@@ -1,9 +1,10 @@
+from typing import Tuple
 from enum import Enum
 
 import numpy as np
 import SimpleITK as sitk
 
-from pyradise.curation.data import (
+from pyradise.data import (
     Subject,
     Modality,
     TransformationInformation)
@@ -34,10 +35,10 @@ class ReferenceSubjectRegistrationFilterParameters(FilterParameters):
                  step_size: float = 0.001,
                  number_of_iterations: int = 1500,
                  relaxation_factor: float = 0.5,
-                 shrink_factors: [int] = (2, 2, 1),
-                 smoothing_sigmas: [float] = (2, 1, 0),
+                 shrink_factors: Tuple[int] = (2, 2, 1),
+                 smoothing_sigmas: Tuple[float] = (2, 1, 0),
                  sampling_percentage: float = 0.2,
-                 resampling_interpolator=sitk.sitkBSpline,
+                 resampling_interpolator = sitk.sitkBSpline,
                  ) -> None:
         """Represents the parameters for a ReferenceSubjectRegistrationFilter.
 

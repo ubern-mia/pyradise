@@ -9,7 +9,7 @@ from copy import deepcopy
 import numpy as np
 import SimpleITK as sitk
 
-from pyradise.curation.data import (
+from pyradise.data import (
     Subject,
     Rater,
     Organ,

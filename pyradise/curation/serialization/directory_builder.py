@@ -1,7 +1,7 @@
 import os
 from typing import Optional
 
-from pyradise.curation.data import Subject
+from pyradise.data import Subject
 
 
 class DirectoryBuilder:

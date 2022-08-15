@@ -3,25 +3,27 @@ from typing import (
     Tuple)
 
 
+__all__ = ['Rater', 'RaterFactory']
+
+
 class Rater:
-    """A class representing a rater."""
+    """A class representing a rater.
+
+    Args:
+        name (str): The name of the rater.
+        abbreviation (Optional[str]): The abbreviation of the rater (default=None).
+    """
 
     def __init__(self,
                  name: str,
                  abbreviation: Optional[str] = None
                  ) -> None:
-        """Constructs a rater.
-
-        Args:
-            name (str): The name of the rater.
-            abbreviation (Optional[str]): The abbreviation of the rater (default=None).
-        """
         super().__init__()
-        self.name = name
-        self.abbreviation = abbreviation
+        self.name: str = name
+        self.abbreviation: Optional[str] = abbreviation
 
     def get_name(self) -> str:
-        """Gets the name of the rater.
+        """Get the name of the rater.
 
         Returns:
             str: The name of the rater.
@@ -29,7 +31,7 @@ class Rater:
         return self.name
 
     def get_abbreviation(self) -> Optional[str]:
-        """Gets the abbreviation of the rater.
+        """Get the abbreviation of the rater.
 
         Returns:
             Optional[str]: The abbreviation of the rater if contained otherwise None.
@@ -44,18 +46,17 @@ class Rater:
 
 
 class RaterFactory:
-    """A factory class producing raters."""
+    """A factory class producing raters.
+
+    Args:
+        raters (Tuple[str, ...]): All available rater names.
+        abbreviations (Optional[Tuple[str, ...]]): All abbreviations to the raters (default=None).
+    """
 
     def __init__(self,
                  raters: Tuple[str, ...],
                  abbreviations: Optional[Tuple[str, ...]] = None
                  ) -> None:
-        """Constructs a rater factory.
-
-        Args:
-            raters (Tuple[str, ...]): All available rater names.
-            abbreviations (Optional[Tuple[str, ...]]): All abbreviations to the raters (default=None).
-        """
         super().__init__()
 
         if abbreviations:
@@ -66,7 +67,7 @@ class RaterFactory:
         self.abbreviations = abbreviations
 
     def produce(self, name: str) -> Rater:
-        """Produces a new rater is possible.
+        """Produce a new rater if possible.
 
         Args:
             name (str): The name of the rater.

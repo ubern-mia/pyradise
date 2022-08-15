@@ -8,7 +8,7 @@ from typing import (
 
 import SimpleITK as sitk
 
-from pyradise.curation.data import (
+from pyradise.data import (
     Subject,
     IntensityImage,
     SegmentationImage)

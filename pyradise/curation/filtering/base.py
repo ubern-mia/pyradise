@@ -12,7 +12,7 @@ from typing import (
 
 import numpy as np
 
-from pyradise.curation.data import Subject
+from pyradise.data import Subject
 
 
 # pylint: disable=too-few-public-methods

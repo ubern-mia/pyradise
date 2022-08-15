@@ -7,7 +7,7 @@ from typing import (
     Dict)
 from pathlib import Path
 
-from pyradise.curation.data import (
+from pyradise.data import (
     Modality,
     Organ,
     Rater)

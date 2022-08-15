@@ -47,10 +47,12 @@ extensions = ['sphinx.ext.autodoc',
               'nbsphinx',
               'sphinx_copybutton',
               'sphinxemoji.sphinxemoji',
-              'sphinx_toolbox.more_autodoc.autonamedtuple']
+              'sphinx_toolbox.more_autodoc.autonamedtuple',
+              'sphinx_autodoc_typehints']
 
 napoleon_use_ivar = True
 autodoc_member_order = 'bysource'
+add_module_names = False
 
 templates_path = ['_templates']
 exclude_patterns = []

@@ -13,23 +13,26 @@ from .image import (
     Organ,
     Rater)
 
+
+__all__ = ['Subject',]
+
+
 OneOrMultipleImagesOrNone = Optional[Union[IntensityImage, SegmentationImage, Tuple[IntensityImage, ...],
                                            Tuple[SegmentationImage, ...]]]
 
 
 class Subject:
-    """A class representing a subject."""
+    """A class representing a subject.
+
+    Args:
+        name (str): The name of the subject.
+        images (OneOrMultipleImagesOrNone): One or multiple images to add to the subject.
+    """
 
     def __init__(self,
                  name: str,
                  images: OneOrMultipleImagesOrNone = None
                  ) -> None:
-        """Constructs a subject.
-
-        Args:
-            name (str): The name of the subject.
-            images (OneOrMultipleImagesOrNone): One or multiple images to add to the subject.
-        """
         super().__init__()
 
         self.name = name
@@ -74,7 +77,7 @@ class Subject:
                       old_image: Union[IntensityImage, SegmentationImage],
                       new_image: Union[IntensityImage, SegmentationImage]
                       ) -> bool:
-        """Replaces an existing image with a new one.
+        """Replace an existing image with a new one.
 
         Args:
             old_image (Union[IntensityImage, SegmentationImage]): The image to be replaced.
@@ -114,7 +117,7 @@ class Subject:
                   image: Union[IntensityImage, SegmentationImage],
                   force: bool = False
                   ) -> None:
-        """Adds an image to the subject.
+        """Add an image to the subject.
 
         Args:
             image (Union[IntensityImage, SegmentationImage]): The image to add to the subject.
@@ -160,7 +163,7 @@ class Subject:
                    images: Sequence[Union[IntensityImage, SegmentationImage]],
                    force: bool = False
                    ) -> None:
-        """Adds multiple images to the subject.
+        """Add multiple images to the subject.
 
         Args:
             images (Sequence[Union[IntensityImage, SegmentationImage]]): The images to add to the subject.
@@ -189,7 +192,7 @@ class Subject:
     def remove_image_by_modality(self,
                                  modality: Modality
                                  ) -> bool:
-        """Removes one or multiple images as specified by the modality.
+        """Remove one or multiple images as specified by the modality.
 
         Args:
             modality (Modality): The modality of all images to remove.
@@ -211,7 +214,7 @@ class Subject:
     def remove_image_by_organ(self,
                               organ: Union[Organ, str]
                               ) -> bool:
-        """Removes one or multiple images as specified by the organ.
+        """Remove one or multiple images as specified by the organ.
 
         Args:
             organ (Union[Organ, str]): The organ of all images to remove.
@@ -237,7 +240,7 @@ class Subject:
     def remove_image(self,
                      image: Union[IntensityImage, SegmentationImage]
                      ) -> bool:
-        """Removes a given image from the subject.
+        """Remove a given image from the subject.
 
         Args:
             image (Union[IntensityImage, SegmentationImage]): The image to remove from the subject.
@@ -311,12 +314,12 @@ class Subject:
         return tuple(candidates)
 
     def get_image_by_organ(self,
-                           organ: [Organ, str]
+                           organ: Union[Organ, str]
                            ) -> Optional[SegmentationImage]:
         """Get one segmentation image by its organ.
 
         Args:
-            organ ([Organ, str]): The organ of the image to retrieve.
+            organ (Union[Organ, str]): The organ of the image to retrieve.
 
         Returns:
             Optional[SegmentationImage]: The segmentation image or None if there are multiple candidates.
@@ -331,7 +334,7 @@ class Subject:
     def set_image(self,
                   image: Union[IntensityImage, SegmentationImage]
                   ) -> None:
-        """Replaces an image with either the same modality in case of an intensity image or the same organ and rater
+        """Replace an image with either the same modality in case of an intensity image or the same organ and rater
          in case of a segmentation image.
 
         Args:

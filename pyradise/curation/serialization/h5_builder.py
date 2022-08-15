@@ -19,7 +19,7 @@ from pymia.data.transformation import (
     Transform,
     IntensityNormalization)
 
-from pyradise.curation.data import (
+from pyradise.data import (
     Modality,
     OrganRaterCombination)
 

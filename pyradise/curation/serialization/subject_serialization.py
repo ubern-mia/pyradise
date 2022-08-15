@@ -15,7 +15,7 @@ import SimpleITK as sitk
 import itk
 from pydicom import Dataset
 
-from pyradise.curation.data import (
+from pyradise.data import (
     Subject,
     IntensityImage,
     SegmentationImage)

@@ -12,11 +12,11 @@ from pydicom import Dataset
 from .base_conversion import Converter
 from .crawling import DicomSubjectDirectoryCrawler
 from .series_information import DicomSeriesImageInfo
-from .rtss_conversion import ImageToRTSSConverter
+from .dicom_conversion import ImageToRTSSConverter
 
 
-class NiftyLabelsToDicomConverter(Converter):
-    """A class for converting NIFTI label images into a DICOM RT Structure Set."""
+class SimpleITKLabelsToDicomConverter(Converter):
+    """A class for converting SimpleITK label images into a DICOM RT Structure Set."""
 
     def __init__(self,
                  label_images: Union[sitk.Image, Tuple[sitk.Image, ...]],
@@ -24,7 +24,7 @@ class NiftyLabelsToDicomConverter(Converter):
                  label_names: Union[str, Tuple[str, ...]],
                  label_colors: Optional[Union[Tuple[int, int, int], Tuple[Tuple[int, int, int], ...]]] = None
                  ) -> None:
-        """Constructs the NIFTI to DICOM RT Structure Set converter.
+        """Constructs the SimpleITK to DICOM RT Structure Set converter.
 
         Args:
             label_images (Union[sitk.Image, Tuple[sitk.Image, ...]]): The label image to convert.
@@ -130,16 +130,16 @@ class NiftyLabelsToDicomConverter(Converter):
 
     @classmethod
     def from_path(cls,
-                  nifti_path: str,
+                  image_file_path: str,
                   dicom_dir_path: str,
                   label_names: Optional[Tuple[str, ...]],
                   label_colors: Optional[Union[Tuple[int, int, int], Tuple[Tuple[int, int, int]]]],
                   series_instance_uid: Optional[str] = None
-                  ) -> "NiftyLabelsToDicomConverter":
-        """Interface for generating DICOM RT structure sets directly from a file.
+                  ) -> "SimpleITKLabelsToDicomConverter":
+        """Interface for generating DICOM RT-STRUCT directly from a file.
 
         Args:
-            nifti_path (str): The path to the label file.
+            image_file_path (str): The path to the label file.
             dicom_dir_path (str): The path to the directory holding the DICOM image series.
             label_names (Optional[Tuple[str, ...]]): The label names of the structures.
             label_colors (Optional[Union[Tuple[int, int, int], Tuple[Tuple[int, int, int]]]]): The label colors used
@@ -147,11 +147,11 @@ class NiftyLabelsToDicomConverter(Converter):
             series_instance_uid (Optional[str]): The SeriesInstanceUID for the image series to use.
 
         Returns:
-            NiftyLabelsToDicomConverter: An instance of the converter class.
+            SimpleITKLabelsToDicomConverter: An instance of the converter class.
         """
 
-        if not os.path.exists(nifti_path):
-            raise FileNotFoundError(f'The NIFTI file ({nifti_path}) is not existing!')
+        if not os.path.exists(image_file_path):
+            raise FileNotFoundError(f'The image file ({image_file_path}) is not existing!')
 
         if not os.path.exists(dicom_dir_path):
             raise Exception(f'The DICOM directory path ({dicom_dir_path}) is not existing!')
@@ -160,10 +160,11 @@ class NiftyLabelsToDicomConverter(Converter):
             raise Exception(f'The DICOM directory path ({dicom_dir_path}) is not a directory path!')
 
         # load and check the image series infos
-        series_info = NiftyLabelsToDicomConverter._get_image_series_info_from_path(dicom_dir_path, series_instance_uid)
+        series_info = SimpleITKLabelsToDicomConverter._get_image_series_info_from_path(dicom_dir_path,
+                                                                                       series_instance_uid)
 
         # load and split the image if necessary
-        images = NiftyLabelsToDicomConverter._load_and_split_label_image(nifti_path)
+        images = SimpleITKLabelsToDicomConverter._load_and_split_label_image(image_file_path)
 
         # check or construct the label names
         if label_names is None:
@@ -184,7 +185,7 @@ class NiftyLabelsToDicomConverter(Converter):
         return converter
 
     def convert(self) -> Dataset:
-        """Converts the provided image into a DICOM RT Structure Set.
+        """Convert the provided image into a DICOM RT-STRUCT.
 
         Returns:
             Dataset: The Dataset of the DICOM RT Structures Set.

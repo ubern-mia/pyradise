@@ -4,7 +4,7 @@ from typing import (
 
 import itk
 
-from pyradise.curation.data import (
+from pyradise.data import (
     Subject,
     IntensityImage,
     Rater,
@@ -15,9 +15,21 @@ from .base import (
     FilterParameters)
 
 
+__all__ = ['SegmentationCheckingFilterParameters', 'SegmentationCheckingFilter']
+
+
 # pylint: disable = too-few-public-methods
 class SegmentationCheckingFilterParameters(FilterParameters):
-    """A class representing parameters for a SegmentationCheckingFilter."""
+    """A class representing parameters for a SegmentationCheckingFilter.
+
+    Args:
+        required_organs (Tuple[Organ, ...]): The organs which must be contained in the subject.
+        reference_image (Union[IntensityImage, SegmentationImage]): The reference image for newly constructed label
+         images.
+        default_rater (Union[Rater, str]): The default rater for newly constructed label images.
+        strict (bool): If True organs in the subject which are not part of the required organs will be deleted
+         (default=False).
+    """
 
     def __init__(self,
                  required_organs: Tuple[Organ, ...],
@@ -25,16 +37,6 @@ class SegmentationCheckingFilterParameters(FilterParameters):
                  default_rater: Union[Rater, str] = 'unknown',
                  strict: bool = False
                  ) -> None:
-        """Constructs the filter parameters for a SegmentationCheckingFilter.
-
-        Args:
-            required_organs (Tuple[Organ, ...]): The organs which must be contained in the subject.
-            reference_image (Union[IntensityImage, SegmentationImage]): The reference image for newly constructed label
-             images.
-            default_rater (Union[Rater, str]): The default rater for newly constructed label images.
-            strict (bool): If True organs in the subject which are not part of the required organs will be deleted
-             (default=False).
-        """
         super().__init__()
         self.required_organs = required_organs
         self.reference_image = reference_image
@@ -54,7 +56,7 @@ class SegmentationCheckingFilter(Filter):
                              organ: Organ,
                              params: SegmentationCheckingFilterParameters
                              ) -> None:
-        """Constructs and adds a new organ image to the subject.
+        """Construct and adds a new organ image to the subject.
 
         Args:
             subject (Subject): The subject to add the newly constructed image.
@@ -97,7 +99,7 @@ class SegmentationCheckingFilter(Filter):
                 subject: Subject,
                 params: SegmentationCheckingFilterParameters
                 ) -> Subject:
-        """Executes the segmentation checking procedure.
+        """Execute the segmentation checking procedure.
 
         Args:
             subject (Subject): The subject to check and maybe to modify.

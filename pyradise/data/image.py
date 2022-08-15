@@ -18,30 +18,32 @@ from .rater import Rater
 from .taping import TransformTape
 
 
+__all__ = ['Image', 'IntensityImage', 'SegmentationImage']
+
+
 class Image(ABC):
-    """Abstract base class for images."""
+    """Abstract base class for images.
+
+    Args:
+        image (Union[sitk.Image, itk.Image]): The image data to be stored.
+    """
 
     def __init__(self,
                  image: Union[sitk.Image, itk.Image]
                  ) -> None:
-        """Constructs a new image.
-
-        Args:
-            image (Union[sitk.Image, itk.Image]): The image data to be stored.
-        """
         super().__init__()
 
         if isinstance(image, sitk.Image):
-            self.image = self.convert_to_itk_image(image)
+            self.image: itk.Image = self.convert_to_itk_image(image)
 
         else:
-            self.image = image
+            self.image: itk.Image = image
 
         self.transform_tape = TransformTape()
 
     @abstractmethod
     def is_intensity_image(self) -> bool:
-        """Returns True if the image is an intensity image otherwise False.
+        """Return True if the image is an intensity image otherwise False.
 
         Returns:
             bool: n/a
@@ -50,7 +52,7 @@ class Image(ABC):
 
     @staticmethod
     def convert_to_sitk_image(image: itk.Image) -> sitk.Image:
-        """Converts an ITK image to a SimpleITK image.
+        """Convert an ITK image to a SimpleITK image.
 
         Args:
             image (itk.Image): The ITK image to be converted.
@@ -67,7 +69,7 @@ class Image(ABC):
 
     @staticmethod
     def convert_to_itk_image(image: sitk.Image) -> itk.Image:
-        """Converts a SimpleITK image to an ITK image.
+        """Convert a SimpleITK image to an ITK image.
 
         Args:
             image (sitk.Image): The SimpleITK image to be converted.
@@ -228,18 +230,17 @@ class Image(ABC):
 
 
 class IntensityImage(Image):
-    """A class representing an intensity image."""
+    """A class representing an intensity image.
+
+    Args:
+        image (Union[sitk.Image, itk.Image]): The image data to add to the image.
+        modality (Modality): The image modality.
+    """
 
     def __init__(self,
                  image: Union[sitk.Image, itk.Image],
                  modality: Modality
                  ) -> None:
-        """Construct an intensity image.
-
-        Args:
-            image (Union[sitk.Image, itk.Image]): The image data to add to the image.
-            modality (Modality): The image modality.
-        """
         super().__init__(image)
 
         self.modality = modality
@@ -276,23 +277,22 @@ class IntensityImage(Image):
 
 
 class SegmentationImage(Image):
-    """A class representing a segmentation image."""
+    """A class representing a segmentation image.
+
+    Args:
+        image (Union[sitk.Image, itk.Image]): The segmentation image data.
+        organ (Organ): The organ represented by the segmentation image.
+        rater (Optional[Rater]): The rater of the segmentation image (default=None).
+    """
 
     def __init__(self,
                  image: Union[sitk.Image, itk.Image],
                  organ: Organ,
                  rater: Optional[Rater] = None
                  ) -> None:
-        """Constructs a segmentation image.
-
-        Args:
-            image (Union[sitk.Image, itk.Image]): The segmentation image data.
-            organ (Organ): The organ represented by the segmentation image.
-            rater (Optional[Rater]): The rater of the segmentation image (default=None).
-        """
         super().__init__(image)
-        self.organ = organ
-        self.rater = rater
+        self.organ: Organ = organ
+        self.rater: Optional[Rater] = rater
 
     def is_intensity_image(self) -> bool:
         """If the image is an intensity image this function returns True otherwise False.
@@ -327,7 +327,7 @@ class SegmentationImage(Image):
         return self.rater
 
     def get_organ_rater_combination(self) -> Optional[OrganRaterCombination]:
-        """Gets the organ rater combination if available.
+        """Get the organ rater combination if available.
 
         Notes:
             Returns None if the rater is not available!

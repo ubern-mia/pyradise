@@ -3,7 +3,7 @@ from typing import Union
 
 import SimpleITK as sitk
 
-from pyradise.curation.data import TransformationInformation
+from pyradise.data import TransformationInformation
 from .base import (
     Subject,
     Filter,

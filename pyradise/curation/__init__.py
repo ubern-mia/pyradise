@@ -1,19 +1,3 @@
-from .data import (
-    Modality,
-    ModalityFactory,
-    Organ,
-    OrganFactory,
-    Rater,
-    RaterFactory,
-    OrganRaterCombination,
-    Image,
-    IntensityImage,
-    SegmentationImage,
-    Subject,
-    Tape,
-    TransformTape,
-    TransformationInformation)
-
 from .filtering import (
     SpatialOrientation,
     Filter,

@@ -7,7 +7,7 @@ from copy import deepcopy
 import numpy as np
 import SimpleITK as sitk
 
-from pyradise.curation.data import (
+from pyradise.data import (
     Subject,
     Modality,
     IntensityImage,
@@ -20,9 +20,24 @@ from .base import (
     FilterParameters)
 
 
+__all__ = ['ApplyTransformationTapeFilterParameters', 'ApplyTransformationTapeFilter',
+           'BackTransformIntensityImageFilterParams', 'BackTransformIntensityImageFilter',
+           'BackTransformSegmentationFilterParams', 'BackTransformSegmentationFilter',
+           'CopyReferenceTransformTapeFilterParameters', 'CopyReferenceTransformTapeFilter']
+
+
 # pylint: disable = too-few-public-methods
 class ApplyTransformationTapeFilterParameters(FilterParameters):
-    """A class representing the parameters for a ApplyTransformationTapeFilter."""
+    """A class representing the parameters for a ApplyTransformationTapeFilter.
+
+    Args:
+        targets (Optional[Tuple[Union[Modality, OrganRaterCombination]]]): The targets to which the transformations
+         should be applied.
+        transform_source (Optional[Union[Modality, OrganRaterCombination, TransformTape]]): The reference where the
+         transformation is defined.
+        backward_playback (bool): Indicates if the transform tape should be replayed forward or backward.
+        clear_transformation_tapes (bool): Indicates if the transformation tapes should be cleared.
+    """
 
     def __init__(self,
                  targets: Optional[Tuple[Union[Modality, OrganRaterCombination]]] = None,
@@ -30,16 +45,6 @@ class ApplyTransformationTapeFilterParameters(FilterParameters):
                  backward_playback: bool = True,
                  clear_transformation_tapes: bool = False
                  ) -> None:
-        """Constructs the parameters for the ApplyTransformationTapeFilter.
-
-        Args:
-            targets (Optional[Tuple[Union[Modality, OrganRaterCombination]]]): The targets to which the transformations
-             should be applied.
-            transform_source (Optional[Union[Modality, OrganRaterCombination, TransformTape]]): The reference where the
-             transformation is defined.
-            backward_playback (bool): Indicates if the transform tape should be replayed forward or backward.
-            clear_transformation_tapes (bool): Indicates if the transformation tapes should be cleared.
-        """
         super().__init__()
         self.targets = targets
         self.transform_source = transform_source
@@ -54,7 +59,7 @@ class ApplyTransformationTapeFilter(Filter):
     def _get_images_to_process(subject: Subject,
                                params: ApplyTransformationTapeFilterParameters
                                ) -> Tuple[Union[IntensityImage, SegmentationImage]]:
-        """Gets the images to process.
+        """Get the images to process.
 
         Args:
             subject (Subject): The subject holding the data.
@@ -88,7 +93,7 @@ class ApplyTransformationTapeFilter(Filter):
     def _get_transform_tape(subject: Subject,
                             params: ApplyTransformationTapeFilterParameters
                             ) -> Optional[TransformTape]:
-        """Gets the correct transformation tape according to the specification in the parameters.
+        """Get the correct transformation tape according to the specification in the parameters.
 
         Args:
             subject (Subject): The subject holding the data.
@@ -139,7 +144,7 @@ class ApplyTransformationTapeFilter(Filter):
                          transform_tape: Optional[TransformTape],
                          params: ApplyTransformationTapeFilterParameters
                          ) -> Union[IntensityImage, SegmentationImage]:
-        """Applies the transformation to the image and clears the transformation tape if allowed.
+        """Apply the transformation to the image and clears the transformation tape if allowed.
 
         Args:
             image (Union[IntensityImage, SegmentationImage]): The image to apply the transformations to.
@@ -207,7 +212,7 @@ class ApplyTransformationTapeFilter(Filter):
                 subject: Subject,
                 params: ApplyTransformationTapeFilterParameters
                 ) -> Subject:
-        """Executes the filter and reapplies the transformations.
+        """Execute the filter and reapplies the transformations.
 
         Args:
             subject (Subject): The subject to process.
@@ -237,7 +242,7 @@ class BackTransformSegmentationFilter(Filter):
                 subject: Subject,
                 params: Optional[BackTransformSegmentationFilterParams]
                 ) -> Subject:
-        """Executes the filter.
+        """Execute the filter.
 
         Args:
             subject (Subject): The subject to be processed.
@@ -263,7 +268,7 @@ class BackTransformIntensityImageFilter(Filter):
                 subject: Subject,
                 params: Optional[BackTransformIntensityImageFilterParams]
                 ) -> Subject:
-        """Executes the filter.
+        """Execute the filter.
 
         Args:
             subject (Subject): The subject to be processed.
@@ -280,7 +285,12 @@ class BackTransformIntensityImageFilter(Filter):
 
 # pylint: disable = too-few-public-methods
 class CopyReferenceTransformTapeFilterParameters(FilterParameters):
-    """A class for the parameters of a CopyReferenceTransformTapeFilter."""
+    """A class for the parameters of a CopyReferenceTransformTapeFilter.
+
+    Args:
+        reference_modality (Modality): The reference modality.
+        excluded_organs (Tuple[OrganRaterCombination, ...]): The organs to exclude (default: ()).
+    """
 
     def __init__(self,
                  reference_modality: Modality,
@@ -309,7 +319,7 @@ class CopyReferenceTransformTapeFilter(Filter):
                 subject: Subject,
                 params: CopyReferenceTransformTapeFilterParameters
                 ) -> Subject:
-        """Executes the copying procedure for the transformation tape.
+        """Execute the copying procedure for the transformation tape.
 
         Args:
             subject (Subject): The subject.

@@ -15,17 +15,20 @@ from .directory_filtering import DicomCombinedDirectoryFilter
 from .configuration import ModalityConfiguration
 from .utils import check_is_dir_and_existing
 
+__all__ = ['Crawler', 'DicomSubjectDirectoryCrawler', 'DicomDatasetDirectoryCrawler',
+           'IterableDicomDatasetDirectoryCrawler']
+
 
 class Crawler(ABC):
-    """An abstract crawler class."""
+    """An abstract crawler class.
+
+    Args:
+        path (str): The directory path for which the crawling will be performed.
+    """
 
     def __init__(self,
                  path: str
                  ) -> None:
-        """
-        Args:
-            path (str): The directory path for which the crawling will be performed.
-        """
         super().__init__()
         check_is_dir_and_existing(os.path.normpath(path))
 
@@ -42,20 +45,20 @@ class Crawler(ABC):
 
 
 class DicomSubjectDirectoryCrawler(Crawler):
-    """A crawler class to retrieve the data from a directory containing all DICOM files of a subject."""
+    """A crawler class to retrieve the data from a directory containing all DICOM files of a subject.
+
+    Args:
+        path (str): The subject directory path.
+        modality_config_file_name (str): The file name for the modality configuration file within the subject
+         directory (Default: modality_config.json).
+        write_modality_config (bool): If True writes the modality configuration retrieved from the subject
+         directory to the subject directory.
+    """
 
     def __init__(self,
                  path: str,
                  modality_config_file_name: str = 'modality_config.json',
                  write_modality_config: bool = False) -> None:
-        """
-        Args:
-            path (str): The subject directory path.
-            modality_config_file_name (str): The file name for the modality configuration file within the subject
-             directory (Default: modality_config.json).
-            write_modality_config (bool): If True writes the modality configuration retrieved from the subject
-             directory to the subject directory.
-        """
         super().__init__(path)
         self.modality_config_file_name = modality_config_file_name
         self.write_modality_config = write_modality_config
@@ -118,9 +121,9 @@ class DicomSubjectDirectoryCrawler(Crawler):
 
         return tuple(infos)
 
-    def export_modality_config(self,
-                               infos: Tuple[DicomSeriesInfo, ...]
-                               ) -> None:
+    def _export_modality_config(self,
+                                infos: Tuple[DicomSeriesInfo, ...]
+                                ) -> None:
         """Exports the retrieved ModalityConfiguration to a file.
 
         Args:
@@ -134,7 +137,7 @@ class DicomSubjectDirectoryCrawler(Crawler):
         config = ModalityConfiguration.from_dicom_series_info(infos)
         config.to_file(config_output_path)
 
-    def apply_modality_config(self, infos: Tuple[DicomSeriesImageInfo, ...]) -> None:
+    def _apply_modality_config(self, infos: Tuple[DicomSeriesImageInfo, ...]) -> None:
         """Loads the ModalityConfiguration from a file and applies it to the specified DicomSeriesImageInfos.
 
         Args:
@@ -169,36 +172,36 @@ class DicomSubjectDirectoryCrawler(Crawler):
         registration_infos = self._generate_registration_infos(registration_paths, image_infos)
         rtss_infos = self._generate_rtss_info(rtss_paths)
 
-        self.apply_modality_config(image_infos)
+        self._apply_modality_config(image_infos)
 
         if self.write_modality_config:
-            self.export_modality_config(image_infos)
+            self._export_modality_config(image_infos)
 
         return image_infos + registration_infos + rtss_infos
 
 
 class DicomDatasetDirectoryCrawler(Crawler):
     """A crawler class to retrieve the data from multiple subject directories containing each DICOM files of a
-    single subject."""
+    single subject.
+
+    Args:
+        path (str): The path to the base directory of the dataset.
+        modality_config_file_name (str): The name of the modality configuration file saved in each subject
+         directory if requested.
+        write_modality_config (bool): If True the modality configuration files will be writen to each subject
+         directory.
+    """
 
     def __init__(self,
                  path: str,
                  modality_config_file_name: str = 'modality_config.json',
                  write_modality_config: bool = False) -> None:
-        """
-        Args:
-            path (str): The path to the base directory of the dataset.
-            modality_config_file_name (str): The name of the modality configuration file saved in each subject
-             directory if requested.
-            write_modality_config (bool): If True the modality configuration files will be writen to each subject
-             directory.
-        """
         super().__init__(path)
         self.modality_config_file_name = modality_config_file_name
         self.write_modality_config = write_modality_config
 
     @staticmethod
-    def get_subject_dir_paths(path: str) -> Tuple[str, ...]:
+    def _get_subject_dir_paths(path: str) -> Tuple[str, ...]:
         """Gets the paths of the subject directories containing DICOM files.
 
         Args:
@@ -225,7 +228,7 @@ class DicomDatasetDirectoryCrawler(Crawler):
         """
         subject_infos = []
 
-        subject_dir_paths = self.get_subject_dir_paths(self.path)
+        subject_dir_paths = self._get_subject_dir_paths(self.path)
 
         for subject_dir_path in subject_dir_paths:
             subject_info = DicomSubjectDirectoryCrawler(subject_dir_path,
@@ -241,6 +244,13 @@ class DicomDatasetDirectoryCrawler(Crawler):
 class IterableDicomDatasetDirectoryCrawler(DicomDatasetDirectoryCrawler):
     """An iterable crawler class to retrieve the data from multiple subject directories containing each DICOM files
     of a single subject.
+
+    Args:
+        path (str): The path to the base directory of the dataset.
+        modality_config_file_name (str): The name of the modality configuration file saved in each subject
+         directory if requested.
+        write_modality_config (bool): If True the modality configuration files will be writen to each subject
+         directory.
     """
 
     def __init__(self,
@@ -248,17 +258,9 @@ class IterableDicomDatasetDirectoryCrawler(DicomDatasetDirectoryCrawler):
                  modality_config_file_name: str = 'modality_config.json',
                  write_modality_config: bool = False
                  ) -> None:
-        """
-        Args:
-            path (str): The path to the base directory of the dataset.
-            modality_config_file_name (str): The name of the modality configuration file saved in each subject
-             directory if requested.
-            write_modality_config (bool): If True the modality configuration files will be writen to each subject
-             directory.
-        """
         super().__init__(path, modality_config_file_name, write_modality_config)
 
-        subject_dir_path = super().get_subject_dir_paths(self.path)
+        subject_dir_path = super()._get_subject_dir_paths(self.path)
         self.subject_dir_path = tuple(sorted(subject_dir_path))
 
         self.current_idx = 0

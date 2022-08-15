@@ -8,23 +8,25 @@ import numpy as np
 from .rater import Rater
 
 
+__all__ = ['Organ', 'OrganFactory', 'OrganRaterCombination']
+
+
 class Organ:
-    """A class representing an organ."""
+    """A class representing an organ.
+
+    Args:
+        name (str): The name of the organ.
+        index (Optional[int]): The index of the organ (default=None).
+    """
 
     def __init__(self,
                  name: str,
                  index: Optional[int] = None
                  ) -> None:
-        """Constructs an organ.
-
-        Args:
-            name (str): The name of the organ.
-            index (Optional[int]): The index of the organ (default=None).
-        """
         super().__init__()
 
-        self.name = name
-        self.index = index
+        self.name: str = name
+        self.index: Optional[int] = index
 
     def __str__(self) -> str:
         return self.name
@@ -34,21 +36,20 @@ class Organ:
 
 
 class OrganFactory:
-    """A factory class producing organs."""
+    """A factory class producing organs.
+
+    Args:
+        names (Tuple[str, ...]): The names of the available organs.
+        indices (Optional[Tuple[int]]): The indices of the available organs (default=None).
+        auto_enumerate (bool): Indicates if the provided organ names should be automatically enumerated
+         (default=True).
+    """
 
     def __init__(self,
                  names: Tuple[str, ...],
                  indices: Optional[Tuple[int]] = None,
                  auto_enumerate: bool = True
                  ) -> None:
-        """Constructs an organ factory.
-
-        Args:
-            names (Tuple[str, ...]): The names of the available organs.
-            indices (Optional[Tuple[int]]): The indices of the available organs (default=None).
-            auto_enumerate (bool): Indicates if the provided organ names should be automatically enumerated
-             (default=True).
-        """
         super().__init__()
 
         if isinstance(indices, tuple):
@@ -58,10 +59,10 @@ class OrganFactory:
         self.names = names
 
         if not indices and auto_enumerate:
-            self.indices = tuple(np.arange(len(names)))
+            self.indices: Tuple[int] = tuple(np.arange(len(names)))
 
         else:
-            self.indices = indices
+            self.indices: Optional[Tuple[int]] = indices
 
     def produce(self, name: str) -> Organ:
         """Produces a new organ.
@@ -85,18 +86,17 @@ class OrganFactory:
 
 
 class OrganRaterCombination:
-    """A class combining an organ with a rater."""
+    """A class combining an organ with a rater.
+
+    Args:
+        organ (Union[Organ, str]): The organ or its name.
+        rater (Union[Rater, str]): The rater or its name.
+    """
 
     def __init__(self,
                  organ: Union[Organ, str],
                  rater: Union[Rater, str]
                  ) -> None:
-        """Constructs an organ rater combination.
-
-        Args:
-            organ (Union[Organ, str]): The organ or its name.
-            rater (Union[Rater, str]): The rater or its name.
-        """
         super().__init__()
 
         if isinstance(organ, str):
@@ -105,8 +105,8 @@ class OrganRaterCombination:
         if isinstance(rater, str):
             rater = Rater(rater)
 
-        self.organ = organ
-        self.rater = rater
+        self.organ: Union[Organ, str] = organ
+        self.rater: Union[Rater, str] = rater
 
     def __str__(self) -> str:
         return self.name

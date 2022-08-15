@@ -6,7 +6,7 @@ import numpy as np
 import SimpleITK as sitk
 import itk
 
-from pyradise.curation.data import (
+from pyradise.data import (
     Subject,
     Modality,
     TransformationInformation,

@@ -19,10 +19,13 @@ The main concept of :mod:`pyradise.curation` is illustrated in the figure below:
 
 MAIN CONCEPT ILLUSTRATION
 
+|
 
 Filter Base Module
 -------------------
 Module: :mod:`pyradise.curation.base`
+
+|
 
 .. automodule:: pyradise.curation.base
     :show-inheritance:
@@ -33,6 +36,8 @@ Normalization Module
 --------------------
 Module: :mod:`pyradise.curation.normalization`
 
+|
+
 .. automodule:: pyradise.curation.normalization
     :show-inheritance:
     :members:
@@ -41,6 +46,8 @@ Module: :mod:`pyradise.curation.normalization`
 Orientation Module
 ------------------
 Module: :mod:`pyradise.curation.orientation`
+
+|
 
 .. automodule:: pyradise.curation.orientation
     :show-inheritance:
@@ -51,6 +58,8 @@ Registration Module
 -------------------
 Module: :mod:`pyradise.curation.registration`
 
+|
+
 .. automodule:: pyradise.curation.registration
     :show-inheritance:
     :members:
@@ -59,6 +68,8 @@ Module: :mod:`pyradise.curation.registration`
 Resampling Module
 -----------------
 Module: :mod:`pyradise.curation.resampling`
+
+|
 
 .. automodule:: pyradise.curation.resampling
     :show-inheritance:
@@ -69,6 +80,8 @@ Segmentation Combination Module
 -------------------------------
 Module: :mod:`pyradise.curation.segmentation_combination`
 
+|
+
 .. automodule:: pyradise.curation.segmentation_combination
     :show-inheritance:
     :members:
@@ -77,6 +90,8 @@ Module: :mod:`pyradise.curation.segmentation_combination`
 Segmentation Post-Processing Module
 -----------------------------------
 Module: :mod:`pyradise.curation.segmentation_postprocessing`
+
+|
 
 .. automodule:: pyradise.curation.segmentation_postprocessing
     :show-inheritance:
@@ -87,14 +102,18 @@ Transformation Module
 ---------------------
 Module: :mod:`pyradise.curation.transformation`
 
+|
+
 .. automodule:: pyradise.curation.transformation
     :show-inheritance:
     :members:
 
 
-Validation Module
------------------
+Segmentation Structure Validation Module
+----------------------------------------
 Module: :mod:`pyradise.curation.validation`
+
+|
 
 .. automodule:: pyradise.curation.validation
     :show-inheritance:

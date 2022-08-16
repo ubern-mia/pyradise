@@ -22,7 +22,11 @@ __all__ = ['Image', 'IntensityImage', 'SegmentationImage']
 
 
 class Image(ABC):
-    """Abstract base class for images.
+    """Abstract class to store images with additional attributes compared to :class:`SimpleITK.Image` and
+    :class:`itk.Image`.
+
+    The :class:`Image` contains a :class:`TransformTape` which is used to track and playback transformations applied
+    to the image, such that the original properties of the image can be retrieved.
 
     Args:
         image (Union[sitk.Image, itk.Image]): The image data to be stored.
@@ -52,13 +56,13 @@ class Image(ABC):
 
     @staticmethod
     def convert_to_sitk_image(image: itk.Image) -> sitk.Image:
-        """Convert an ITK image to a SimpleITK image.
+        """Convert an :class:`itk.Image` to a :class:`SimpleITK.Image`.
 
         Args:
-            image (itk.Image): The ITK image to be converted.
+            image (itk.Image): The :class:`itk.Image` to be converted.
 
         Returns:
-            sitk.Image: The SimpleITK image.
+            sitk.Image: The converted :class:`SimpleITK.Image`.
         """
         is_vector_image = image.GetNumberOfComponentsPerPixel() > 1
         image_sitk = sitk.GetImageFromArray(itk.GetArrayFromImage(image), isVector=is_vector_image)
@@ -69,13 +73,13 @@ class Image(ABC):
 
     @staticmethod
     def convert_to_itk_image(image: sitk.Image) -> itk.Image:
-        """Convert a SimpleITK image to an ITK image.
+        """Convert a :class:`SimpleITK.Image` to an :class:`itk.Image`.
 
         Args:
-            image (sitk.Image): The SimpleITK image to be converted.
+            image (sitk.Image): The :class:`SimpleITK.Image` to be converted.
 
         Returns:
-            itk.Image: The ITK image.
+            itk.Image: The converted :class:`itk.Image`.
         """
         is_vector_image = image.GetNumberOfComponentsPerPixel() > 1
         image_itk = itk.GetImageFromArray(sitk.GetArrayFromImage(image), is_vector=is_vector_image)
@@ -85,13 +89,13 @@ class Image(ABC):
         return image_itk
 
     def get_image(self, as_sitk: bool = False) -> Union[itk.Image, sitk.Image]:
-        """Get the image as the appropriate type.
+        """Get the image as an :class:`itk.Image` or :class:`SimpleITK.Image` (with ``as_sitk=True``).
 
         Args:
             as_sitk (bool): If True returns the image as a SimpleITK image else as a ITK image.
 
         Returns:
-            Union[itk.Image, sitk.Image]: The image as the appropriate data type.
+            Union[itk.Image, sitk.Image]: The image as the either a :class:`itk.Image` or a :class:`SimpleITK.Image`.
         """
         if as_sitk:
             return self.convert_to_sitk_image(self.image)
@@ -133,7 +137,8 @@ class Image(ABC):
              pixel_type: Union[itk.support.types.itkCType, int],
              as_sitk: bool = False
              ) -> Union[sitk.Image, itk.Image]:
-        """Cast an image to a certain pixel type and return it as a specified data type.
+        """Cast an image to a certain pixel type and return it as either a :class:`itk.Image` or
+        :class:`SimpleITK.Image`.
 
         Args:
             image (Union[sitk.Image, itk.Image]): The image to be casted.
@@ -141,7 +146,7 @@ class Image(ABC):
             as_sitk (bool): If True the image gets returned as a SimpleITK image otherwise as an ITK image.
 
         Returns:
-            Union[sitk.Image, itk.Image]: The casted image.
+            Union[sitk.Image, itk.Image]: The casted image as :class:`itk.Image` or :class:`SimpleITK.Image`.
         """
         if isinstance(image, sitk.Image):
             img = sitk.Cast(image, pixel_type)
@@ -221,20 +226,21 @@ class Image(ABC):
         return itk.Image[itk.template(self.image)[1]]
 
     def get_transform_tape(self) -> TransformTape:
-        """Get the transform tape.
+        """Get the :class:`TransformTape`.
 
         Returns:
-            TransformTape: The transform tape of the image.
+            TransformTape: The :class:`TransformTape` of the image.
         """
         return self.transform_tape
 
 
 class IntensityImage(Image):
-    """A class representing an intensity image.
+    """An image class for an intensity image with a :class:`TransformTape` and additional attributes to identify the
+    :class:`Modality`.
 
     Args:
-        image (Union[sitk.Image, itk.Image]): The image data to add to the image.
-        modality (Modality): The image modality.
+        image (Union[sitk.Image, itk.Image]): The image data as :class:`itk.Image` or :class:`SimpleITK.Image`.
+        modality (Modality): The image :class:`Modality`.
     """
 
     def __init__(self,
@@ -246,7 +252,7 @@ class IntensityImage(Image):
         self.modality = modality
 
     def is_intensity_image(self) -> bool:
-        """If the image is an intensity image this function returns True otherwise False.
+        """If the image is an instance of :class:`IntensityImage` this function returns True otherwise False.
 
         Returns:
             bool: True
@@ -256,13 +262,13 @@ class IntensityImage(Image):
     def get_modality(self,
                      as_str: bool = False
                      ) -> Union[Modality, str]:
-        """Get the modality of the image.
+        """Get the :class:`Modality` of the image.
 
         Args:
-            as_str (bool): If true returns the modality as a string otherwise as type Modality.
+            as_str (bool): If True returns the :class:`Modality` as a string, otherwise as type :class:`Modality`.
 
         Returns:
-            Union[Modality, str]: The modality of the image.
+            Union[Modality, str]: The :class:`Modality` of the image.
         """
         if as_str:
             return self.modality.name
@@ -277,12 +283,13 @@ class IntensityImage(Image):
 
 
 class SegmentationImage(Image):
-    """A class representing a segmentation image.
+    """An image class for a segmentation image with a :class:`TransformTape` and additional attributes for the
+    :class:`Organ` and a :class:`Rater`.
 
     Args:
         image (Union[sitk.Image, itk.Image]): The segmentation image data.
-        organ (Organ): The organ represented by the segmentation image.
-        rater (Optional[Rater]): The rater of the segmentation image (default=None).
+        organ (Organ): The :class:`Organ` represented by the segmentation image.
+        rater (Optional[Rater]): The :class:`Rater` of the segmentation image (default: None).
     """
 
     def __init__(self,
@@ -295,7 +302,7 @@ class SegmentationImage(Image):
         self.rater: Optional[Rater] = rater
 
     def is_intensity_image(self) -> bool:
-        """If the image is an intensity image this function returns True otherwise False.
+        """If the image is an :class:`IntensityImage` this function returns True, otherwise False.
 
         Returns:
             bool: False
@@ -305,13 +312,13 @@ class SegmentationImage(Image):
     def get_organ(self,
                   as_str: bool = False
                   ) -> Union[Organ, str]:
-        """Get the organ.
+        """Get the :class:`Organ`.
 
         Args:
-            as_str (bool): It True the organ gets returned as a string otherwise of type Organ.
+            as_str (bool): It True the :class:`Organ` gets returned as a :class:`str`, otherwise as an :class:`Organ`.
 
         Returns:
-            Union[Organ, str]: The organ.
+            Union[Organ, str]: The :class:`Organ`.
         """
         if as_str:
             return self.organ.name
@@ -319,26 +326,40 @@ class SegmentationImage(Image):
         return self.organ
 
     def get_rater(self) -> Optional[Rater]:
-        """Get the rater if available.
+        """Get the :class:`Rater` if available.
 
         Returns:
-            Optional[Rater]: The rater.
+            Optional[Rater]: The :class:`Rater`.
         """
         return self.rater
 
     def get_organ_rater_combination(self) -> Optional[OrganRaterCombination]:
-        """Get the organ rater combination if available.
+        """Get the :class:`OrganRaterCombination`, if available.
 
         Notes:
-            Returns None if the rater is not available!
+            Returns ``None`` if the :class:`Rater` is not available.
 
         Returns:
-            OrganRaterCombination: The combination of the organ and the rater if available.
+            OrganRaterCombination: The combination of the :class:`Organ` and the :class:`Rater`, if available.
         """
         if not self.rater:
             return None
 
         return OrganRaterCombination(self.organ, self.rater)
+
+    def is_binary(self) -> bool:
+        """Check if the image is binary.
+
+        Returns:
+            bool: True if the image is binary, otherwise False.
+        """
+        image_np = itk.GetArrayViewFromImage(self.image)
+        unique_pixel_vals = np.unique(image_np)
+
+        if unique_pixel_vals.shape[0] == 2 and unique_pixel_vals[0] == 0:
+            return True
+
+        return False
 
     def __eq__(self, other) -> bool:
         return all((self.organ == other.organ, self.rater == other.rater, self.image == other.image))

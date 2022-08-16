@@ -25,8 +25,6 @@ __all__ = ['SubjectWriter', 'DirectorySubjectWriter', 'DicomSeriesSubjectWriter'
 
 DicomSeriesInfo = TypeVar('DicomSeriesInfo')
 
-ILLEGAL_FOLDER_CHARS = "[<>:/\\|?*\"]|[\0-\31]"
-
 
 def remove_illegal_folder_characters(name: str) -> str:
     """Removes illegal characters from a folder name.
@@ -37,7 +35,8 @@ def remove_illegal_folder_characters(name: str) -> str:
     Returns:
         str: The folder name without illegal characters.
     """
-    return sub(ILLEGAL_FOLDER_CHARS, "", name)
+    illegal_characters = r"""[<>:/\\|?*\']|[\0-\31]"""
+    return sub(illegal_characters, "", name)
 
 
 class ImageFileFormat(Enum):

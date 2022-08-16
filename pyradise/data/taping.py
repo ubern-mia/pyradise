@@ -25,7 +25,8 @@ SegmentationImage = TypeVar('SegmentationImage')
 
 
 class Tape(ABC):
-    """Abstract base class for a recording tape."""
+    """An abstract class for a recording tape which records defined elements and can replay them upon request.
+    """
 
     def __init__(self) -> None:
         super().__init__()
@@ -33,7 +34,7 @@ class Tape(ABC):
 
     @abstractmethod
     def record(self, value: Any) -> None:
-        """Record a value on the tape.
+        """Record a value on the :class:`Tape`.
 
         Args:
             value (Any): The value to be recorded.
@@ -46,7 +47,7 @@ class Tape(ABC):
     @staticmethod
     @abstractmethod
     def playback(data: Any) -> Any:
-        """Playback the recorded elements on the tape of the data object.
+        """Playback the recorded elements of the :class:`Tape` on the data object.
 
         Args:
             data (Any): The data on which the playback should take place. This object need to contain also the tape.
@@ -59,13 +60,13 @@ class Tape(ABC):
     def get_recorded_elements(self,
                               reverse: bool = False
                               ) -> Tuple[Any, ...]:
-        """Get the recorded elements on the tape.
+        """Get the recorded elements on the :class:`Tape`.
 
         Args:
             reverse (bool): Indicates if the recordings should be returned in reverse order.
 
         Returns:
-            Tuple[Any, ...]: The recorded elements of the tape.
+            Tuple[Any, ...]: The recorded elements of the :class:`Tape`.
         """
         if reverse:
             return tuple(reversed(self.recordings))
@@ -73,7 +74,7 @@ class Tape(ABC):
         return tuple(self.recordings)
 
     def reset(self) -> None:
-        """Reset the transformation tape.
+        """Reset the :class:`Tape`.
 
         Returns:
             None
@@ -82,7 +83,10 @@ class Tape(ABC):
 
 
 class TransformationInformation:
-    """A class holding information about a transformation of an image.
+    """A class for holding information about the transformation of an image.
+
+    Notes:
+        This class is used in the :class:`TransformTape` to record transformations applied to a certain :class:`Image`.
 
     Args:
         name (str): The name of the operation.
@@ -147,8 +151,8 @@ class TransformationInformation:
         if isinstance(post_transform_orientation, str) and len(post_transform_orientation) != 3:
             raise ValueError(f'The post-transform image orientation ({post_transform_orientation}) is invalid!')
 
-        self.pre_transform_orientation = pre_transform_orientation
-        self.post_transform_orientation = post_transform_orientation
+        self.pre_transform_orientation: Optional[str] = pre_transform_orientation
+        self.post_transform_orientation: Optional[str] = post_transform_orientation
 
     @classmethod
     def from_images(cls,
@@ -157,7 +161,7 @@ class TransformationInformation:
                     pre_transform_image: sitk.Image,
                     post_transform_image: sitk.Image
                     ) -> "TransformationInformation":
-        """Construct a transformation information from the pre- and post-transform images.
+        """Construct a :class:`TransformationInformation` from the pre- and post-transform images.
 
         Args:
             name (str): The name
@@ -218,8 +222,8 @@ class TransformationInformation:
         """Get the origin before or after the transformation of the image.
 
         Args:
-            pre_transform (bool): If True the origin of the pre-transformed image is returned.
-             Otherwise, the origin from the post-transformed image is returned.
+            pre_transform (bool): If True the origin of the pre-transformed image is returned, otherwise the origin
+             from the post-transformed image is returned.
 
         Returns:
             Tuple[float]: The origin.
@@ -306,7 +310,7 @@ class TransformationInformation:
 
 
 class TransformTape(Tape):
-    """A class representing a tape for accumulating transformations."""
+    """A tape class for recording and playing back :class:`TransformationInformation` entries."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -314,10 +318,10 @@ class TransformTape(Tape):
         self.recordings: List[TransformationInformation] = []
 
     def record(self, value: TransformationInformation) -> None:
-        """Record a transformation information on the tape.
+        """Record a :class:`TransformationInformation` on the tape.
 
         Args:
-            value (TransformationInformation): The transformation information to be recorded.
+            value (TransformationInformation): The :class:`TransformationInformation` to be recorded.
 
         Returns:
             None
@@ -329,14 +333,15 @@ class TransformTape(Tape):
     def is_reorient_only(transform_info: TransformationInformation,
                          invert: bool
                          ) -> bool:
-        """Check if the transform info is a re-orientation.
+        """Check if the transform info is a re-orientation of the image.
 
         Args:
-            transform_info (TransformationInformation): The transform info to check.
+            transform_info (TransformationInformation): The :class:`TransformationInformation` to check.
             invert (bool): Indicates if the transform should be inverted.
 
         Returns:
-            bool: True if the transformation info is specifying a reorientation of the image, otherwise False.
+            bool: True if the :class:`TransformationInformation` is specifying a reorientation of the image,
+            otherwise False.
         """
         transform = transform_info.get_transform(invert)
 
@@ -385,13 +390,13 @@ class TransformTape(Tape):
     def get_recorded_elements(self,
                               reverse: bool = False
                               ) -> Tuple[TransformationInformation, ...]:
-        """Get the recorded transformation information entries on the tape.
+        """Get the recorded :class:`TransformationInformation` entries on the tape.
 
         Args:
             reverse (bool): Indicates if the recordings should be returned in reverse order.
 
         Returns:
-            Tuple[TransformationInformation, ...]: The recorded transformation information entries of the tape.
+            Tuple[TransformationInformation, ...]: The recorded :class:`TransformationInformation` entries on the tape.
         """
         # pylint: disable=useless-super-delegation
         return super().get_recorded_elements(reverse)

@@ -29,7 +29,7 @@ shutil.copyfile(os.path.join(basedir, 'examples', 'conversion', 'modality_config
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'PyRaDiSe'
-copyright = '2022, Elias Ruefenacht, ARTORG Center for Bio'
+copyright = '2022, Elias Ruefenacht, ARTORG Center for Biomedical Engineering Research, University of Bern, Switzerland'
 author = 'Elias Ruefenacht'
 release = '0.0.1'
 

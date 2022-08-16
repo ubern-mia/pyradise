@@ -21,7 +21,7 @@ The main concept of the :mod:`pyradise.conversion` package is illustrated in the
     :align: center
     :alt: main concept conversion module
 
-
+|
 
 Configuration Module
 --------------------
@@ -64,6 +64,7 @@ The following *modality configuration file* was automatically generated using :c
 .. note::
     A detailed example for generating a *modality configuration file* skeleton is provided in the example section.
 
+|
 
 .. automodule:: pyradise.conversion.configuration
     :show-inheritance:
@@ -138,6 +139,7 @@ The current release of PyRaDiSe contains functionality to process DICOM data fro
 .. note::
     In case of large datasets or limited memory we recommend to use the :class:`IterableDicomDatasetDirectoryCrawler` which loads the sequentially and reduces memory usage.
 
+|
 
 .. automodule:: pyradise.conversion.crawling
     :show-inheritance:
@@ -151,6 +153,8 @@ Module: :mod:`pyradise.conversion.series_information`
 The :mod:`series_information` module is responsible for providing all necessary information to the conversion process. Because DICOM images, registrations, and RT-STRUCTs contain different information necessary for the conversion process the :mod:`series_information` module contains separate objects for all these classes of DICOM datasets.
 
 Additionally, the :mod:`series_information` module contains filter classes (e.g. :class:`DicomSeriesImageInfoFilter`) to filter :class:`DicomSeriesInfo` such that for example unused :class:`Modality` 's can be excluded from the subsequent conversion process.
+
+|
 
 .. automodule:: pyradise.conversion.series_information
     :show-inheritance:
@@ -171,9 +175,9 @@ The :mod:`dicom_conversion` module is responsible for the conversion of the data
 +===============================================+====================+======================================================+============================+
 | :class:`DicomSubjectConverter`                | PyRaDiSe           | :class:`DicomSeriesInfo` subtypes                    | :class:`Subject`           |
 +-----------------------------------------------+--------------------+------------------------------------------------------+----------------------------+
-| :class:`DicomSeriesRTStructureSetConverter`   | PyRaDiSe           | :class:`DicomSeriesInfo` subtypes                    | :class:`SegmentationImage` |
-+-----------------------------------------------+--------------------+------------------------------------------------------+----------------------------+
 | :class:`DicomSeriesImageConverter`            | PyRaDiSe           | :class:`DicomSeriesInfo` subtypes                    | :class:`IntensityImage`    |
++-----------------------------------------------+--------------------+------------------------------------------------------+----------------------------+
+| :class:`DicomSeriesRTStructureSetConverter`   | PyRaDiSe           | :class:`DicomSeriesInfo` subtypes                    | :class:`SegmentationImage` |
 +-----------------------------------------------+--------------------+------------------------------------------------------+----------------------------+
 | :class:`SubjectRTStructureSetConverter`       | PyRaDiSe           | :class:`Subject` & :class:`DicomSeriesInfoImage`     | :class:`pydicom.Dataset`   |
 +-----------------------------------------------+--------------------+------------------------------------------------------+----------------------------+
@@ -185,6 +189,7 @@ The :mod:`dicom_conversion` module is responsible for the conversion of the data
 .. note::
     In radiotherapy DICOM images often need to be registered to each other before processing. The converters of PyRaDiSe are feasible to process DICOM registration files and will automatically apply the appropriate transformations to the images if the DICOM registration files are provided.
 
+|
 
 .. automodule:: pyradise.conversion.dicom_conversion
     :show-inheritance:
@@ -196,6 +201,8 @@ Utilities Module
 Module: :mod:`pyradise.conversion.utils`
 
 The :mod:`utils` module provides functionality which is used at multiple locations in the :mod:`pyradise.conversion` package.
+
+|
 
 .. automodule:: pyradise.conversion.utils
     :show-inheritance:

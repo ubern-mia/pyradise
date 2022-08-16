@@ -1,10 +1,12 @@
 from typing import (
-    Tuple,
+    Any,
+    List,
     Optional,
     Union,
-    List,
     Sequence,
-    Any)
+    Tuple
+)
+from collections import abc
 
 from .image import (
     IntensityImage,
@@ -16,13 +18,85 @@ from .image import (
 
 __all__ = ['Subject']
 
-
-OneOrMultipleImagesOrNone = Optional[Union[IntensityImage, SegmentationImage, Tuple[IntensityImage, ...],
-                                           Tuple[SegmentationImage, ...]]]
+OneOrMultipleImagesOrNone = Optional[Union[IntensityImage, SegmentationImage, Sequence[IntensityImage],
+                                           Sequence[SegmentationImage]]]
 
 
 class Subject:
-    """A class representing a subject.
+    """The :class:`Subject` is the main data object which holds all :class:`IntensityImage` s and
+    :class:`SegmentationImage` s associated with a subject / patient.
+
+    The :class:`Subject` is constructed either manually by the user or by a converter (see :mod:`pyradise.conversion`
+    package) or loader (see :mod:`pyradise.loading` package). The manual construction of the :class:`Subject` provides
+    flexibility advantages if the :class:`Subject` is used in combination with other libraries such as
+    `MONAI <https://monai.io/>`_ or `pymia <https://pymia.readthedocs.io/en/latest/#>`_.
+
+    Examples:
+        The following example demonstrates the manual construction of a :class:`Subject`:
+
+        >>> from argparse import ArgumentParser
+        >>> import os
+        >>>
+        >>> import SimpleITK as sitk
+        >>>
+        >>> from pyradise.data import Subject, IntensityImage, SegmentationImage, Modality, Organ, Rater
+        >>> from pyradise.serialization import SubjectWriter
+        >>>
+        >>>
+        >>> def main(input_dir: str, output_dir: str) -> None:
+        >>>    # Retrieve image file paths
+        >>>    segmentation_file_paths = [entry.path for entry in os.scandir(input_dir)
+        >>>                               if 'seg_' in entry.name and '.nii.gz' in entry.name]
+        >>>    intensity_file_paths = [entry.path for entry in os.scandir(input_dir)
+        >>>                            if 'img_' in entry.name and '.nii.gz' in entry.name]
+        >>>
+        >>>    # Load the segmentation image files
+        >>>    images = []
+        >>>    organs = [Organ('Brain'), Organ('Brainstem'), Organ('Eye_R'), Organ('Eye_L')]
+        >>>    raters = [Rater('RaterName'), Rater('RaterName'), Rater('RaterName'), Rater('RaterName')]
+        >>>    for path, organ, rater in zip(segmentation_file_paths, organs, raters):
+        >>>        image = SegmentationImage(sitk.ReadImage(path, sitk.sitkUInt8), organ, rater)
+        >>>        images.append(image)
+        >>>
+        >>>    # Load the intensity image files
+        >>>    modalities = [Modality.CT, Modality.T1c, Modality.T1w, Modality.T2w]
+        >>>    for path, modality in zip(intensity_file_paths, modalities):
+        >>>        image = IntensityImage(sitk.ReadImage(path, sitk.sitkFloat32), modality)
+        >>>        images.append(image)
+        >>>
+        >>>    # Construct the subject
+        >>>    subject = Subject('subject_1', images)
+        >>>
+        >>>    # Display the subject name and properties of the intensity and segmentation images
+        >>>    print(f'Subject {subject.get_name()} contains the following images:')
+        >>>
+        >>>    for image in subject.intensity_images:
+        >>>        print(f'Intensity image of modality {image.get_modality(True)} with size: {image.get_size()}')
+        >>>
+        >>>    for image in subject.segmentation_images:
+        >>>        print(f'Segmentation image of {image.get_organ(True)} with size: {image.get_size()}')
+        >>>
+        >>>    # Write the subject to disk
+        >>>    SubjectWriter().write(output_dir, subject)
+        >>>
+        >>> if __name__ == '__main__':
+        >>>     parser = ArgumentParser()
+        >>>     parser.add_argument('-input_dir', type=str)
+        >>>     parser.add_argument('-output_dir', type=str)
+        >>>     args = parser.parse_args()
+        >>>     main(args.input_dir, args.output_dir)
+        >>>
+        >>> # Output:
+        >>> # Subject subject_1 contains the following images:
+        >>> # Intensity image of modality CT with size: (256, 256, 256)
+        >>> # Intensity image of modality T1c with size: (256, 256, 256)
+        >>> # Intensity image of modality T1w with size: (256, 256, 256)
+        >>> # Intensity image of modality T2w with size: (256, 256, 256)
+        >>> # Segmentation image of Brain with size: (256, 256, 256)
+        >>> # Segmentation image of Brainstem with size: (256, 256, 256)
+        >>> # Segmentation image of Eye_R with size: (256, 256, 256)
+        >>> # Segmentation image of Eye_L with size: (256, 256, 256)
+
 
     Args:
         name (str): The name of the subject.
@@ -46,7 +120,7 @@ class Subject:
         if isinstance(images, SegmentationImage):
             self.segmentation_images.append(images)
 
-        if isinstance(images, tuple):
+        if isinstance(images, abc.Sequence):
             for image in images:
                 if isinstance(image, IntensityImage):
                     self.intensity_images.append(image)
@@ -301,7 +375,7 @@ class Subject:
 
         Returns:
             Optional[Union[SegmentationImage, Tuple[SegmentationImage]]]: The segmentation images or None if there is
-             no image with this rater.
+            no image with this rater.
         """
         if isinstance(rater, str):
             rater = Rater(rater)
@@ -335,7 +409,7 @@ class Subject:
                   image: Union[IntensityImage, SegmentationImage]
                   ) -> None:
         """Replace an image with either the same modality in case of an intensity image or the same organ and rater
-         in case of a segmentation image.
+        in case of a segmentation image.
 
         Args:
             image (Union[IntensityImage, SegmentationImage]): The image to replace the existing one.

@@ -12,11 +12,12 @@ __all__ = ['Organ', 'OrganFactory', 'OrganRaterCombination']
 
 
 class Organ:
-    """A class representing an organ.
+    """Representation of an organ which is used in combination with a :class:`SegmentationImage` to identify the
+    content of the :class:`SegmentationImage`.
 
     Args:
-        name (str): The name of the organ.
-        index (Optional[int]): The index of the organ (default=None).
+        name (str): The name of the :class:`Organ`.
+        index (Optional[int]): The index of the :class:`Organ` (default: None).
     """
 
     def __init__(self,
@@ -36,13 +37,13 @@ class Organ:
 
 
 class OrganFactory:
-    """A factory class producing organs.
+    """An :class:`Organ` producing factory class.
 
     Args:
-        names (Tuple[str, ...]): The names of the available organs.
-        indices (Optional[Tuple[int]]): The indices of the available organs (default=None).
-        auto_enumerate (bool): Indicates if the provided organ names should be automatically enumerated
-         (default=True).
+        names (Tuple[str, ...]): The names of the available :class:`Organ` s.
+        indices (Optional[Tuple[int]]): The indices of the available :class:`Organ` s (default: None).
+        auto_enumerate (bool): Indicates if the provided :class:`Organ` names should be automatically enumerated
+         (default: True).
     """
 
     def __init__(self,
@@ -65,13 +66,13 @@ class OrganFactory:
             self.indices: Optional[Tuple[int]] = indices
 
     def produce(self, name: str) -> Organ:
-        """Produces a new organ.
+        """Produces a new :class:`Organ`.
 
         Args:
-            name (str): The name of the new organ.
+            name (str): The name of the new :class:`Organ`.
 
         Returns:
-            Organ: The newly produced organ.
+            Organ: The newly produced :class:`Organ`.
         """
         if name not in self.names:
             raise ValueError(f'The name {name} is not contained in the factory!')
@@ -86,11 +87,11 @@ class OrganFactory:
 
 
 class OrganRaterCombination:
-    """A class combining an organ with a rater.
+    """A class combining an :class:`Organ` with a :class:`Rater`.
 
     Args:
-        organ (Union[Organ, str]): The organ or its name.
-        rater (Union[Rater, str]): The rater or its name.
+        organ (Union[Organ, str]): The :class:`Organ` or its name.
+        rater (Union[Rater, str]): The :class:`Rater` or its name.
     """
 
     def __init__(self,
@@ -119,7 +120,7 @@ class OrganRaterCombination:
 
     @property
     def name(self) -> str:
-        """Get the name of the combination.
+        """Get the name of the :class:`OrganRaterCombination`.
 
         Returns:
             str: The combined name.

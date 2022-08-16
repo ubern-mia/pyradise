@@ -14,6 +14,7 @@ Furthermore, the package provides functionality to generate HDF5 datasets which 
     :local:
     :backlinks: top
 
+|
 
 Subject Serialization Module
 ----------------------------
@@ -29,8 +30,10 @@ discretized image format (i.e. NIFTI and NRRD, see :class:`ImageFileFormat`). Th
 +-----------------------------------+------------------------------------------------------+------------------------------------+
 | :class:`DirectorySubjectWriter`   | :class:`pydicom.Dataset` & path                      | Generated: DICOM, Copied: Any      |
 +-----------------------------------+------------------------------------------------------+------------------------------------+
-| :class:`DicomSeriesSubjectWriter` | :class:`pydicom.Dataset` & :class:`DicomSeriesInfo ` | Generated: DICOM, Copied: DICOM    |
+| :class:`DicomSeriesSubjectWriter` | :class:`pydicom.Dataset` & :class:`DicomSeriesInfo`  | Generated: DICOM, Copied: DICOM    |
 +-----------------------------------+------------------------------------------------------+------------------------------------+
+
+|
 
 .. automodule:: pyradise.serialization.subject_serialization
     :show-inheritance:
@@ -42,6 +45,8 @@ Module: :mod:`pyradise.serialization.directory_building`
 
 The :mod:`directory_building` module provides functionality to generate a folder structure for storing subject data
 in a common dataset.
+
+|
 
 .. automodule:: pyradise.serialization.directory_building
     :show-inheritance:
@@ -118,6 +123,7 @@ The following example illustrates the usage of the HDF5 generation process.
 
         main(args.input_dir_path, args.output_dir_path)
 
+|
 
 .. automodule:: pyradise.serialization.h5_building
     :show-inheritance:

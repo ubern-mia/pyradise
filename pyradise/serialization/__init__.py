@@ -1,15 +1,15 @@
-from .directory_builder import DirectoryBuilder
+from .directory_building import DirectoryBuilder
 
 from .subject_serialization import (
     SubjectWriter,
     ImageFileFormat,
-    DicomSubjectWriter,
+    DicomSeriesSubjectWriter,
     DirectorySubjectWriter)
 
-from .h5_builder import (
+from .h5_building import (
     FileKeyType,
     SubjectFileLoader,
-    FilePathGenerator,
+    SimpleFilePathGenerator,
     FileSystemCrawler,
     SimpleSubjectFile,
     FileSystemDatasetCreator)

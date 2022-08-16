@@ -1280,7 +1280,7 @@ class DicomSeriesImageConverter(Converter):
         if len(selected) > 1:
             raise ValueError(f'Multiple image infos detected with the same SeriesInstanceUID ({series_instance_uid})!')
 
-        if len(selected) == 0:
+        if not selected:
             return None
 
         return selected[0]
@@ -1316,7 +1316,7 @@ class DicomSeriesImageConverter(Converter):
             raise ValueError(f'Multiple registration infos detected with the same referenced '
                              f'SeriesInstanceUID ({image_info.series_instance_uid})!')
 
-        if len(selected) == 0:
+        if not selected:
             return None
 
         return selected[0]
@@ -1456,7 +1456,7 @@ class DicomSeriesRTStructureSetConverter(Converter):
             raise ValueError(f'Multiple image infos detected with the same referenced '
                              f'SeriesInstanceUID ({rtss_info.referenced_instance_uid})!')
 
-        if len(selected) == 0:
+        if not selected:
             raise ValueError(f'The reference image with the SeriesInstanceUID '
                              f'{rtss_info.referenced_instance_uid} for the RTSS conversion is missing!')
 

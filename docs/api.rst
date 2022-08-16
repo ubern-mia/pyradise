@@ -14,5 +14,7 @@ The functionality of PyRaDiSe is split into the following packages:
     :caption: Packages
 
     pyradise.data
+    pyradise.loading
     pyradise.conversion
     pyradise.curation
+    pyradise.serialization

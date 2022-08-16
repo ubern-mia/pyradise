@@ -154,7 +154,7 @@ class ResamplingFilter(Filter):
             resample_filter.SetOutputDirection(reference_image_sitk.GetDirection())
 
         elif params.centering_method == 'label_moment' and reference_image == image:
-            if len(segmentation_images) == 0 or segmentation_images:
+            if not segmentation_images:
                 raise ValueError('The centering method label_moment is not available '
                                  'when no segmentations are provided!')
 

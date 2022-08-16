@@ -496,7 +496,7 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
         if len(self.path) != 1:
             raise ValueError(f'The number of registration files is different from 1 ({len(self.path)}), but must be 1!')
 
-        if len(self.image_infos) == 0:
+        if not self.image_infos:
             raise ValueError('No image infos are provided and thus no registration is possible!')
 
         combined_info = self.get_registration_infos(self.dataset, self.image_infos)

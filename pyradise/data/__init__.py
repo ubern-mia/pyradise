@@ -22,3 +22,7 @@ from .taping import (
     Tape,
     TransformTape,
     TransformationInformation)
+
+__all__ = ['Modality', 'ModalityFactory', 'Rater', 'RaterFactory', 'Organ', 'OrganFactory', 'OrganRaterCombination',
+           'Image', 'IntensityImage', 'SegmentationImage', 'Subject', 'Tape', 'TransformTape',
+           'TransformationInformation']

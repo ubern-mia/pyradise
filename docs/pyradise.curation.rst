@@ -6,99 +6,97 @@
 Curation Package
 ================
 
-PACKAGE DESCRIPTION
+The :mod:`pyradise.curation` package provides functionality for pre-processing, deep learning model inference, and post-processing.
 
 .. contents::
     :depth: 2
     :local:
     :backlinks: top
 
-PACKAGE MAIN CONCEPT FIGURE
+The :mod:`pyradise.curation` modules main objects are the :class:`Filter` class and the :class:`FilterPipeline` class which modify a :class:`Subject` and its ingredients (i.e. :class:`IntensityImage` and :class:`SegmentationImage`) and represent a pre-processing, model inference, or post-processing.
+
+The main concept of :mod:`pyradise.curation` is illustrated in the figure below:
+
+MAIN CONCEPT ILLUSTRATION
 
 
-Filtering Package
+Filter Base Module
+-------------------
+Module: :mod:`pyradise.curation.base`
+
+.. automodule:: pyradise.curation.base
+    :show-inheritance:
+    :members:
+
+
+Normalization Module
+--------------------
+Module: :mod:`pyradise.curation.normalization`
+
+.. automodule:: pyradise.curation.normalization
+    :show-inheritance:
+    :members:
+
+
+Orientation Module
+------------------
+Module: :mod:`pyradise.curation.orientation`
+
+.. automodule:: pyradise.curation.orientation
+    :show-inheritance:
+    :members:
+
+
+Registration Module
+-------------------
+Module: :mod:`pyradise.curation.registration`
+
+.. automodule:: pyradise.curation.registration
+    :show-inheritance:
+    :members:
+
+
+Resampling Module
 -----------------
-Package: :mod:`pyradise.curation.filtering`
+Module: :mod:`pyradise.curation.resampling`
 
-SUBPACKAGE DESCRIPTION
-
-Base Package
-~~~~~~~~~~~~~~~~~
-Module: :mod:`pyradise.curation.filtering.base`
-
-.. automodule:: pyradise.curation.filtering.base
+.. automodule:: pyradise.curation.resampling
     :show-inheritance:
     :members:
 
 
-Normalization Package
-~~~~~~~~~~~~~~~~~~~~~
-Module: :mod:`pyradise.curation.filtering.normalization`
+Segmentation Combination Module
+-------------------------------
+Module: :mod:`pyradise.curation.segmentation_combination`
 
-.. automodule:: pyradise.curation.filtering.normalization
+.. automodule:: pyradise.curation.segmentation_combination
     :show-inheritance:
     :members:
 
 
-Orientation Package
-~~~~~~~~~~~~~~~~~~~
-Module: :mod:`pyradise.curation.filtering.orientation`
+Segmentation Post-Processing Module
+-----------------------------------
+Module: :mod:`pyradise.curation.segmentation_postprocessing`
 
-.. automodule:: pyradise.curation.filtering.orientation
+.. automodule:: pyradise.curation.segmentation_postprocessing
     :show-inheritance:
     :members:
 
 
-Registration Package
-~~~~~~~~~~~~~~~~~~~~
-Module: :mod:`pyradise.curation.filtering.registration`
+Transformation Module
+---------------------
+Module: :mod:`pyradise.curation.transformation`
 
-.. automodule:: pyradise.curation.filtering.registration
+.. automodule:: pyradise.curation.transformation
     :show-inheritance:
     :members:
 
 
-Resampling Package
-~~~~~~~~~~~~~~~~~~
-Module: :mod:`pyradise.curation.filtering.resampling`
+Validation Module
+-----------------
+Module: :mod:`pyradise.curation.validation`
 
-.. automodule:: pyradise.curation.filtering.resampling
-    :show-inheritance:
-    :members:
-
-
-Segmentation Combination Package
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Module: :mod:`pyradise.curation.filtering.segmentation_combination`
-
-.. automodule:: pyradise.curation.filtering.segmentation_combination
-    :show-inheritance:
-    :members:
-
-
-Segmentation Post-Processing Package
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Module: :mod:`pyradise.curation.filtering.segmentation_postprocessing`
-
-.. automodule:: pyradise.curation.filtering.segmentation_postprocessing
-    :show-inheritance:
-    :members:
-
-
-Transformation Package
-~~~~~~~~~~~~~~~~~~~~~~
-Module: :mod:`pyradise.curation.filtering.transformation`
-
-.. automodule:: pyradise.curation.filtering.transformation
-    :show-inheritance:
-    :members:
-
-
-Validation Package
-~~~~~~~~~~~~~~~~~~
-Module: :mod:`pyradise.curation.filtering.validation`
-
-.. automodule:: pyradise.curation.filtering.validation
+.. automodule:: pyradise.curation.validation
     :show-inheritance:
     :members:
 

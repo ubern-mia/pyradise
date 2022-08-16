@@ -1,10 +1,15 @@
+from abc import (
+    ABC,
+    abstractmethod
+)
 import os
 from typing import (
     Tuple,
     Union,
     Dict,
     Type,
-    Any)
+    Any,
+    Sequence)
 
 import numpy as np
 import SimpleITK as sitk
@@ -23,30 +28,29 @@ from pyradise.data import (
     Modality,
     OrganRaterCombination)
 
+__all__ = ['SubjectFileLoader', 'FilePathGeneratorBase', 'SimpleFilePathGenerator', 'FileSystemCrawler',
+           'SimpleSubjectFile', 'FileSystemDatasetCreator']
+
 
 FileKeyType = Union[Modality, OrganRaterCombination]
 
-DEFAULT_IMAGE_FILE_KEYS = (Modality.T1c, Modality.T1w, Modality.T2w, Modality.FLAIR)
-DEFAULT_LABEL_FILE_KEYS = (OrganRaterCombination('all', 'Combination'),)
-DEFAULT_FILE_KEYS = DEFAULT_IMAGE_FILE_KEYS + DEFAULT_LABEL_FILE_KEYS
-
 
 class SubjectFileLoader(Load):
-    """A class for loading subject files."""
+    """Loads data from the file system according to the provided information."""
 
     def __call__(self,
                  file_name: str,
                  id_: str,
                  category: str,
-                 subject_id: str
+                 subject_id: str = ''
                  ) -> Tuple[np.ndarray, Union[ImageProperties, None]]:
         """Loads the appropriate data.
 
         Args:
             file_name (str): The file path to the file.
-            id_ (str): The subject name (Maybe wrong!).
+            id_ (str): The subject name.
             category (str): The category.
-            subject_id (str): The subject name.
+            subject_id (str): The subject name (default: '').
 
         Returns:
             Tuple[np.ndarray,  Union[ImageProperties, None]]: The image array and properties if available.
@@ -64,33 +68,66 @@ class SubjectFileLoader(Load):
         return sitk.GetArrayFromImage(image), properties
 
 
-class FilePathGenerator:
-    """A class for generating file paths."""
+class FilePathGeneratorBase(ABC):
+    """An abstract class for a file path generator.
+
+    For implementing a specific :class:`FilePathGenerator` inherit from this class and override the
+    :func:`get_full_path` method.
+
+    Args:
+        label_keys (Sequence[OrganRaterCombination, ...]): The keys for the label.
+        image_keys (Sequence[Modality, ...]): The keys for the images.
+    """
+    def __init__(self,
+                 label_keys: Sequence[OrganRaterCombination],
+                 image_keys: Sequence[Modality]
+                 ) -> None:
+        super().__init__()
+
+        self.image_keys = tuple(image_keys)
+        self.label_keys = tuple(label_keys)
+        self.all_keys = self.image_keys + self.label_keys
+
+    def get_file_keys(self) -> Tuple[FileKeyType, ...]:
+        """Get all file keys.
+
+        Returns:
+            Tuple[Union[OrganRaterCombination, Modality], ...]: The file keys.
+        """
+        return self.all_keys
+
+    @abstractmethod
+    def get_full_path(self,
+                      subject: str,
+                      subject_directory_path: str,
+                      file_key: FileKeyType
+                      ) -> str:
+        """Get the full constructed path to the corresponding file.
+
+        Args:
+            subject (str): The subjects name.
+            subject_directory_path: The subject directory path.
+            file_key: The file key to construct the path for.
+
+        Returns:
+            str: The path to the requested file.
+        """
+        raise NotImplementedError()
+
+
+class SimpleFilePathGenerator(FilePathGeneratorBase):
+    """A simple file path generator which generate paths according to the provided keys.
+
+    Args:
+        label_keys (Tuple[OrganRaterCombination, ...]): The keys of the labels.
+        image_keys (Tuple[Modality, ...]): The images keys.
+    """
 
     def __init__(self,
                  label_keys: Tuple[OrganRaterCombination, ...],
-                 image_keys: Tuple[Modality, ...] = (Modality.T1c, Modality.T1w, Modality.T2w, Modality.FLAIR),
+                 image_keys: Tuple[Modality, ...],
                  ) -> None:
-        """Constructs a file path generator.
-
-        Args:
-            label_keys (Tuple[OrganRaterCombination, ...]): The keys of the labels.
-            image_keys (Tuple[Modality, ...]): The images keys (default=(Modality.T1c, Modality.T1w, Modality.T2w,
-             Modality.FLAIR)).
-        """
-        super().__init__()
-        self.image_keys = image_keys
-        self.label_keys = label_keys
-        self.file_keys_ = self.image_keys + self.label_keys
-
-    @property
-    def file_keys(self) -> Tuple[FileKeyType, ...]:
-        """Get all the file keys.
-
-        Returns:
-            Tuple[FileKeyType, ...]: The combined file keys.
-        """
-        return self.file_keys_
+        super().__init__(label_keys, image_keys)
 
     def get_full_path(self,
                       subject: str,
@@ -117,20 +154,19 @@ class FilePathGenerator:
 
 
 class FileSystemCrawler:
-    """A class for crawling the file system for data."""
+    """File system crawling class to extract available files for dataset generation.
+
+    Args:
+        dataset_base_dir (str): The path to the base directory of the dataset.
+        file_path_generator (SimpleFilePathGenerator): The file path generator to generate the full paths.
+        valid_file_extensions (Tuple[str, ...]): All valid file extensions (default=('.nii.gz',)).
+    """
 
     def __init__(self,
                  dataset_base_dir: str,
-                 file_path_generator: FilePathGenerator,
+                 file_path_generator: SimpleFilePathGenerator,
                  valid_file_extensions: Tuple[str, ...] = ('.nii.gz',)
                  ) -> None:
-        """Constructs a file system crawler.
-
-        Args:
-            dataset_base_dir (str): The path to the base directory of the dataset.
-            file_path_generator (FilePathGenerator): The file path generator to generate the full paths.
-            valid_file_extensions (Tuple[str, ...]): All valid file extensions (default=('.nii.gz',)).
-        """
         super().__init__()
 
         if not os.path.exists(dataset_base_dir):
@@ -149,7 +185,7 @@ class FileSystemCrawler:
                        ) -> bool:
         extension_criterion = any(extension in file_name for extension in self.valid_file_extensions)
 
-        file_key_criterion = any(file_key.name in file_name for file_key in self.file_path_generator.file_keys)
+        file_key_criterion = any(file_key.name in file_name for file_key in self.file_path_generator.get_file_keys())
 
         return all((extension_criterion, file_key_criterion))
 
@@ -161,7 +197,7 @@ class FileSystemCrawler:
         for candidate in candidates:
             files = [entry for entry in os.scandir(candidate.path) if self._is_valid_file(entry.name)]
 
-            if len(files) == len(self.file_path_generator.file_keys):
+            if len(files) == len(self.file_path_generator.get_file_keys()):
                 subject_directories.update({candidate.name: candidate.path})
 
         if not subject_directories:
@@ -187,7 +223,7 @@ class FileSystemCrawler:
 
             subject_data = {'subject_name': subject_name, 'subject_path': subject_path}
 
-            for file_key in self.file_path_generator.file_keys:
+            for file_key in self.file_path_generator.get_file_keys():
                 file_path = self.file_path_generator.get_full_path(subject_name, subject_path, file_key)
 
                 if not os.path.exists(file_path):
@@ -201,7 +237,14 @@ class FileSystemCrawler:
 
 
 class SimpleSubjectFile(SubjectFile):
-    """A class representing a subject with a flexible interface."""
+    """Representation of a subject data for the dataset generation process.
+
+    Args:
+        subject (str): The subject name.
+        files (dict): A dictionary containing the file paths.
+        label_identifiers (Dict[str, Any]): The identifiers for the labels.
+        image_identifiers (Dict[str, Any]): The identifiers for the images.
+    """
 
     def __init__(self,
                  subject: str,
@@ -209,14 +252,6 @@ class SimpleSubjectFile(SubjectFile):
                  label_identifiers: Dict[str, Any],
                  image_identifiers: Dict[str, Any]
                  ) -> None:
-        """Constructs a new subject.
-
-        Args:
-            subject (str): The subject name.
-            files (dict): A dictionary containing the file paths.
-            label_identifiers (Dict[str, Any]): The identifiers for the labels.
-            image_identifiers (Dict[str, Any]): The identifiers for the images.
-        """
         if not label_identifiers:
             raise ValueError('No image label identifiers provided!')
 
@@ -233,13 +268,25 @@ class SimpleSubjectFile(SubjectFile):
 
 
 class FileSystemDatasetCreator:
-    """A class representing a dataset creator for HDF5 files which contains data from the file system."""
+    """Creator class for generating a HDF5 dataset file from file system data.
+
+    Args:
+        dataset_directory_path (str): The work path to the dataset base.
+        output_file_path (str): The path to the output database file.
+        file_path_generator (FilePathGeneratorBase): The file path generator.
+        label_identifiers (Dict[str, Any]): The label identifier and its label.
+        image_identifiers (Dict[str, Any]): The image identifiers and its modalities.
+        crawler_type (Type[FileSystemCrawler]): The crawler type (default=FileSystemCrawler).
+        subject_type (Type[SimpleSubjectFile]): The subject type (default=SimpleSubjectFile).
+        valid_file_extensions (Tuple[str, ...]): All valid file extensions (default=('.nii.gz',)).
+        transform (Transform): The transform to apply before constructing the dataset.
+    """
 
     # pylint: disable=too-many-arguments
     def __init__(self,
                  dataset_directory_path: str,
                  output_file_path: str,
-                 file_path_generator: FilePathGenerator,
+                 file_path_generator: FilePathGeneratorBase,
                  label_identifiers: Dict[str, Any],
                  image_identifiers: Dict[str, Any],
                  crawler_type: Type[FileSystemCrawler] = FileSystemCrawler,
@@ -247,31 +294,6 @@ class FileSystemDatasetCreator:
                  valid_file_extensions: Tuple[str, ...] = ('.nii.gz',),
                  transform: Transform = IntensityNormalization()
                  ) -> None:
-        """Constructs the file system dataset creator.
-
-        Args:
-            dataset_directory_path (str): The work path to the dataset base.
-            output_file_path (str): The path to the output database file.
-            file_path_generator (FilePathGenerator): The file path generator.
-            label_identifiers (Dict[str, Any]): The label identifier and its label.
-            image_identifiers (Dict[str, Any]): The image identifiers and its modalities.
-            crawler_type (Type[FileSystemCrawler]): The crawler type (default=FileSystemCrawler).
-            subject_type (Type[SimpleSubjectFile]): The subject type (default=SimpleSubjectFile).
-            valid_file_extensions (Tuple[str, ...]: All valid file extensions (default=('.nii.gz',)).
-            transform (Transform): The transform to apply before constructing the dataset.
-
-        Examples:
-            Usage example:
-            >>> input_path = 'C:/YOUR/PATH/TO/THE/DATASET/BASE/DIRECTORY'
-            >>> output_path = 'C:/YOUR/PATH/TO/THE/DATABASE_FILE.h5'
-            >>>
-            >>> lbl_identifiers = {'LB': OrganRaterCombination('GTVm', 'Combination')}
-            >>>
-            >>> generator = FilePathGenerator(tuple(label_identifiers.values()))
-            >>> creator = FileSystemDatasetCreator(input_path, output_path, generator,
-            >>>                                    label_identifiers=lbl_identifiers)
-            >>> creator.create()
-        """
         super().__init__()
 
         self.dataset_directory_path = dataset_directory_path
@@ -279,19 +301,18 @@ class FileSystemDatasetCreator:
 
         self.crawler = crawler_type(dataset_directory_path, file_path_generator, valid_file_extensions)
 
-        self.subject_type = subject_type
+        self.subject_type: Type[SimpleSubjectFile] = subject_type
         self.label_identifiers = label_identifiers
         self.image_identifiers = image_identifiers
         self.transform = transform
 
     def create(self) -> None:
-        """Creates a HDF5 dataset.
+        """Execute the creation process.
 
         Returns:
             None
         """
         # pylint: disable=abstract-class-instantiated
-
         crawled_data = self.crawler.crawl()
 
         subjects = []
@@ -305,19 +326,3 @@ class FileSystemDatasetCreator:
             callbacks = get_default_callbacks(writer)
             traverser = Traverser()
             traverser.traverse(subjects, SubjectFileLoader(), callbacks, self.transform)
-
-
-# usage example
-# if __name__ == '__main__':
-#
-#     input_path_ = 'D:/DataBackupsConversion/20220207_ISAS_METPO_curation_MNI_152'
-#     output_path_ = 'D:/test.h5'
-#
-#     label_identifiers_ = {'LB': OrganRaterCombination('GTVm', 'Combination')}
-#     image_identifiers_ = {'CT': Modality.CT}
-#
-#     file_path_generator_ = FilePathGenerator(label_keys=tuple(label_identifiers_.values()),
-#                                              image_keys=tuple(image_identifiers_.values()))
-#     creator_ = FileSystemDatasetCreator(input_path_, output_path_, file_path_generator_,
-#                                         label_identifiers_, image_identifiers_)
-#     creator_.create()

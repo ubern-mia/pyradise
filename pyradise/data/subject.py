@@ -14,7 +14,7 @@ from .image import (
     Rater)
 
 
-__all__ = ['Subject',]
+__all__ = ['Subject']
 
 
 OneOrMultipleImagesOrNone = Optional[Union[IntensityImage, SegmentationImage, Tuple[IntensityImage, ...],
@@ -206,7 +206,7 @@ class Subject:
             raise ValueError(f'The removal of the image with the modality {modality.name} is ambiguous because '
                              f'there are multiple ({len(candidates)}) images with this modality!')
 
-        if len(candidates) == 0:
+        if not candidates:
             return False
 
         return self._remove_image(candidates[0])
@@ -227,7 +227,7 @@ class Subject:
 
         candidates = [img for img in self.segmentation_images if img.get_organ() == organ]
 
-        if len(candidates) == 0:
+        if not candidates:
             return False
 
         results = []
@@ -258,7 +258,7 @@ class Subject:
             raise ValueError(f'The removal of the image is ambiguous because there are multiple ({len(candidates)}) '
                              f'images which are equal!')
 
-        if len(candidates) == 0:
+        if not candidates:
             return False
 
         return self._remove_image(candidates[0])
@@ -308,7 +308,7 @@ class Subject:
 
         candidates: List[SegmentationImage] = [img for img in self.segmentation_images if img.get_rater() == rater]
 
-        if len(candidates) == 0:
+        if not candidates:
             return None
 
         return tuple(candidates)

@@ -115,9 +115,9 @@ class FilterPipeline:
         """Constructs a filter pipeline from multiple filters and its parameters.
 
         Args:
-            filters (Optional[Tuple[Filter, ...]]): The filters of the pipeline (default=None).
+            filters (Optional[Tuple[Filter, ...]]): The filters of the pipeline (default: None).
             params (Optional[Tuple[FilterParameters, ...]]): The parameters for the filters in the pipeline
-             (default=None).
+             (default: None).
         """
         super().__init__()
 

@@ -191,7 +191,6 @@ class DicomSeriesImageInfo(DicomSeriesInfo):
                  ) -> None:
         super().__init__(paths)
 
-        self.image = None
         self.modality = Modality.UNKNOWN
 
     def set_modality(self, modality: Modality) -> None:
@@ -211,10 +210,6 @@ class DicomSeriesImageInfo(DicomSeriesInfo):
         Returns:
             None
         """
-        reader = sitk.ImageSeriesReader()
-        reader.SetFileNames(self.path)
-        self.image = reader.Execute()
-
         self.is_updated = True
 
 
@@ -578,10 +573,11 @@ class DicomSeriesRTStructureSetInfo(DicomSeriesInfo):
 
         if operator_name:
             operator_name = operator_name.replace(' ', '_')
-            regex = re.compile('[^\da-zA-Z_-]+')
+            pattern = r"""[^\da-zA-Z_-]+"""
+            regex = re.compile(pattern)
             operator_name = regex.sub(r'', operator_name)
 
-            abbreviation = ''.join(re.findall(r'[A-Z]+', operator_name))
+            abbreviation = ''.join(re.findall(r"""[A-Z]+""", operator_name))
             abbreviation = abbreviation if abbreviation else None
 
             return Rater(operator_name, abbreviation)

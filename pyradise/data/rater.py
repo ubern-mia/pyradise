@@ -17,7 +17,7 @@ class Rater:
 
     Args:
         name (str): The name of the rater.
-        abbreviation (Optional[str]): The abbreviation of the rater (default=None).
+        abbreviation (Optional[str]): The abbreviation of the rater (default: None).
     """
 
     def __init__(self,
@@ -66,7 +66,7 @@ class RaterFactory:
 
     Args:
         raters (Tuple[str, ...]): All available :class:`Rater` names.
-        abbreviations (Optional[Tuple[str, ...]]): All abbreviations to the raters (default=None).
+        abbreviations (Optional[Tuple[str, ...]]): All abbreviations to the raters (default: None).
     """
 
     def __init__(self,

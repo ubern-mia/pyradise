@@ -45,16 +45,16 @@ class ReferenceSubjectRegistrationFilterParameters(FilterParameters):
         Args:
             reference_subject (Subject): The reference subject.
             reference_modality (Modality): The reference modality.
-            registration_type (RegistrationType): The type of registration (default=RegistrationType.RIGID).
-            number_of_histogram_bins (int): The number of histogram bins (default=200).
-            learning_rate (float): The learning rate of the optimizer (default=1.0).
-            step_size (float): The minimum step size of the optimizer (default=0.001).
-            number_of_iterations (int): The maximum number of iterations (default=1500).
-            relaxation_factor (float): The relaxation factor for the optimizer (default=0.5).
-            shrink_factors ([int]): The shrink factors for the resolution pyramid (default=(2, 2, 1)).
-            smoothing_sigmas ([float]): The smoothing sigmas for the resolution pyramid (default=(2, 1, 0)).
-            sampling_percentage (float): The sampling percentage (0 - 1) (default=0.2).
-            resampling_interpolator (int): The interpolation function type (default=sitk.sitkBSpline).
+            registration_type (RegistrationType): The type of registration (default: RegistrationType.RIGID).
+            number_of_histogram_bins (int): The number of histogram bins (default: 200).
+            learning_rate (float): The learning rate of the optimizer (default: 1.0).
+            step_size (float): The minimum step size of the optimizer (default: 0.001).
+            number_of_iterations (int): The maximum number of iterations (default: 1500).
+            relaxation_factor (float): The relaxation factor for the optimizer (default: 0.5).
+            shrink_factors ([int]): The shrink factors for the resolution pyramid (default: (2, 2, 1)).
+            smoothing_sigmas ([float]): The smoothing sigmas for the resolution pyramid (default: (2, 1, 0)).
+            sampling_percentage (float): The sampling percentage (0 - 1) (default: 0.2).
+            resampling_interpolator (int): The interpolation function type (default: sitk.sitkBSpline).
         """
         super().__init__()
 

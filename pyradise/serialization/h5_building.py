@@ -159,7 +159,7 @@ class FileSystemCrawler:
     Args:
         dataset_base_dir (str): The path to the base directory of the dataset.
         file_path_generator (SimpleFilePathGenerator): The file path generator to generate the full paths.
-        valid_file_extensions (Tuple[str, ...]): All valid file extensions (default=('.nii.gz',)).
+        valid_file_extensions (Tuple[str, ...]): All valid file extensions (default: ('.nii.gz',)).
     """
 
     def __init__(self,
@@ -276,9 +276,9 @@ class FileSystemDatasetCreator:
         file_path_generator (FilePathGeneratorBase): The file path generator.
         label_identifiers (Dict[str, Any]): The label identifier and its label.
         image_identifiers (Dict[str, Any]): The image identifiers and its modalities.
-        crawler_type (Type[FileSystemCrawler]): The crawler type (default=FileSystemCrawler).
-        subject_type (Type[SimpleSubjectFile]): The subject type (default=SimpleSubjectFile).
-        valid_file_extensions (Tuple[str, ...]): All valid file extensions (default=('.nii.gz',)).
+        crawler_type (Type[FileSystemCrawler]): The crawler type (default: FileSystemCrawler).
+        subject_type (Type[SimpleSubjectFile]): The subject type (default: SimpleSubjectFile).
+        valid_file_extensions (Tuple[str, ...]): All valid file extensions (default: ('.nii.gz',)).
         transform (Transform): The transform to apply before constructing the dataset.
     """
 

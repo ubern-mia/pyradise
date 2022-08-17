@@ -28,7 +28,7 @@ class SegmentationCheckingFilterParameters(FilterParameters):
          images.
         default_rater (Union[Rater, str]): The default rater for newly constructed label images.
         strict (bool): If True organs in the subject which are not part of the required organs will be deleted
-         (default=False).
+         (default: False).
     """
 
     def __init__(self,

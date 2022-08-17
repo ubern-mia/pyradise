@@ -1303,7 +1303,6 @@ class DicomSeriesImageConverter(Converter):
             return None
 
         selected = []
-
         for reg_info in self.registration_info:
 
             if not reg_info.is_updated:
@@ -1320,6 +1319,14 @@ class DicomSeriesImageConverter(Converter):
             return None
 
         return selected[0]
+
+    @staticmethod
+    def _read_image(paths: Tuple[str]) -> sitk.Image:
+        reader = sitk.ImageSeriesReader()
+        reader.SetFileNames(paths)
+        image = reader.Execute()
+
+        return image
 
     @staticmethod
     def _transform_image(image: sitk.Image,
@@ -1383,8 +1390,10 @@ class DicomSeriesImageConverter(Converter):
             if not info.is_updated:
                 info.update()
 
+            image = self._read_image(info.path)
+
             if reg_info is None:
-                images.append(IntensityImage(info.image, info.modality))
+                images.append(IntensityImage(image, info.modality))
                 continue
 
             reference_series_instance_uid = reg_info.referenced_series_instance_uid_identity
@@ -1394,9 +1403,9 @@ class DicomSeriesImageConverter(Converter):
                 raise ValueError(f'The reference image with SeriesInstanceUID {reference_series_instance_uid} '
                                  f'is missing for the registration!')
 
-            info.image = self._transform_image(info.image, reg_info.transform, is_intensity=True)
+            image = self._transform_image(image, reg_info.transform, is_intensity=True)
 
-            images.append(IntensityImage(info.image, info.modality))
+            images.append(IntensityImage(image, info.modality))
 
         return tuple(images)
 

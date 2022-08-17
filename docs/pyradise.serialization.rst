@@ -9,11 +9,6 @@ Serialization Package
 The :mod:`pyradise.serialization` package provides functionality for the serialization of processed data as DICOM files or discretized image formats (e.g. NIFTI).
 Furthermore, the package provides functionality to generate HDF5 datasets which can be used for training deep learning in combination with for example `pymia <https://pymia.readthedocs.io/en/latest/index.html>`_.
 
-.. contents::
-    :depth: 2
-    :local:
-    :backlinks: top
-
 |
 
 Subject Serialization Module

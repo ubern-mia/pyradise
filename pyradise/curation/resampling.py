@@ -34,13 +34,13 @@ class ResamplingFilterParameters(FilterParameters):
         Args:
             output_size (Optional[Tuple[int, ...]]) : The output size of the image.
             output_spacing (Optional[Tuple[float, ...]]): The output spacing of the image.
-            reference_modality (Modality): The reference modality (default=Modality.T1c).
+            reference_modality (Modality): The reference modality (default: Modality.T1c).
             transform (sitk.Transform): The transformation applied during resampling
-             (default=sitk.AffineTransform(3)).
+             (default: sitk.AffineTransform(3)).
             centering_method (str): The method to center the image (options: 'none', 'reference', 'label_moment')
-             (default='none').
+             (default: 'none').
             rescaling_intensity_images (bool): If true the intensity images will be automatically rescaled
-             (default=True).
+             (default: True).
         """
         super().__init__()
         self.output_size = output_size
@@ -124,7 +124,7 @@ class ResamplingFilter(Filter):
             reference_image (IntensityImage): The reference image.
             params (ResamplingFilterParameters): The parameters for the resampling.
             segmentation_images (Optional[Tuple[SegmentationImage, ...]]): Segmentation images used for the moment
-             calculation (default=None).
+             calculation (default: None).
 
         Returns:
             IntensityImage: The resampled intensity image.

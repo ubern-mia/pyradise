@@ -8,11 +8,6 @@ Loading Package
 
 The :mod:`pyradise.loading` package provides functionality for loading discretized image data (e.g. NIFTI files).
 
-.. contents::
-    :depth: 2
-    :local:
-    :backlinks: top
-
 SHORT DESCRIPTION
 
 The main concept of :mod:`pyradise.loading` is illustrated in the figure below:

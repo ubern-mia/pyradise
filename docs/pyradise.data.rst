@@ -6,32 +6,31 @@
 Data Package
 ============
 
-The :mod:`pyradise.data` package contains the data structures for PyRaDiSe.
-
-.. contents::
-    :depth: 2
-    :local:
-    :backlinks: top
+The :mod:`pyradise.data` package contains the data model for PyRaDiSe which will be used during curation
+(see :mod:`pyradise.curation`) and serialization (see :mod:`pyradise.serialization`). Furthermore, if PyRaDiSe is used
+to load data from a discrete image file format (see :mod:`pyradise.loading`) PyRaDiSe will represent the data with
+the subsequently described data model.
 
 The main data representation object in PyRaDiSe is the :class:`Subject` which contain sequences of
-:class:`IntensityImage` and :class:`SegmentationImage`. Both image types contain the image information
-(i.e. :class:`itk.Image`) and a :class:`TransformTape` which records all transformations and render a playback of them
-feasible. This ensures that the original physical properties of each image can be restored after processing.
+:class:`IntensityImage` and :class:`SegmentationImage`. Both image types contain the image data
+(i.e. :class:`itk.Image`) and a :class:`TransformTape` which records all transformations and renders a playback of them
+feasible. This ensures that the original physical properties of each :class:`Image` can be restored after processing.
 
 **Intensity Image**
 
-The intensity image contains in addition to the image information and the transform tape information about the
-:class:`Modality`. In PyRaDiSe a :class:`Modality` provides information about the type of imaging modality or MR
-sequence. In detail, the taxonomy is not perfect for different MR-sequences but provides a simple and easy handling.
+In addition to the image data and the transform tape, an intensity image contains information about the
+:class:`Modality`. In PyRaDiSe the modality provides information about the type of imaging modality or MR sequence.
+However, this taxonomy is not perfect to discriminate between different MR sequences but in our opinion is a sufficient
+approximation.
 
 
 **Segmentation Image**
 
-The segmentation image contains in addition information about the :class:`Organ` segmented on the image and the
-:class:`Rater` which generated the segmentation / contours. Thus, each :class:`SegmentationImage` typically contains a
-binary segmentation of one :class:`Organ`. However, this paradigm is not enforced and will be broken upon the
-combination of multiple segmentation masks into one :class:`SegmentationImage` when serializing combined segmentation
-masks into one file.
+Additionally to the image data and the transform tape, a :class:`SegmentationImage` contains information about the
+:class:`Organ` and the :class:`Rater` who generated the segmentations / contours. Due to the fact that a single
+:class:`Organ` is associated with each :class:`SegmentationImage` the image data typically is a binary mask.
+However, this paradigm is not enforced and the will be broken after the combination of multiple segmentation masks into
+one :class:`SegmentationImage` as it is required to serialize multi-label segmentations into one discrete image file.
 
 The main concept of the :mod:`pyradise.data` package is illustrated in the figures below.
 
@@ -80,7 +79,8 @@ Taping Module
 --------------------
 Module: :mod:`pyradise.data.taping`
 
-The :mod:`taping` module provides the functionality for the recording and playback of the transformations applied to images.
+The :mod:`taping` module provides the functionality for the recording and playback of the transformations applied to
+images.
 
 |
 
@@ -130,7 +130,8 @@ Organ Module
 --------------------
 Module: :mod:`pyradise.data.organ`
 
-The :mod:`organ` module provides the functionality to manage information about the :class:`Organ` of a certain :class:`SegmentationImage`.
+The :mod:`organ` module provides the functionality to manage information about the :class:`Organ` of a certain
+:class:`SegmentationImage`.
 
 |
 

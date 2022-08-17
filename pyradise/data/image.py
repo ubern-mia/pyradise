@@ -286,6 +286,8 @@ class SegmentationImage(Image):
     """An image class for a segmentation image with a :class:`TransformTape` and additional attributes for the
     :class:`Organ` and a :class:`Rater`.
 
+    The specification of :class:`Rater` is optional and can be omitted if not explicitly used.
+
     Args:
         image (Union[sitk.Image, itk.Image]): The segmentation image data.
         organ (Organ): The :class:`Organ` represented by the segmentation image.
@@ -326,7 +328,7 @@ class SegmentationImage(Image):
         return self.organ
 
     def get_rater(self) -> Optional[Rater]:
-        """Get the :class:`Rater` if available.
+        """Get the :class:`Rater`, if available.
 
         Returns:
             Optional[Rater]: The :class:`Rater`.

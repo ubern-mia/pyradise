@@ -8,11 +8,6 @@ Curation Package
 
 The :mod:`pyradise.curation` package provides functionality for pre-processing, deep learning model inference, and post-processing.
 
-.. contents::
-    :depth: 2
-    :local:
-    :backlinks: top
-
 The :mod:`pyradise.curation` modules main objects are the :class:`Filter` class and the :class:`FilterPipeline` class which modify a :class:`Subject` and its ingredients (i.e. :class:`IntensityImage` and :class:`SegmentationImage`) and represent a pre-processing, model inference, or post-processing.
 
 The main concept of :mod:`pyradise.curation` is illustrated in the figure below:

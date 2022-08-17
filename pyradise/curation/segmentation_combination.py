@@ -40,9 +40,9 @@ class SegmentationCombinationFilterParameters(FilterParameters):
             output_rater (Union[str, Rater]): The rater of the combined segmentation image.
             exclude_terms (Tuple[str, ...]): Exclude terms in the organ name.
             remove_organs (bool): Indicates if the segmentation images to combine should be removed after combination
-             (default=True).
+             (default: True).
             matching_method (str): The matching method for the organ (options: 'exact', 'in_case_sensitive', 'in')
-             (default='exact').
+             (default: 'exact').
             check_for_overlap (bool): Indicates if a check on overlap should be performed.
         """
         super().__init__()

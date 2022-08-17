@@ -1,13 +1,15 @@
 Installation
 ============
 
-Install PyRaDiSe using pip (e.g. within a `Python virtual environment <https://www.geeksforgeeks.org/python-virtual-environment/>`_):
+Install PyRaDiSe using pip (e.g. within a
+`Python virtual environment <https://www.geeksforgeeks.org/python-virtual-environment/>`_):
 
 .. code-block:: bash
 
    pip install pyradise
 
-Alternatively, you can download or clone the code from `GitHub <https://github.com/ubern-mia/pyradise>`_ and install PyRaDiSe by:
+Alternatively, you can download or clone the code from `GitHub <https://github.com/ubern-mia/pyradise>`_ and install
+PyRaDiSe by:
 
 .. code-block:: bash
 

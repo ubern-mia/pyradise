@@ -6,7 +6,6 @@ from typing import (
     Tuple,
     Optional)
 import os
-import mimetypes
 
 import itk
 from pydicom import Dataset
@@ -60,9 +59,12 @@ class DicomDirectoryFilter(DirectoryFilter, ABC):
         files_paths = []
         for root, _, files in os.walk(path):
             for file in files:
+
                 file_path = os.path.join(root, file)
-                if mimetypes.guess_type(file_path)[0] == 'application/dicom':
-                    files_paths.append(file_path)
+                with open(file_path, 'rb') as fp:
+                    fp.seek(128)
+                    if fp.read(4).decode('utf-8') == 'DICM':
+                        files_paths.append(file_path)
 
         return tuple(files_paths)
 

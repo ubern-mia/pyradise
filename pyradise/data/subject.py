@@ -196,7 +196,7 @@ class Subject:
         Args:
             image (Union[IntensityImage, SegmentationImage]): The image to add to the subject.
             force (bool): Indicates if addition should be performed even if a similar (same modality for intensity
-             images or same organ for segmentation images) image is already contained (default=False).
+             images or same organ for segmentation images) image is already contained (default: False).
 
         Returns:
             None
@@ -242,7 +242,7 @@ class Subject:
         Args:
             images (Sequence[Union[IntensityImage, SegmentationImage]]): The images to add to the subject.
             force (bool): Indicates if addition should be performed even if a similar (same modality for intensity
-             images or same organ for segmentation images) image is already contained (default=False).
+             images or same organ for segmentation images) image is already contained (default: False).
 
         Returns:
             None

@@ -4,17 +4,23 @@ API
 The functionality of PyRaDiSe is split into the following packages:
 
 * | **Conversion**
-  | The conversion package is required for the conversion and loading of image and segmentation data.
+  | The conversion package is functionality for converting DICOM images, DICOM-RT and DICOM registration files to a Subject and/or to SimpleITK images and vice-versa.
 * | **Curation**
-  | The curation package contains the functionality to modify loaded data either as part of pre-processing, inference, and post-processing steps.
+  | The curation package contains functionality for pre-processing, deep learning model inference, and post-processing.
+* | **Data**
+  | The data package contains the data structures for PyRaDiSe.
+* | **Loading**
+  | The conversion package provides functionality for loading discretized image data (e.g. NIFTI files).
+* | **Serialization**
+  | The serialization package contains functionality for serialization of processed data as DICOM files or discretized image formats (e.g. NIFTI).
 
 
 .. toctree::
     :maxdepth: 3
     :caption: Packages
 
-    pyradise.data
-    pyradise.loading
     pyradise.conversion
     pyradise.curation
+    pyradise.data
+    pyradise.loading
     pyradise.serialization

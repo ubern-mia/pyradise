@@ -1,4 +1,5 @@
 import os
+from re import sub
 from typing import (Sequence, Tuple, Sized, Iterable)
 
 import numpy as np
@@ -6,7 +7,7 @@ from pydicom import (dcmread, Dataset)
 from pydicom.tag import Tag
 
 
-def check_is_dir_and_existing(path: str) -> str:
+def is_dir_and_exists(path: str) -> str:
     """Check if the provided path specifies a directory and if it exists.
 
     Args:
@@ -24,7 +25,7 @@ def check_is_dir_and_existing(path: str) -> str:
     return os.path.normpath(path)
 
 
-def check_is_file_and_existing(path: str) -> str:
+def is_file_and_exists(path: str) -> str:
     """Check if the provided path specifies a file and if it exists.
 
     Args:
@@ -40,6 +41,33 @@ def check_is_file_and_existing(path: str) -> str:
         raise FileNotFoundError(f'The path {path} is not a file!')
 
     return os.path.normpath(path)
+
+
+def is_dicom_file(path: str) -> bool:
+    """Check if a path is specifying a DICOM file.
+
+    Args:
+        path (str): The path to test.
+
+    Returns:
+        bool: True if the path is specifying a DICOM file, False otherwise.
+    """
+    with open(path, 'rb') as fp:
+        fp.seek(128)
+        return fp.read(4).decode('utf-8') == 'DICM'
+
+
+def remove_illegal_folder_chars(name: str) -> str:
+    """Removes illegal characters from a folder name.
+
+    Args:
+        name (str): The folder name with potential illegal characters.
+
+    Returns:
+        str: The folder name without illegal characters.
+    """
+    illegal_characters = r"""[<>:/\\|?*\']|[\0-\31]"""
+    return sub(illegal_characters, "", name)
 
 
 def load_dataset(path: str,

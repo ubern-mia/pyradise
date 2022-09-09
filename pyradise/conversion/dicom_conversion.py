@@ -48,8 +48,8 @@ from .utils import (
     get_slice_direction,
     get_spacing_between_slices)
 
-__all__ = ['DicomSubjectConverter', 'SubjectRTStructureSetConverter', 'DicomSeriesImageConverter',
-           'DicomSeriesRTStructureSetConverter', 'ROIData', 'Hierarchy', 'RTSSToImageConverter', 'ImageToRTSSConverter']
+__all__ = ['DicomSubjectConverter', 'SubjectToRTSSConverter', 'DicomSeriesImageConverter',
+           'DicomSeriesRTSSConverter', 'ROIData', 'Hierarchy', 'RTSSToImageConverter', 'ImageToRTSSConverter']
 
 ROI_GENERATION_ALGORITHMS = ['AUTOMATIC', 'SEMIAUTOMATIC', 'MANUAL']
 
@@ -1410,7 +1410,7 @@ class DicomSeriesImageConverter(Converter):
         return tuple(images)
 
 
-class DicomSeriesRTStructureSetConverter(Converter):
+class DicomSeriesRTSSConverter(Converter):
     """A DICOM RT Structure Set converter which converts DicomSeriesRTStructureSetInfo into one or multiple
     SegmentationImages.
 
@@ -1685,16 +1685,16 @@ class DicomSubjectConverter(Converter):
         subject.add_images(intensity_images, force=True)
 
         if self.rtss_infos:
-            rtss_converter = DicomSeriesRTStructureSetConverter(self.rtss_infos, self.image_infos,
-                                                                self.registration_infos)
+            rtss_converter = DicomSeriesRTSSConverter(self.rtss_infos, self.image_infos,
+                                                      self.registration_infos)
             segmentation_images = rtss_converter.convert()
             subject.add_images(segmentation_images, force=True)
 
         return subject
 
 
-class SubjectRTStructureSetConverter(Converter):
-    """A class converting a subject segmentation images into an RT Structure Set.
+class SubjectToRTSSConverter(Converter):
+    """A class converting a subject segmentation images into an RTSS.
 
     Args:
         subject (Subject): The subject to convert.

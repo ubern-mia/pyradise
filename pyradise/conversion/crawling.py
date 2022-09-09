@@ -30,9 +30,8 @@ class Crawler(ABC):
                  path: str
                  ) -> None:
         super().__init__()
-        check_is_dir_and_existing(os.path.normpath(path))
 
-        self.path = os.path.normpath(path)
+        self.path = check_is_dir_and_existing(os.path.normpath(path))
 
     @abstractmethod
     def execute(self) -> Any:

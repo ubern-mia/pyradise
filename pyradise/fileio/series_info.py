@@ -16,22 +16,23 @@ from pydicom import Dataset
 from pydicom.tag import Tag
 
 from pyradise.data import (
-    Rater,
     Modality,
-    Organ)
-from .utils import (
-    check_is_file_and_existing,
-    check_is_dir_and_existing,
+    Organ,
+    Rater)
+from pyradise.utils import (
+    is_file_and_exists,
+    is_dir_and_exists,
     load_dataset_tag,
     load_dataset)
 
-__all__ = ['SeriesInfo', 'DicomSeriesInfo', 'DicomSeriesImageInfo', 'DicomSeriesRegistrationInfo',
-           'DicomSeriesRTStructureSetInfo', 'DicomSeriesInfoFilter', 'DicomSeriesImageInfoFilter',
-           'NoDicomSeriesRegistrationInfoFilter', 'RegistrationInfo', 'RegistrationSequenceInfo']
+__all__ = ['SeriesInfo', 'FileSeriesInfo', 'IntensityFileSeriesInfo', 'SegmentationFileSeriesInfo',
+           'DicomSeriesInfo', 'DicomSeriesImageInfo', 'DicomSeriesRegistrationInfo',
+           'DicomSeriesRTSSInfo', 'ReferenceInfo', 'RegistrationInfo', 'RegistrationSequenceInfo']
 
 
 class SeriesInfo(ABC):
-    """An abstract series information class.
+    """An abstract series information class. This class is used to store base information about a series of images,
+    registrations, or other types of large data objects.
 
     Args:
         path (Union[str, Tuple[str, ...]]): The path or paths specifying files.
@@ -72,10 +73,10 @@ class SeriesInfo(ABC):
         for path in internal_path:
 
             if should_be_dir:
-                check_is_dir_and_existing(path)
+                is_dir_and_exists(path)
 
             else:
-                check_is_file_and_existing(path)
+                is_file_and_exists(path)
 
     def get_path(self) -> Tuple[str]:
         """Get the paths assigned to the info object.
@@ -95,39 +96,112 @@ class SeriesInfo(ABC):
         raise NotImplementedError()
 
 
-class IntensityFileSeriesInfo(SeriesInfo):
+class FileSeriesInfo(SeriesInfo):
+    """A file series information class for storing basic information about a large file object which does not need to
+    be loaded directly. This class is used to store information about a files on a classical file system.
+
+    Notes:
+        For DICOM files use :class:`DicomSeriesInfo` or one of its subtypes instead.
+
+    Args:
+        path (str): The path specifying the file.
+        subject_name (str): The name of the subject.
+    """
 
     def __init__(self,
                  path: str,
-                 modality: Modality
+                 subject_name: str
                  ) -> None:
         super().__init__(path)
+
+        # remove illegal characters in the subject name
+        subject_name_ = subject_name.replace(' ', '_')
+        pattern = r"""[^\da-zA-Z_-]+"""
+        regex = re.compile(pattern)
+        self.subject_name = regex.sub(r'', subject_name_)
+
+    @abstractmethod
+    def update(self) -> None:
+        """Update the :class:`FileSeriesInfo`.
+
+        Returns:
+            None
+        """
+        raise NotImplementedError()
+
+
+class IntensityFileSeriesInfo(FileSeriesInfo):
+    """A file series information class for storing basic information about an intensity image file containing also the
+    information about the :class:`Modality` of the intensity image.
+
+    Args:
+        path (str): The path specifying the file.
+        subject_name (str): The name of the subject.
+    """
+
+    def __init__(self,
+                 path: str,
+                 subject_name: str,
+                 modality: Modality
+                 ) -> None:
+        super().__init__(path, subject_name)
 
         self.modality = modality
 
         self.is_updated = True
 
     def update(self) -> None:
+        """Update the :class:`IntensityFileSeriesInfo`.
+
+        Returns:
+            None
+        """
         self.is_updated = True
 
 
-class SegmentationFileSeriesInfo(SeriesInfo):
+class SegmentationFileSeriesInfo(FileSeriesInfo):
+    """A file series information class for storing basic information about a segmentation image file containing also the
+    information about the :class:`Organ` displayed on the image and the :class:`Rater` which generated the segmentation.
+
+    Notes:
+        We assume that the segmentation image is a binary image with the foreground having the value 1 and the
+        background being 0. If your images are different we recommend to separate the segmentation masks into separate
+        files because in RT practice segmentations may overlap.
+
+    Args:
+        path (str): The path specifying the file.
+        subject_name (str): The name of the subject.
+        organ (Organ): The organ the segmentation is representing.
+        rater (Rater): The rater who created the segmentation.
+    """
 
     def __init__(self,
                  path: str,
+                 subject_name: str,
                  organ: Organ,
                  rater: Rater) -> None:
-        super().__init__(path)
+        super().__init__(path, subject_name)
 
         self.organ = organ
         self.rater = rater
 
+        self.is_updated = True
+
     def update(self) -> None:
-        pass
+        """Update the :class:`SegmentationFileSeriesInfo`.
+
+        Returns:
+            None
+        """
+        self.is_updated = True
 
 
 class DicomSeriesInfo(SeriesInfo):
-    """An abstract DICOM series info class.
+    """An abstract DICOM series info class to store basic information about the DICOM file content.
+    This class and its subclasses are used exclusively for handling DICOM files.
+
+    Notes:
+        When dealing with other file types than DICOM use :class:`FileSeriesInfo` or one of its subclasses instead.
 
     Args:
         path (Union[str, Tuple[str, ...]]): The path or paths specifying DICOM files.
@@ -215,7 +289,8 @@ class DicomSeriesInfo(SeriesInfo):
 
 
 class DicomSeriesImageInfo(DicomSeriesInfo):
-    """A DICOM series image info class.
+    """A DICOM series image info class to store basic information about a DICOM image. This class contains additional
+    information about the :class:`Modality` of the image.
 
     Args:
         paths (Tuple[str, ...]): The paths specifying DICOM files.
@@ -229,10 +304,10 @@ class DicomSeriesImageInfo(DicomSeriesInfo):
         self.modality = Modality.UNKNOWN
 
     def set_modality(self, modality: Modality) -> None:
-        """Set the :class:`Modality`.
+        """Set the :class:`Modality` property.
 
         Args:
-            modality (Modality): The :class:`Modality`.
+            modality (Modality): The :class:`Modality` to be assigned.
 
         Returns:
             None
@@ -248,32 +323,54 @@ class DicomSeriesImageInfo(DicomSeriesInfo):
         self.is_updated = True
 
 
+# noinspection PyUnresolvedReferences
 @dataclass
 class ReferenceInfo:
-    """A class storing one of multiple reference infos from a DICOM registration file."""
+    """A class storing one of multiple reference infos from a DICOM registration file.
+
+    Notes:
+        This class is intended for internal use only.
+
+    Args:
+        series_instance_uid (str): The SeriesInstanceUID.
+        study_instance_uid (str): The StudyInstanceUID.
+        is_same_study (bool): Indicates if the series is from the same study as the reference.
+    """
     series_instance_uid: str
     study_instance_uid: str
     is_same_study: bool
 
 
+# noinspection PyUnresolvedReferences
 @dataclass
 class RegistrationSequenceInfo:
     """A class storing one of multiple registration sequence infos from a DICOM registration file.
 
     Notes:
-        For internal use only.
+        This class is intended for internal use only.
+
+    Args:
+        frame_of_reference_uid (str): The FrameOfReferenceUID.
+        transforms (Tuple[sitk.AffineTransform, ...]): The transforms.
+        transform_parameters (Tuple[List, ...]): The transformation parameters.
     """
     frame_of_reference_uid: str
     transforms: Tuple[sitk.AffineTransform, ...]
     transform_parameters: Tuple[List, ...]
 
 
+# noinspection PyUnresolvedReferences
 @dataclass
 class RegistrationInfo:
     """A class storing all necessary infos for applying a registration transformation to a DICOM image.
 
     Notes:
         For internal use only.
+
+    Args:
+        registration_info (RegistrationSequenceInfo): The registration sequence info.
+        reference_info (ReferenceInfo): The reference info.
+        is_reference_image (bool): Indicates if the image is the reference image.
     """
     registration_info: RegistrationSequenceInfo
     reference_info: ReferenceInfo
@@ -281,12 +378,15 @@ class RegistrationInfo:
 
 
 class DicomSeriesRegistrationInfo(DicomSeriesInfo):
-    """A DICOM series registration info class.
+    """A DICOM series registration info class to store basic information about a DICOM registration.
+    This class contains additional information about references of the registration image pair and the transformation
+    parameters.
 
     Args:
         path (Union[str, Tuple[str, ...]]): The path or paths to the DICOM registration files.
         image_infos (Tuple[DicomSeriesImageInfo, ...]): The :class:`DicomSeriesImageInfo` used.
-        persistent_image_infos (bool): If True the class holds to the image_infos after updating, otherwise not.
+        persistent_image_infos (bool): If True the class holds to the image_infos after updating, otherwise not
+         (default: False).
     """
 
     def __init__(self,
@@ -405,6 +505,15 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
     @staticmethod
     def _get_unique_series_instance_uid_entries(infos: Union[Tuple[DicomSeriesImageInfo, ...], Tuple[Dataset, ...]]
                                                 ) -> Union[Tuple[DicomSeriesImageInfo, ...], Tuple[Dataset, ...]]:
+        """Get the unique series instance uid entries from a list of :class:`DicomSeriesImageInfo` or :class:`Dataset`.
+
+        Args:
+            infos (Union[Tuple[DicomSeriesImageInfo, ...], Tuple[Dataset, ...]]): The infos to extract the unique
+             entries from.
+
+        Returns:
+            Union[Tuple[DicomSeriesImageInfo, ...], Tuple[Dataset, ...]]: The unique entries.
+        """
         unique_infos = []
 
         if isinstance(infos[0], DicomSeriesImageInfo):
@@ -510,10 +619,10 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
         self.is_updated = False
 
     def get_image_infos(self) -> Tuple[DicomSeriesImageInfo, ...]:
-        """Get the DicomSeriesImageInfos.
+        """Get the :class:`DicomSeriesImageInfo` entries.
 
         Returns:
-            Tuple[DicomSeriesImageInfo, ...]: A tuple of :class:`DicomSeriesImageInfo`.
+            Tuple[DicomSeriesImageInfo, ...]: The :class:`DicomSeriesImageInfo` entries.
         """
         return self.image_infos
 
@@ -552,8 +661,10 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
         self.is_updated = True
 
 
-class DicomSeriesRTStructureSetInfo(DicomSeriesInfo):
-    """A DICOM series RT Structure Set info class.
+class DicomSeriesRTSSInfo(DicomSeriesInfo):
+    """A DICOM series RTSS info class to store basic information about a DICOM RTSS.
+    This class contains additional information about the :class:`Rater` which created the contours and the referenced
+    image InstanceUID.
 
     Args:
         path (Union[str, Tuple[str, ...]]): The path or paths specifying DICOM files.
@@ -645,127 +756,9 @@ class DicomSeriesRTStructureSetInfo(DicomSeriesInfo):
 
     # pylint: disable=unnecessary-pass
     def update(self) -> None:
-        """Update the :class:`DicomSeriesRTStructureSetInfo`.
+        """Update the :class:`DicomSeriesRTSSInfo`.
 
         Returns:
             None
         """
         self.is_updated = True
-
-
-class DicomSeriesInfoFilter(ABC):
-    """An abstract class for filtering :class:`DicomSerieInfo`."""
-
-    @abstractmethod
-    def filter(self,
-               infos: Tuple[DicomSeriesInfo]
-               ) -> Tuple[DicomSeriesInfo, ...]:
-        """Execute the filter.
-
-        Args:
-            infos (Tuple[DicomSeriesInfo]): The :class:`DicomSerieInfo` to filter.
-
-        Returns:
-            Tuple[DicomSeriesInfo]: The filtered :class:`DicomSerieInfos`.
-        """
-        raise NotImplementedError()
-
-
-class DicomSeriesImageInfoFilter(DicomSeriesInfoFilter):
-    """A class for filtering :class:`DicomSeriesInfo` entries based on the modalities.
-    All other :class:`DicomSeriesInfo` will be kept.
-
-    Args:
-        keep (Tuple[Modality, ...]): The modalities to keep.
-    """
-
-    def __init__(self,
-                 keep: Tuple[Modality, ...]
-                 ) -> None:
-        super().__init__()
-
-        self.keep = keep
-
-    @staticmethod
-    def _remove_additional_registrations(series_infos: Tuple[DicomSeriesInfo]) -> List[DicomSeriesInfo]:
-        registrations = []
-        images = []
-        remaining_infos = []
-
-        for series_info in series_infos:
-            if isinstance(series_info, DicomSeriesImageInfo):
-                images.append(series_info)
-            elif isinstance(series_info, DicomSeriesRegistrationInfo):
-                registrations.append(series_info)
-            else:
-                remaining_infos.append(series_info)
-
-        remove_indices = []
-        for i, registration in enumerate(registrations):
-            criteria_images = [image.series_instance_uid == registration.referenced_series_instance_uid_transform
-                               for image in images]
-
-            if not any(criteria_images):
-                remove_indices.append(i)
-
-        for idx in reversed(remove_indices):
-            registrations.pop(idx)
-
-        filtered_series_infos = []
-        filtered_series_infos.extend(images)
-        filtered_series_infos.extend(registrations)
-        filtered_series_infos.extend(remaining_infos)
-
-        return filtered_series_infos
-
-    def filter(self,
-               infos: Tuple[DicomSeriesInfo]
-               ) -> Tuple[DicomSeriesInfo, ...]:
-        """Execute the filter.
-
-        Args:
-            infos (Tuple[DicomSeriesInfo, ...]): The series infos which should be filtered.
-
-        Returns:
-            Tuple[DicomSeriesInfo, ...]: The filtered :class:`DicomSeriesInfo`.
-        """
-        keep: List[DicomSeriesInfo] = []
-
-        for info in infos:
-            if isinstance(info, DicomSeriesImageInfo):
-                if info.modality in self.keep:
-                    keep.append(info)
-
-            else:
-                keep.append(info)
-
-        keep = self._remove_additional_registrations(tuple(keep))
-
-        return tuple(keep)
-
-
-class NoDicomSeriesRegistrationInfoFilter(DicomSeriesInfoFilter):
-    """A class for filtering :class:`DicomSeriesInfo` entries by removing all :class:`DicomSeriesRegistrationInfo`.
-    """
-
-    def __init__(self) -> None:
-        super().__init__()
-
-    def filter(self,
-               infos: Tuple[DicomSeriesInfo]
-               ) -> Tuple[DicomSeriesInfo, ...]:
-        """Execute the filter.
-
-        Args:
-            infos (Tuple[DicomSeriesInfo, ...): The series infos which should be filtered.
-
-        Returns:
-            Tuple[DicomSeriesInfo, ...]: The filtered :class:`DicomSeriesInfo`.
-        """
-        keep = []
-
-        for info in infos:
-            if not isinstance(info, DicomSeriesRegistrationInfo):
-                keep.append(info)
-
-        return tuple(keep)

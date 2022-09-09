@@ -14,24 +14,27 @@ import numpy as np
 
 from pyradise.data import Subject
 
+__all__ = ['Filter', 'FilterParameters', 'FilterPipeline', 'LoopEntryFilter']
+
 
 # pylint: disable=too-few-public-methods
 class FilterParameters(ABC):
-    """Represents abstract filter parameters."""
+    """An abstract filter parameter class which provides holds the parameters used for the configuration of a certain
+    filter."""
 
 
 class Filter(ABC):
-    """Abstract base class for processing a subject."""
+    """An abstract filter class which is used to process a subject and its content."""
 
     def __init__(self):
         super().__init__()
         self.verbose = False
 
     def set_verbose(self, verbose: bool) -> None:
-        """Sets the verbose state.
+        """Set the verbose state.
 
         Args:
-            verbose (bool): If true, the filter outputs information to the console.
+            verbose (bool): If True, the filter outputs information to the console, otherwise not.
 
         Returns:
             None
@@ -43,11 +46,11 @@ class Filter(ABC):
                 subject: Subject,
                 params: Optional[FilterParameters]
                 ) -> Subject:
-        """Execution of the filter.
+        """Execute the filter.
 
         Args:
-            subject (Subject): The subject to be filtered.
-            params (Optional[FilterParameters]): The filter parameters if required.
+            subject (Subject): The subject to be processed.
+            params (Optional[FilterParameters]): The filter parameters, if required.
 
         Returns:
             Subject: The processed subject.
@@ -56,7 +59,7 @@ class Filter(ABC):
 
 
 class LoopEntryFilter(Filter):
-    """A filter class feasible to process data in a loop."""
+    """A filter class feasible to process data in a loop over a defined ``loop_axis``."""
 
     @staticmethod
     def loop_entries(data: np.ndarray,
@@ -64,16 +67,17 @@ class LoopEntryFilter(Filter):
                      filter_fn: Callable[[np.ndarray, Any], np.ndarray],
                      loop_axis: Optional[int]
                      ) -> np.ndarray:
-        """Applies the function fn by looping over the data using the parameters.
+        """Apply the function :func:`fn` by looping over the data using the provided parameters (i.e. ``params``).
 
         Args:
-            data (np.ndarray): The data to be filtered by the filtering function.
-            params (Any): The parameters for the filtering function.
-            filter_fn (Callable[[np.ndarray, Any], np.ndarray]): The filtering function.
-            loop_axis (Optional[int]): The axis to loop over. If None the whole volume is taken.
+            data (np.ndarray): The data to be processed.
+            params (Any): The parameters for the filter function.
+            filter_fn (Callable[[np.ndarray, Any], np.ndarray]): The filter function.
+            loop_axis (Optional[int]): The axis to loop over. If None the whole volume is taken, otherwise the
+             respective dimension.
 
         Returns:
-            np.ndarray: The filtered data.
+            np.ndarray: The processed data.
         """
         if loop_axis is None:
             new_data = filter_fn(data, params)
@@ -93,39 +97,36 @@ class LoopEntryFilter(Filter):
                 subject: Subject,
                 params: Optional[FilterParameters]
                 ) -> Subject:
-        """Executes the filter procedure.
+        """Execute the filter.
 
         Args:
-            subject (Subject): The subject to filter.
+            subject (Subject): The subject to be processed.
             params (Optional[FilterParameters]): The filter parameters.
 
         Returns:
-            Subject: The filtered subject.
+            Subject: The processed subject.
         """
         raise NotImplementedError()
 
 
 class FilterPipeline:
-    """Filter pipeline class to construct a pipeline of multiple sequential filters."""
+    """A filter pipeline class which applies multiple sequential filters to the same subject.
+
+    Args:
+        filters (Optional[Tuple[Filter, ...]]): The filters of the pipeline (default: None).
+        params (Optional[Tuple[FilterParameters, ...]]): The parameters for the filters in the pipeline.
+    """
 
     def __init__(self,
                  filters: Optional[Tuple[Filter, ...]] = None,
                  params: Optional[Tuple[FilterParameters, ...]] = None
                  ) -> None:
-        """Constructs a filter pipeline from multiple filters and its parameters.
-
-        Args:
-            filters (Optional[Tuple[Filter, ...]]): The filters of the pipeline (default: None).
-            params (Optional[Tuple[FilterParameters, ...]]): The parameters for the filters in the pipeline
-             (default: None).
-        """
         super().__init__()
 
         self.filters: List[Filter, ...] = []
         self.params: List[FilterParameters, ...] = []
 
         if filters:
-
             if not params:
                 params = [None] * len(filters)
 
@@ -139,10 +140,10 @@ class FilterPipeline:
         self.logger: Optional[logging.Logger] = None
 
     def set_verbose_all(self, verbose: bool) -> None:
-        """Sets the verbose state for all filter.
+        """Set the verbose state for all filter.
 
         Args:
-            verbose (bool): If true the filters print information to the console.
+            verbose (bool): If True the filters print information to the console.
 
         Returns:
             None
@@ -154,7 +155,7 @@ class FilterPipeline:
                    filter_: Filter,
                    params: Optional[FilterParameters] = None
                    ) -> None:
-        """Adds a filter and its parameters to the pipeline.
+        """Add a filter and its parameters to the pipeline.
 
         Args:
             filter_ (Filter): The filter to add.
@@ -170,11 +171,11 @@ class FilterPipeline:
                   params: FilterParameters,
                   filter_index: int
                   ) -> None:
-        """Sets the parameters for a certain filter index.
+        """Set the parameters for a specific filter at index ``filter_index``.
 
         Args:
             params (FilterParameters): The filter parameters.
-            filter_index (int): The index of the filter to add the parameters.
+            filter_index (int): The index of the filter to add the parameters to.
 
         Returns:
             None
@@ -187,7 +188,7 @@ class FilterPipeline:
         self.params[filter_idx] = params
 
     def add_logger(self, logger: logging.Logger) -> None:
-        """Adds a logger to the filter pipeline.
+        """Add a logger to the filter pipeline.
 
         Args:
             logger (logging.Logger): The logger to use with the pipeline.
@@ -198,7 +199,7 @@ class FilterPipeline:
         self.logger = logger
 
     def execute(self, subject: Subject) -> Subject:
-        """Executes the filter pipeline.
+        """Execute the filter pipeline.
 
         Args:
             subject (Subject): The subject to be processed by the pipeline.

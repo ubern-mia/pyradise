@@ -5,3 +5,4 @@ pymia>=0.3.2
 jupyter>=1.0.0
 numpy~=1.21.6
 opencv-python~=4.5.5.63
+scipy~=1.9.0

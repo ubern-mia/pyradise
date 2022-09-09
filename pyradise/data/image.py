@@ -64,6 +64,9 @@ class Image(ABC):
         Returns:
             sitk.Image: The converted :class:`SimpleITK.Image`.
         """
+        if image.GetImageDimension() > 3:
+            raise NotImplementedError(f'Conversion of {image.GetDimension()}D images is not supported!')
+
         is_vector_image = image.GetNumberOfComponentsPerPixel() > 1
         image_sitk = sitk.GetImageFromArray(itk.GetArrayFromImage(image), isVector=is_vector_image)
         image_sitk.SetOrigin(tuple(image.GetOrigin()))
@@ -81,6 +84,9 @@ class Image(ABC):
         Returns:
             itk.Image: The converted :class:`itk.Image`.
         """
+        if image.GetDimension() > 3:
+            raise NotImplementedError(f'Conversion of {image.GetDimension()}D images is not supported!')
+
         is_vector_image = image.GetNumberOfComponentsPerPixel() > 1
         image_itk = itk.GetImageFromArray(sitk.GetArrayFromImage(image), is_vector=is_vector_image)
         image_itk.SetOrigin(image.GetOrigin())

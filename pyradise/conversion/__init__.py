@@ -35,9 +35,9 @@ from .dicom_conversion import (
     RTSSToImageConverter,
     ImageToRTSSConverter,
     DicomSeriesImageConverter,
-    DicomSeriesRTStructureSetConverter,
+    DicomSeriesRTSSConverter,
     DicomSubjectConverter,
-    SubjectRTStructureSetConverter)
+    SubjectToRTSSConverter)
 
 from .label_image_conversion import SimpleITKLabelsToDicomConverter
 
@@ -53,6 +53,6 @@ __all__ = ['chunkify', 'check_is_dir_and_existing', 'check_is_file_and_existing'
            'IterableDicomDatasetDirectoryCrawler',
            'Converter',
            'RTSSToImageConverter', 'ImageToRTSSConverter',
-           'DicomSeriesImageConverter', 'DicomSeriesRTStructureSetConverter', 'DicomSubjectConverter',
-           'SubjectRTStructureSetConverter',
+           'DicomSeriesImageConverter', 'DicomSeriesRTSSConverter', 'DicomSubjectConverter',
+           'SubjectToRTSSConverter',
            'SimpleITKLabelsToDicomConverter']

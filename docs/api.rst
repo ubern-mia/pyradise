@@ -3,10 +3,12 @@ API
 
 The functionality of PyRaDiSe is split into the following packages:
 
-* | **Conversion**
-  | The conversion package is required for the conversion and loading of image and segmentation data.
-* | **Curation**
-  | The curation package contains the functionality to modify loaded data either as part of pre-processing, inference, and post-processing steps.
+* | **Data**
+  | TEXT FROM PAPER...
+* | **FileIO**
+  | TEXT FROM PAPER...
+* | **Process**
+   | TEXT FROM PAPER...
 
 
 .. toctree::
@@ -14,7 +16,5 @@ The functionality of PyRaDiSe is split into the following packages:
     :caption: Packages
 
     pyradise.data
-    pyradise.loading
-    pyradise.conversion
-    pyradise.curation
-    pyradise.serialization
+    pyradise.fileio
+    pyradise.process

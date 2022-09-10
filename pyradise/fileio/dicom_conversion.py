@@ -1172,6 +1172,7 @@ class SegmentToRTSSConverter(Converter):
         return pin_hole_mask
 
     # pylint: disable=too-many-locals
+    # noinspection DuplicatedCode
     @staticmethod
     def _smoothen_contours(contours: Tuple[np.ndarray]) -> Tuple[np.ndarray]:
         """Smoothen the contours by applying a heuristic filter to the contours.
@@ -1850,7 +1851,7 @@ class DicomSeriesToSubjectConverter(Converter):
 
 class SubjectToRTSSConverter(Converter):
     """A convert for converting the :class:`SegmentationImage` entries of a :class:`Subject` to a RTSS
-    :class:`Dataset`. This class is intended to be used for creating the output of a processing pipeline.
+    :class:`Dataset`. This class is intended to be used for creating the output of a process pipeline.
 
     Args:
         subject (Subject): The :class:`Subject` instance to convert to an RTSS :class:`Dataset`.

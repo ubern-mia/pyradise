@@ -1,5 +1,5 @@
 __title__ = 'PyRaDiSe'
-__description__ = 'A Python package for DICOM/DICOM-RT data conversion, data processing and segmentation with ' \
+__description__ = 'A Python package for DICOM/DICOM-RT data conversion, data process and segmentation with ' \
                   'deep learning-based models in medical image analysis.'
 __url__ = 'https://pyradise.readthedocs.io/'
 __version__ = '0.0.1'

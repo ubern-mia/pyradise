@@ -32,6 +32,10 @@ class Subject:
     more flexibility if the :class:`Subject` is used in combination with other libraries such as
     `MONAI <https://monai.io/>`_ or `pymia <https://pymia.readthedocs.io/en/latest/#>`_.
 
+    Args:
+        name (str): The name of the subject.
+        images (OneOrMultipleImagesOrNone): One or multiple images to add to the subject.
+
     Examples:
         The following example demonstrates the manual construction of a :class:`Subject`:
 
@@ -124,11 +128,6 @@ class Subject:
         >>> # Segmentation image of Eyes with size: (256, 256, 256)
         >>> # Segmentation image of Hippocampi with size: (256, 256, 256)
         >>> # Segmentation image of OpticNerves with size: (256, 256, 256)
-
-
-    Args:
-        name (str): The name of the subject.
-        images (OneOrMultipleImagesOrNone): One or multiple images to add to the subject.
     """
 
     def __init__(self,

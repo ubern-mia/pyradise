@@ -432,7 +432,7 @@ class DirectorySubjectWriter:
         This writer class is implemented with a focus on deployable segmentation pipelines which need to enrich the
         input data with for example a DICOM RT-STRUCT. For this scenario we assume that we have an input directory,
         a work directory, and an output directory. The pipeline may sort or unzip the input directory data to the work
-        directory from where it does the ingestion. After the processing the input data from the work directory and
+        directory from where it does the ingestion. After the process the input data from the work directory and
         the newly generated DICOM RT need to be stored in the output directory. This writer class provides the
         functionality to copy the data from the work directory to the output directory while also writing the
         additional DICOM RT dataset to a file. If ``as_zip`` is set to True the output will be zipped.

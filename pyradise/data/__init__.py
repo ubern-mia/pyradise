@@ -1,14 +1,9 @@
-from .modality import (
-    Modality,
-    ModalityFactory)
+from .modality import Modality
 
-from .rater import (
-    Rater,
-    RaterFactory)
+from .rater import Rater
 
 from .organ import (
     Organ,
-    OrganFactory,
     OrganRaterCombination)
 
 from .image import (
@@ -24,6 +19,5 @@ from .taping import (
     TransformationInformation)
 
 
-__all__ = ['Modality', 'ModalityFactory', 'Rater', 'RaterFactory', 'Organ', 'OrganFactory', 'OrganRaterCombination',
-           'Image', 'IntensityImage', 'SegmentationImage', 'Subject', 'Tape', 'TransformTape',
-           'TransformationInformation']
+__all__ = ['Modality', 'Rater', 'Organ', 'OrganRaterCombination', 'Image',
+           'IntensityImage', 'SegmentationImage', 'Subject', 'Tape', 'TransformTape', 'TransformationInformation']

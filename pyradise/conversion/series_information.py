@@ -226,7 +226,15 @@ class DicomSeriesImageInfo(DicomSeriesInfo):
                  ) -> None:
         super().__init__(paths)
 
-        self.modality = Modality.UNKNOWN
+        self.modality = Modality.get_default()
+
+    def get_modality(self) -> Modality:
+        """Get the :class:`Modality`.
+
+        Returns:
+            Modality: The :class:`Modality`.
+        """
+        return self.modality
 
     def set_modality(self, modality: Modality) -> None:
         """Set the :class:`Modality`.
@@ -617,7 +625,7 @@ class DicomSeriesRTStructureSetInfo(DicomSeriesInfo):
 
             return Rater(operator_name, abbreviation)
 
-        return Rater('UNKNOWN', 'NA')
+        return Rater.get_default()
 
     def _get_referenced_series_instance_uid(self) -> str:
         """Get the referenced SeriesInstanceUID from the dataset.

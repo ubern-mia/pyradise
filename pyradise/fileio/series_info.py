@@ -150,6 +150,25 @@ class IntensityFileSeriesInfo(FileSeriesInfo):
 
         self.is_updated = True
 
+    def get_modality(self) -> Modality:
+        """Get the :class:`Modality`.
+
+        Returns:
+            Modality: The :class:`Modality`.
+        """
+        return self.modality
+
+    def set_modality(self, modality: Modality) -> None:
+        """Set the :class:`Modality`.
+
+        Args:
+            modality (Modality): The :class:`Modality` to be set.
+
+        Returns:
+            None
+        """
+        self.modality = modality
+
     def update(self) -> None:
         """Update the :class:`IntensityFileSeriesInfo`.
 
@@ -179,13 +198,52 @@ class SegmentationFileSeriesInfo(FileSeriesInfo):
                  path: str,
                  subject_name: str,
                  organ: Organ,
-                 rater: Rater) -> None:
+                 rater: Rater
+                 ) -> None:
         super().__init__(path, subject_name)
 
         self.organ = organ
         self.rater = rater
 
         self.is_updated = True
+
+    def get_organ(self) -> Organ:
+        """Get the :class:`Organ`.
+
+        Returns:
+            Organ: The :class:`Organ`.
+        """
+        return self.organ
+
+    def set_organ(self, organ: Organ) -> None:
+        """Set the :class:`Organ`.
+
+        Args:
+            organ (Organ): The :class:`Organ` to be set.
+
+        Returns:
+            None
+        """
+        self.organ = organ
+
+    def get_rater(self) -> Rater:
+        """Get the :class:`Rater`.
+
+        Returns:
+            Rater: The :class:`Rater`.
+        """
+        return self.rater
+
+    def set_rater(self, rater: Rater) -> None:
+        """Set the :class:`Rater`.
+
+        Args:
+            rater (Rater): The :class:`Rater` to be set.
+
+        Returns:
+            None
+        """
+        self.rater = rater
 
     def update(self) -> None:
         """Update the :class:`SegmentationFileSeriesInfo`.
@@ -301,7 +359,15 @@ class DicomSeriesImageInfo(DicomSeriesInfo):
                  ) -> None:
         super().__init__(paths)
 
-        self.modality = Modality.UNKNOWN
+        self.modality = Modality.get_default()
+
+    def get_modality(self) -> Modality:
+        """Get the :class:`Modality` property.
+
+        Returns:
+            Modality: The :class:`Modality` property.
+        """
+        return self.modality
 
     def set_modality(self, modality: Modality) -> None:
         """Set the :class:`Modality` property.
@@ -674,7 +740,7 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
                  path: Union[str, Tuple[str, ...]]
                  ) -> None:
         self.dataset: Optional[Dataset] = None
-        self.rater: Optional[Rater] = None
+        self.rater: Rater = Rater.get_default()
         self.referenced_instance_uid = ''
         super().__init__(path)
         self.is_updated = True
@@ -728,7 +794,15 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
 
             return Rater(operator_name, abbreviation)
 
-        return Rater('UNKNOWN', 'NA')
+        return Rater.get_default()
+
+    def get_rater(self) -> Rater:
+        """Get the :class:`Rater`.
+
+        Returns:
+            Rater: The rater.
+        """
+        return self.rater
 
     def _get_referenced_series_instance_uid(self) -> str:
         """Get the referenced SeriesInstanceUID from the dataset.

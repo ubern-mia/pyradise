@@ -93,27 +93,27 @@ class ImageTransformFileFilter(FileFilter):
         if '_T1c_' in file_name:
             return {PATH: str(internal_path),
                     FILENAME: str(file_name),
-                    MODALITY: Modality.T1c}
+                    MODALITY: Modality('T1c')}
 
         if '_T1w_' in file_name:
             return {PATH: str(internal_path),
                     FILENAME: str(file_name),
-                    MODALITY: Modality.T1w}
+                    MODALITY: Modality('T1w')}
 
         if '_T2w_' in file_name:
             return {PATH: str(internal_path),
                     FILENAME: str(file_name),
-                    MODALITY: Modality.T2w}
+                    MODALITY: Modality('T2w')}
 
         if '_FLAIR_' in file_name:
             return {PATH: str(internal_path),
                     FILENAME: str(file_name),
-                    MODALITY: Modality.FLAIR}
+                    MODALITY: Modality('FLAIR')}
 
         if '_CT_' in file_name:
             return {PATH: str(internal_path),
                     FILENAME: str(file_name),
-                    MODALITY: Modality.CT}
+                    MODALITY: Modality('CT')}
 
         return None
 
@@ -140,19 +140,19 @@ class ImagingDirectoryFilter(FileFilter):
         file_name = internal_path.name
 
         if 'T1c.nii.gz' in file_name:
-            return {MODALITY: Modality.T1c,
+            return {MODALITY: Modality('T1c'),
                     PATH: str(internal_path)}
         if 'T1w.nii.gz' in file_name:
-            return {MODALITY: Modality.T1w,
+            return {MODALITY: Modality('T1w'),
                     PATH: str(internal_path)}
         if 'T2w.nii.gz' in file_name:
-            return {MODALITY: Modality.T2w,
+            return {MODALITY: Modality('T2w'),
                     PATH: str(internal_path)}
         if 'FLAIR.nii.gz' in file_name:
-            return {MODALITY: Modality.FLAIR,
+            return {MODALITY: Modality('FLAIR'),
                     PATH: str(internal_path)}
         if 'CT.nii.gz' in file_name:
-            return {MODALITY: Modality.CT,
+            return {MODALITY: Modality('CT'),
                     PATH: str(internal_path)}
 
         return None

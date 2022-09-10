@@ -96,7 +96,7 @@ class ModalityInfoSelector(SeriesInfoSelector):
                     selected.append(info)
 
             elif isinstance(info, DicomSeriesImageInfo):
-                if info.modality in self.keep:
+                if info.get_modality() in self.keep:
                     selected.append(info)
             else:
                 selected.append(info)
@@ -169,7 +169,7 @@ class RaterInfoSelector(SeriesInfoSelector):
         selected: List[SeriesInfo] = []
         for info in infos:
             if isinstance(info, SegmentationFileSeriesInfo):
-                if info.rater in self.keep:
+                if info.get_rater() in self.keep:
                     selected.append(info)
 
             elif isinstance(info, DicomSeriesRTSSInfo):

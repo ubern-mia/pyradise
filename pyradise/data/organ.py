@@ -8,12 +8,14 @@ import numpy as np
 from .rater import Rater
 
 
-__all__ = ['Organ', 'OrganFactory', 'OrganRaterCombination']
+__all__ = ['Organ', 'OrganRaterCombination']
 
 
 class Organ:
-    """Representation of an organ which is used in combination with a :class:`SegmentationImage` to identify the
-    content of the :class:`SegmentationImage`.
+    """A class for identifying the organ.
+
+    Notes:
+        The :class:`Organ` is predominantly used to identify the organ represented on a :class:`SegmentationImage`.
 
     Args:
         name (str): The name of the :class:`Organ`.
@@ -32,58 +34,11 @@ class Organ:
     def __str__(self) -> str:
         return self.name
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Organ):
+            return False
+
         return self.name == other.name
-
-
-class OrganFactory:
-    """An :class:`Organ` producing factory class.
-
-    Args:
-        names (Tuple[str, ...]): The names of the available :class:`Organ` s.
-        indices (Optional[Tuple[int]]): The indices of the available :class:`Organ` s (default: None).
-        auto_enumerate (bool): Indicates if the provided :class:`Organ` names should be automatically enumerated
-         (default: True).
-    """
-
-    def __init__(self,
-                 names: Tuple[str, ...],
-                 indices: Optional[Tuple[int]] = None,
-                 auto_enumerate: bool = True
-                 ) -> None:
-        super().__init__()
-
-        if isinstance(indices, tuple):
-            assert len(names) == len(indices), f'The number of provided names and indices must be equal, ' \
-                                               f'but is not ({len(names)} (names) vs. {len(indices)} (indices))!'
-
-        self.names = names
-
-        if not indices and auto_enumerate:
-            self.indices: Tuple[int] = tuple(np.arange(len(names)))
-
-        else:
-            self.indices: Optional[Tuple[int]] = indices
-
-    def produce(self, name: str) -> Organ:
-        """Produces a new :class:`Organ`.
-
-        Args:
-            name (str): The name of the new :class:`Organ`.
-
-        Returns:
-            Organ: The newly produced :class:`Organ`.
-        """
-        if name not in self.names:
-            raise ValueError(f'The name {name} is not contained in the factory!')
-
-        name_idx = self.names.index(name)
-        if self.indices:
-            index = self.indices[name_idx]
-        else:
-            index = None
-
-        return Organ(name, index)
 
 
 class OrganRaterCombination:
@@ -106,8 +61,8 @@ class OrganRaterCombination:
         if isinstance(rater, str):
             rater = Rater(rater)
 
-        self.organ: Union[Organ, str] = organ
-        self.rater: Union[Rater, str] = rater
+        self.organ: Organ = organ
+        self.rater: Rater = rater
 
     def __str__(self) -> str:
         return self.name
@@ -125,4 +80,4 @@ class OrganRaterCombination:
         Returns:
             str: The combined name.
         """
-        return self.rater.name + '_' + self.organ.name
+        return self.organ.name + '_' + self.rater.name

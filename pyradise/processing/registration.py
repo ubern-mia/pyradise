@@ -38,7 +38,7 @@ class ReferenceSubjectRegistrationFilterParameters(FilterParameters):
                  shrink_factors: Tuple[int] = (2, 2, 1),
                  smoothing_sigmas: Tuple[float] = (2, 1, 0),
                  sampling_percentage: float = 0.2,
-                 resampling_interpolator = sitk.sitkBSpline,
+                 resampling_interpolator: int = sitk.sitkBSpline,
                  ) -> None:
         """Represents the parameters for a ReferenceSubjectRegistrationFilter.
 

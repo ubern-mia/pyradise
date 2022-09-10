@@ -26,7 +26,7 @@ class SegmentationCombinationFilterParameters(FilterParameters):
     def __init__(self,
                  organs: Union[Tuple[str, ...], Tuple[Organ, ...]],
                  output_organ: Union[str, Organ],
-                 output_rater: Union[str, Rater],
+                 output_rater: Union[str, Rater] = Rater.get_default(),
                  exclude_terms: Tuple[str, ...] = (),
                  remove_organs: bool = True,
                  matching_method: str = 'exact',
@@ -37,7 +37,8 @@ class SegmentationCombinationFilterParameters(FilterParameters):
         Args:
             organs (Union[Tuple[str, ...], Tuple[Organ, ...]]): The organs to combine.
             output_organ (Union[str, Organ]): The organ of the combined segmentation image.
-            output_rater (Union[str, Rater]): The rater of the combined segmentation image.
+            output_rater (Union[str, Rater]): The rater of the combined segmentation image
+             (default: Rater.get_default()).
             exclude_terms (Tuple[str, ...]): Exclude terms in the organ name.
             remove_organs (bool): Indicates if the segmentation images to combine should be removed after combination
              (default: True).
@@ -478,7 +479,7 @@ class CombineSegmentationsFilterParameters(FilterParameters):
     def __init__(self,
                  organs_to_combine: Union[Tuple[Organ, ...], Tuple[str, ...]],
                  new_organ: Organ,
-                 new_rater: Optional[Rater] = None,
+                 new_rater: Rater = Rater.get_default(),
                  allow_override: bool = False
                  ) -> None:
         """Constructs the parameters for a CombineSegmentationsFilter.
@@ -487,9 +488,9 @@ class CombineSegmentationsFilterParameters(FilterParameters):
             organs_to_combine (Union[Tuple[Organ, ...], Tuple[str, ...]]): The organs identifying the images to be
              combined.
             new_organ (Organ): The organ of the combined segmentation image.
-            new_rater (Optional[Rater]): The rater for the combined segmentation image.
+            new_rater (Rater): The rater for the combined segmentation image (default: Rater.get_default()).
             allow_override (bool): If true allows the overriding of a possible existing image with the newly combined,
-             otherwise not (Default: False).
+             otherwise not (default: False).
         """
         super().__init__()
 

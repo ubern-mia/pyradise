@@ -26,7 +26,8 @@ class SegmentationCheckingFilterParameters(FilterParameters):
         required_organs (Tuple[Organ, ...]): The organs which must be contained in the subject.
         reference_image (Union[IntensityImage, SegmentationImage]): The reference image for newly constructed label
          images.
-        default_rater (Union[Rater, str]): The default rater for newly constructed label images.
+        default_rater (Union[Rater, str]): The default rater for newly constructed label images
+         (default: Rater.get_default()).
         strict (bool): If True organs in the subject which are not part of the required organs will be deleted
          (default: False).
     """
@@ -34,18 +35,18 @@ class SegmentationCheckingFilterParameters(FilterParameters):
     def __init__(self,
                  required_organs: Tuple[Organ, ...],
                  reference_image: Union[IntensityImage, SegmentationImage],
-                 default_rater: Union[Rater, str] = 'unknown',
+                 default_rater: Union[Rater, str] = Rater.get_default(),
                  strict: bool = False
                  ) -> None:
         super().__init__()
-        self.required_organs = required_organs
-        self.reference_image = reference_image
+        self.required_organs: Tuple[Organ, ...] = required_organs
+        self.reference_image: Union[IntensityImage, SegmentationImage] = reference_image
         self.strict = strict
 
         if isinstance(default_rater, str):
-            self.default_rater = Rater(default_rater)
+            self.default_rater: Rater = Rater(default_rater)
         else:
-            self.default_rater = default_rater
+            self.default_rater: Rater = default_rater
 
 
 class SegmentationCheckingFilter(Filter):

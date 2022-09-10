@@ -2,7 +2,6 @@ from typing import (
     Union,
     Optional,
     Tuple,
-    TypeVar,
     Callable)
 import os
 from enum import Enum
@@ -24,10 +23,6 @@ from .series_info import DicomSeriesInfo
 
 __all__ = ['SubjectWriter', 'DirectorySubjectWriter', 'DicomSeriesSubjectWriter', 'ImageFileFormat',
            'default_intensity_file_name_fn', 'default_segmentation_file_name_fn']
-
-
-# forward declaration
-# DicomSeriesInfo = TypeVar('DicomSeriesInfo')
 
 
 def default_intensity_file_name_fn(subject: Subject,
@@ -235,6 +230,35 @@ class SubjectWriter:
                     self._check_file_path(transform_file_path)
 
                     sitk.WriteTransform(transform_info.get_transform(False), transform_file_path)
+
+    def write_to_subject_folder(self,
+                                base_dir_path: str,
+                                subject: Subject,
+                                write_transforms: bool = True
+                                ) -> None:
+        """Write a :class:`Subject` instance to a separate subject directory within the specified base directory.
+
+        Notes:
+            The subject directory will be generated within the base directory path and will be named after the subject.
+            This is function is just a small wrapper around the write function and reduces the amount of code needed to
+            write subjects to separate directories.
+
+        Args:
+            base_dir_path (str): The path to the base directory where the subject directory will be placed.
+            subject (Subject): The :class:`Subject` which will be written.
+            write_transforms (bool): If True writes the transformation files for each :class:`IntensityImage` and
+             :class:`SegmentationImage`, otherwise not (default: True).
+
+        Returns:
+            None
+        """
+        subject_path = os.path.join(base_dir_path, subject.name)
+        if not os.path.exists(subject_path):
+            os.mkdir(subject_path)
+        else:
+            raise FileExistsError(f'The subject directory {subject_path} is already existing!')
+
+        self.write(subject_path, subject, write_transforms)
 
 
 class DicomSeriesSubjectWriter:

@@ -1,10 +1,8 @@
-from typing import (
-    Optional,
-    Tuple)
+from typing import Optional
 from re import sub
 
 
-__all__ = ['Rater', 'RaterFactory']
+__all__ = ['Rater']
 
 
 class Rater:
@@ -19,6 +17,8 @@ class Rater:
         name (str): The name of the rater.
         abbreviation (Optional[str]): The abbreviation of the rater (default: None).
     """
+    default_rater_name = 'NA'
+    default_rater_abbreviation = 'NA'
 
     def __init__(self,
                  name: str,
@@ -49,6 +49,23 @@ class Rater:
         """
         return self.abbreviation
 
+    @classmethod
+    def get_default(cls) -> 'Rater':
+        """Get the default :class:`Rater`.
+
+        Returns:
+            Rater: The default :class:`Rater`.
+        """
+        return Rater(Rater.default_rater_name, Rater.default_rater_abbreviation)
+
+    def is_default(self) -> bool:
+        """Check if the :class:`Rater` is the default :class:`Rater`.
+
+        Returns:
+            bool: True if the :class:`Rater` is the default :class:`Rater`, otherwise False.
+        """
+        return self.name == Rater.default_rater_name and self.abbreviation == Rater.default_rater_name
+
     @staticmethod
     def _remove_illegal_characters(text: str) -> str:
         illegal_characters = "[<>:/\\|?*\"]|[\0-\31]"
@@ -60,45 +77,8 @@ class Rater:
 
         return self.name
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Rater):
+            return False
 
-class RaterFactory:
-    """A :class:`Rater` producing factory class.
-
-    Args:
-        raters (Tuple[str, ...]): All available :class:`Rater` names.
-        abbreviations (Optional[Tuple[str, ...]]): All abbreviations to the raters (default: None).
-    """
-
-    def __init__(self,
-                 raters: Tuple[str, ...],
-                 abbreviations: Optional[Tuple[str, ...]] = None
-                 ) -> None:
-        super().__init__()
-
-        if abbreviations:
-            assert len(raters) == len(raters), f'The number of raters must be equal to the number of abbreviations ' \
-                                               f'({len(raters)} (raters) vs. {len(abbreviations)} (abbrev.))!'
-
-        self.raters = raters
-        self.abbreviations = abbreviations
-
-    def produce(self, name: str) -> Rater:
-        """Produce a new :class:`Rater` if possible.
-
-        Args:
-            name (str): The name of the :class:`Rater`.
-
-        Returns:
-            Rater: The constructed :class:`Rater`.
-        """
-        if name not in self.raters:
-            raise ValueError(f'The name {name} is not specified as a rater!')
-
-        name_idx = self.raters.index(name)
-        if self.abbreviations:
-            abbreviation = self.abbreviations[name_idx]
-
-        else:
-            abbreviation = None
-
-        return Rater(name, abbreviation)
+        return self.name == other.name and self.abbreviation == other.abbreviation

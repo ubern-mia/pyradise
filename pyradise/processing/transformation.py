@@ -46,8 +46,8 @@ class ApplyTransformationTapeFilterParameters(FilterParameters):
                  clear_transformation_tapes: bool = False
                  ) -> None:
         super().__init__()
-        self.targets = targets
-        self.transform_source = transform_source
+        self.targets: Optional[Tuple[Union[Modality, OrganRaterCombination]]] = targets
+        self.transform_source: Optional[Union[Modality, OrganRaterCombination, TransformTape]] = transform_source
         self.backward_playback = backward_playback
         self.clear_transformation_tapes = clear_transformation_tapes
 

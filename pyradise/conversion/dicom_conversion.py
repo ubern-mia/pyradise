@@ -1705,7 +1705,7 @@ class SubjectToRTSSConverter(Converter):
     def __init__(self,
                  subject: Subject,
                  infos: Tuple[DicomSeriesInfo],
-                 reference_modality: Modality = Modality.T1c
+                 reference_modality: Modality
                  ) -> None:
         super().__init__()
 

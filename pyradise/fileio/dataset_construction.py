@@ -158,13 +158,13 @@ class FileSystemCrawler:
 
     Args:
         dataset_base_dir (str): The path to the base directory of the dataset.
-        file_path_generator (SimpleFilePathGenerator): The file path generator to generate the full paths.
+        file_path_generator (FilePathGeneratorBase): The file path generator to generate the full paths.
         valid_file_extensions (Tuple[str, ...]): All valid file extensions (default: ('.nii.gz',)).
     """
 
     def __init__(self,
                  dataset_base_dir: str,
-                 file_path_generator: SimpleFilePathGenerator,
+                 file_path_generator: FilePathGeneratorBase,
                  valid_file_extensions: Tuple[str, ...] = ('.nii.gz',)
                  ) -> None:
         super().__init__()

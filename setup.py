@@ -60,7 +60,7 @@ setup(
         'deep learning',
         'data handling',
         'data conversion',
-        'data curation',
+        'data processing',
         'DICOM',
         'DICOM-RT',
         'RTSS'

@@ -36,10 +36,10 @@ def main(input_dir_path: str,
         None
     """
     label_identifiers = {'LB': OrganRaterCombination('all', 'Combination')}
-    image_identifiers = {'T1c': Modality.T1c,
-                         'T1w': Modality.T1w,
-                         'T2w': Modality.T2w,
-                         'FLAIR': Modality.FLAIR}
+    image_identifiers = {'T1c': Modality('T1c'),
+                         'T1w': Modality('T1w'),
+                         'T2w': Modality('T2w'),
+                         'FLAIR': Modality('FLAIR')}
 
     file_path_generator = SimpleFilePathGenerator(tuple(label_identifiers.values()),
                                                   tuple(image_identifiers.values()))

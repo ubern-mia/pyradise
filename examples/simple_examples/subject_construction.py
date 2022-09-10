@@ -1,37 +1,60 @@
 from argparse import ArgumentParser
+from typing import Tuple
 import os
 
 import SimpleITK as sitk
 
 from pyradise.data import Subject, IntensityImage, SegmentationImage, Modality, Organ, Rater
-from pyradise.serialization import SubjectWriter
+from pyradise.fileio import SubjectWriter, ImageFileFormat
+
+
+def get_segmentation_file_paths(path: str,
+                                valid_organs: Tuple[Organ, ...]
+                                ) -> Tuple[str]:
+    file_paths = []
+
+    for file in os.listdir(path):
+        if any(organ.name in file for organ in valid_organs) and file.endswith('.nii.gz'):
+            file_paths.append(os.path.join(path, file))
+
+    return tuple(sorted(file_paths))
+
+
+def get_intensity_file_paths(path: str,
+                             valid_modalities: Tuple[Modality, ...]
+                             ) -> Tuple[str]:
+    file_paths = []
+
+    for file in os.listdir(path):
+        if any(modality.get_name() in file for modality in valid_modalities) and file.endswith('.nii.gz'):
+            file_paths.append(os.path.join(path, file))
+
+    return tuple(sorted(file_paths))
 
 
 def main(input_dir: str,
          output_dir: str
          ) -> None:
     # Retrieve image file paths
-    segmentation_file_paths = [entry.path for entry in os.scandir(input_dir)
-                               if 'seg_' in entry.name and '.nii.gz' in entry.name]
-    intensity_file_paths = [entry.path for entry in os.scandir(input_dir)
-                            if 'img_' in entry.name and '.nii.gz' in entry.name]
+    organs = (Organ('Brainstem'), Organ('Eyes'), Organ('Hippocampi'), Organ('OpticNerves'))
+    modalities = (Modality('CT'), Modality('T1c'), Modality('T1w'), Modality('T2w'))
+
+    segmentation_file_paths = get_segmentation_file_paths(input_dir, organs)
+    intensity_file_paths = get_intensity_file_paths(input_dir, modalities)
 
     # Load the segmentation image files
     images = []
-    organs = [Organ('Brain'), Organ('Lung'), Organ('Liver'), Organ('Heart')]
-    raters = [Rater('RaterName'), Rater('RaterName'), Rater('RaterName'), Rater('RaterName')]
-    for path, organ, rater in zip(segmentation_file_paths, organs, raters):
-        image = SegmentationImage(sitk.ReadImage(path, sitk.sitkUInt8), organ, rater)
+    for path, organ in zip(segmentation_file_paths, organs):
+        image = SegmentationImage(sitk.ReadImage(path, sitk.sitkUInt8), organ, Rater.get_default())
         images.append(image)
 
     # Load the intensity image files
-    modalities = [Modality.CT, Modality.T1c, Modality.T1w, Modality.T2w]
     for path, modality in zip(intensity_file_paths, modalities):
         image = IntensityImage(sitk.ReadImage(path, sitk.sitkFloat32), modality)
         images.append(image)
 
     # Construct the subject
-    subject = Subject('subject_1', images)
+    subject = Subject(os.path.basename(input_dir), images)
 
     # Display the subject name and properties of the intensity and segmentation images
     print(f'Subject {subject.get_name()} contains the following images:')
@@ -43,7 +66,7 @@ def main(input_dir: str,
         print(f'Segmentation image of {image.get_organ(True)} with size: {image.get_size()}')
 
     # Write the subject to disk
-    SubjectWriter().write(output_dir, subject, write_transforms=False)
+    SubjectWriter(ImageFileFormat.NRRD).write(output_dir, subject, write_transforms=False)
 
 
 if __name__ == '__main__':

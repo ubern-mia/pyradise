@@ -10,7 +10,9 @@ import SimpleITK as sitk
 import itk
 import numpy as np
 
-from .modality import Modality
+from .modality import (
+    # Modality,
+    Modality)
 from .organ import (
     Organ,
     OrganRaterCombination)
@@ -277,11 +279,14 @@ class IntensityImage(Image):
             Union[Modality, str]: The :class:`Modality` of the image.
         """
         if as_str:
-            return self.modality.name
+            return self.modality.get_name()
 
         return self.modality
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, IntensityImage):
+            return False
+
         return all((self.modality == other.modality, self.image == other.image))
 
     def __str__(self) -> str:
@@ -303,11 +308,11 @@ class SegmentationImage(Image):
     def __init__(self,
                  image: Union[sitk.Image, itk.Image],
                  organ: Organ,
-                 rater: Optional[Rater] = None
+                 rater: Optional[Rater] = Rater.get_default()
                  ) -> None:
         super().__init__(image)
         self.organ: Organ = organ
-        self.rater: Optional[Rater] = rater
+        self.rater: Rater = rater
 
     def is_intensity_image(self) -> bool:
         """If the image is an :class:`IntensityImage` this function returns True, otherwise False.
@@ -333,26 +338,20 @@ class SegmentationImage(Image):
 
         return self.organ
 
-    def get_rater(self) -> Optional[Rater]:
-        """Get the :class:`Rater`, if available.
+    def get_rater(self) -> Rater:
+        """Get the :class:`Rater`.
 
         Returns:
-            Optional[Rater]: The :class:`Rater`.
+            Rater: The :class:`Rater`.
         """
         return self.rater
 
-    def get_organ_rater_combination(self) -> Optional[OrganRaterCombination]:
-        """Get the :class:`OrganRaterCombination`, if available.
-
-        Notes:
-            Returns ``None`` if the :class:`Rater` is not available.
+    def get_organ_rater_combination(self) -> OrganRaterCombination:
+        """Get the :class:`OrganRaterCombination`.
 
         Returns:
-            OrganRaterCombination: The combination of the :class:`Organ` and the :class:`Rater`, if available.
+            OrganRaterCombination: The combination of the :class:`Organ` and the :class:`Rater`.
         """
-        if not self.rater:
-            return None
-
         return OrganRaterCombination(self.organ, self.rater)
 
     def is_binary(self) -> bool:

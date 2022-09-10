@@ -6,9 +6,7 @@ from typing import (
 import os
 import json
 
-from pyradise.data import (
-    Modality,
-    ModalityFactory)
+from pyradise.data import Modality
 from .series_information import (
     DicomSeriesInfo,
     DicomSeriesImageInfo)
@@ -73,9 +71,9 @@ class ModalityConfiguration:
         for entry in data:
             series_instance_uid = entry.get('SeriesInstanceUID', '')
             series_description = entry.get('SeriesDescription', '')
-            modality = ModalityFactory.produce(entry.get('Modality', ''))
+            modality = Modality(entry.get('Modality', ''))
 
-            if modality == Modality.UNKNOWN:
+            if modality.is_default():
                 print(f'The modality for SeriesInstanceUID {series_instance_uid} and SeriesDescription '
                       f'{series_description} could not be detected from the ModalityConfiguration!')
 
@@ -130,10 +128,7 @@ class ModalityConfiguration:
             if update_infos:
                 info.update()
 
-            if isinstance(info, DicomSeriesImageInfo):
-                modality = info.modality
-            else:
-                modality = Modality.UNKNOWN
+            modality = info.get_modality() if isinstance(info, DicomSeriesImageInfo) else Modality.get_default()
 
             # pylint: disable=not-callable
             config_entry = ModalityConfigurationEntry(SOPClassUID=info.sop_class_uid,
@@ -227,6 +222,6 @@ class ModalityConfiguration:
             return valid_entries[0].Modality, True
 
         if force:
-            return Modality.UNKNOWN, False
+            return Modality.get_default(), False
 
         return None, False

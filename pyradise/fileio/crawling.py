@@ -35,7 +35,7 @@ __all__ = ['Crawler', 'SubjectFileCrawler', 'DatasetFileCrawler', 'IterableFileC
 
 def default_modality_extractor(path: str) -> Modality:
     """Extract the modality from the specified file path, if possible. If the modality cannot be extracted,
-    the default modality :class:`Modality.UNKNOWN` is returned.
+    the default modality :class:`Modality` is returned.
 
     Args:
         path (str): The path from which to extract the modality.
@@ -43,17 +43,15 @@ def default_modality_extractor(path: str) -> Modality:
     Returns:
         Modality: The extracted modality or the default value (:class:`Modality.UNKNOWN`).
     """
+    file_name = os.path.basename(path)
 
-    if os.path.basename(path).startswith('seg'):
-        return Modality.UNKNOWN
+    if file_name.startswith('img'):
+        modality_name = file_name.split('.')[0].split('_')[1]
+        return Modality(modality_name)
 
-    try:
-        modality = Modality[os.path.basename(path).split('.')[0].split('_')[-1]]
-    except KeyError:
-        print(f'Could not extract modality from path {path}! Assigned the default value Modality.UNKNOWN!')
-        modality = Modality.UNKNOWN
+    else:
+        return Modality.get_default()
 
-    return modality
 
 
 def default_organ_extractor(path: str) -> Organ:
@@ -78,22 +76,23 @@ def default_organ_extractor(path: str) -> Organ:
 
 def default_rater_extractor(path: str) -> Rater:
     """Extract the rater from the specified file path, if possible. If the rater cannot be extracted, the default
-    rater :class:`Rater('NA')` is returned.
+    :class:`Rater` is returned.
 
     Args:
         path (str): The path from which to extract the rater.
 
     Returns:
-        Rater: The extracted rater or the default rater (:class:`Rater('NA')`).
+        Rater: The extracted rater or the default rater.
     """
     if os.path.basename(path).startswith('img'):
-        return Rater('NA')
+        return Rater.get_default()
 
     rater_name = os.path.basename(path).split('.')[0].split('_')[2]
 
     if rater_name:
         return Rater(rater_name)
-    return Rater('NA')
+
+    return Rater.get_default()
 
 
 class Crawler(ABC):
@@ -168,8 +167,8 @@ class SubjectFileCrawler(Crawler):
             for file in files:
                 if file.endswith(self.extension):
                     file_path = os.path.join(root, file)
-
-                    if (modality := self.modality_extractor(file_path)) == Modality.UNKNOWN:
+                    modality = self.modality_extractor(file_path)
+                    if modality.is_default():
                         organ = self.organ_extractor(file_path)
                         rater = self.rater_extractor(file_path)
 

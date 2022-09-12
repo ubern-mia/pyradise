@@ -10,6 +10,16 @@ FileIO Package
 The :mod:`pyradise.fileio` package provides functionality for converting DICOM data into :class:`pyradise.data.Subject`..
 
 
+Modality Configuration Module
+-----------------------------
+Module: :mod:`pyradise.fileio.modality_config`
+
+DESCRIPTION GOES HERE
+
+.. automodule:: pyradise.fileio.modality_config
+    :members:
+    :show-inheritance:
+
 
 Crawling Module
 ---------------
@@ -22,16 +32,6 @@ DESCRIPTION GOES HERE
     :show-inheritance:
 
 
-Modality Configuration Module
------------------------------
-Module: :mod:`pyradise.fileio.modality_config`
-
-DESCRIPTION GOES HERE
-
-.. automodule:: pyradise.fileio.modality_config
-    :members:
-    :show-inheritance:
-
 Series Information Module
 -------------------------
 Module: :mod:`pyradise.fileio.series_info`
@@ -41,6 +41,7 @@ DESCRIPTION GOES HERE
 .. automodule:: pyradise.fileio.series_info
     :members:
     :show-inheritance:
+
 
 Selection Module
 ----------------

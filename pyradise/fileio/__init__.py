@@ -31,11 +31,9 @@ from .selection import (
     NoRegistrationInfoSelector)
 
 from .loading import (
-    DirectBaseLoader,
+    ExplicitLoader,
     SubjectLoader,
-    IterableSubjectLoader,
-    SubjectLoaderV2,
-    IterableSubjectLoaderV2)
+    IterableSubjectLoader)
 
 from .dicom_conversion import (
     ROIData,
@@ -45,7 +43,6 @@ from .dicom_conversion import (
     SegmentToRTSSConverter,
     DicomImageSeriesConverter,
     DicomRTSSSeriesConverter,
-    DicomSeriesToSubjectConverter,
     SubjectToRTSSConverter)
 
 from .writing import (

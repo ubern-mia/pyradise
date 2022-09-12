@@ -225,6 +225,10 @@ class Subject:
             force (bool): Indicates if addition should be performed even if a similar (same modality for intensity
              images or same organ for segmentation images) image is already contained (default: False).
 
+        Raises:
+            ValueError: If an intensity image with similar modality is already contained or a segmentation image with
+             similar organ is already contained and ``force`` if False.
+
         Returns:
             None
         """

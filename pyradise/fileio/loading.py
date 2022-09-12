@@ -12,10 +12,8 @@ from pyradise.data import (
     SegmentationImage)
 from .series_info import (
     SeriesInfo,
-    FileSeriesInfo,
     IntensityFileSeriesInfo,
     SegmentationFileSeriesInfo,
-    DicomSeriesInfo,
     DicomSeriesImageInfo,
     DicomSeriesRTSSInfo,
     DicomSeriesRegistrationInfo)
@@ -23,10 +21,11 @@ from .dicom_conversion import (
     DicomImageSeriesConverter,
     DicomRTSSSeriesConverter)
 
-__all__ = ['DirectBaseLoader', 'SubjectLoader', 'IterableSubjectLoader', 'SubjectLoaderV2', 'IterableSubjectLoaderV2']
+__all__ = ['Loader', 'ExplicitLoader', 'SubjectLoader', 'IterableSubjectLoader']
 
 
-class LoaderBase(ABC):
+class Loader(ABC):
+    """An abstract class for loading subjects from a given source."""
 
     def __init__(self):
         super().__init__()
@@ -47,21 +46,21 @@ class LoaderBase(ABC):
         return tuple(filter(lambda x: isinstance(x, type_), info))
 
 
-class DirectBaseLoader(LoaderBase, ABC):
-    """An abstract loader class to load common discrete medical image file formats.
-    """
+class ExplicitLoader(Loader, ABC):
+    """An abstract class for loading subjects based on :class:`SeriesInfo` entries including an explicit :func:`load`
+    method."""
 
     def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
     def load(self,
-             info: Tuple[SeriesInfo]
+             info: Tuple[SeriesInfo, ...]
              ) -> Subject:
         """Load the :class:`Subject`.
 
         Args:
-            info (Tuple[SeriesInfo]): The :class:`SeriesInfo` entries to be loaded.
+            info (Tuple[SeriesInfo, ...]): The :class:`SeriesInfo` entries to be loaded.
 
         Returns:
             Subject: The loaded :class:`Subject`.
@@ -69,298 +68,78 @@ class DirectBaseLoader(LoaderBase, ABC):
         raise NotImplementedError()
 
 
-class SubjectLoader(DirectBaseLoader):
-    """A loader class to load a :class:`Subject` from a list of :class:`FileSeriesInfo` entries.
+class SubjectLoader(ExplicitLoader):
+    """A loader for loading a subject based on its :class:`SeriesInfo` entries. This loader can load both DICOM data and
+    discrete image file formats (e.g. NIFTI). The loader checks if the info entries are from the same subject and .
 
     Args:
-        infos (Tuple[FileSeriesInfo]): The :class:`FileSeriesInfo` entries to load the subject from.
-        intensity_pixel_type (int): The pixel type of the intensity images.
-        segmentation_pixel_type (int): The pixel type of the segmentation images.
+        intensity_pixel_value_type (int): The pixel value type of the intensity images (default: sitk.sitkFloat32).
+        segmentation_pixel_value_type (int): The pixel value type of the segmentation images (default: sitk.sitkUInt8).
+
+    Examples:
+
+        Load and normalize NIFTI files and save the subject as NRRD files:
+
+        >>> from argparse import ArgumentParser
+        >>> from pyradise.fileio import SubjectFileCrawler, SubjectLoader, SubjectWriter, ImageFileFormat
+        >>> from pyradise.process import ZScoreNormalizationFilter, NormalizationFilterParameters
+        >>>
+        >>>
+        >>> def main(input_path: str, output_path: str, subject_name: str) -> None:
+        >>>   # Crawl the input directory for NIFTI files
+        >>>   info = SubjectFileCrawler(input_path, subject_name, 'nii.gz').execute()
+        >>>
+        >>>   # Load the subject
+        >>>   subject = SubjectLoader().load(info)
+        >>>
+        >>>   # Perform the normalization
+        >>>   normalization_params = NormalizationFilterParameters(loop_axis=1)
+        >>>   normalization_filter = ZScoreNormalizationFilter(normalization_params)
+        >>>   subject = normalization_filter.execute(subject)
+        >>>
+        >>>   # Write the subject to the output directory
+        >>>   writer = SubjectWriter(ImageFileFormat.NRRD)
+        >>>   writer.write(output_path, subject, write_transforms=False)
+        >>>
+        >>>
+        >>> if __name__ == '__main__':
+        >>>   parser = ArgumentParser()
+        >>>   parser.add_argument('input_path', type=str, help='The input directory.')
+        >>>   parser.add_argument('output_path', type=str, help='The output directory.')
+        >>>   parser.add_argument('subject_name', type=str, help='The name of the subject.')
+        >>>   args = parser.parse_args()
+        >>>
+        >>>   main(args.input_path, args.output_path, args.subject_name)
+
+
+        Convert DICOM data to NIFTI files:
+
+        >>> from argparse import ArgumentParser
+        >>> from pyradise.fileio import SubjectDicomCrawler, SubjectLoader, SubjectWriter
+        >>>
+        >>>
+        >>> def main(input_path: str, output_path: str) -> None:
+        >>>   # Crawl the input directory for DICOM data
+        >>>   # Note: We assume that the modality configuration file (modality_config.json) is existing
+        >>>   info = SubjectDicomCrawler(input_path).execute()
+        >>>
+        >>>   # Load the subject
+        >>>   subject = SubjectLoader().load(info)
+        >>>
+        >>>   # Write the subject to the output directory
+        >>>   writer = SubjectWriter()
+        >>>   writer.write(output_path, subject, write_transforms=False)
+        >>>
+        >>>
+        >>> if __name__ == '__main__':
+        >>>   parser = ArgumentParser()
+        >>>   parser.add_argument('input_path', type=str, help='The input directory.')
+        >>>   parser.add_argument('output_path', type=str, help='The output directory.')
+        >>>   args = parser.parse_args()
+        >>>
+        >>>   main(args.input_path, args.output_path)
+
     """
-
-    def __init__(self,
-                 infos: Tuple[FileSeriesInfo],
-                 intensity_pixel_type: int = sitk.sitkFloat32,
-                 segmentation_pixel_type: int = sitk.sitkUInt8
-                 ) -> None:
-        super().__init__()
-
-        assert infos, 'The infos must not be empty!'
-        self.infos = infos
-
-        self.intensity_pixel_type = intensity_pixel_type
-        self.segmentation_pixel_type = segmentation_pixel_type
-
-    @staticmethod
-    def _clean_infos(infos: Tuple[FileSeriesInfo]) -> Tuple[FileSeriesInfo]:
-        """Clean the :class:`FileSeriesInfo` entries from :class:`DicomSeriesInfo` entries.
-
-        Args:
-            infos (Tuple[FileSeriesInfo]): The :class:`FileSeriesInfo` entries to check.
-
-        Returns:
-            Tuple[FileSeriesInfo]: The :class:`FileSeriesInfo` entries without :class:`DicomSeriesInfo` entries.
-        """
-        keep = []
-        for info in infos:
-            if isinstance(info, FileSeriesInfo):
-                keep.append(info)
-        return tuple(keep)
-
-    @staticmethod
-    def _check_subject_name(infos: Tuple[FileSeriesInfo]) -> None:
-        """Check if the subject names are equal.
-
-        Args:
-            infos (Tuple[FileSeriesInfo]): The :class:`FileSeriesInfo` entries to check.
-
-        Raises:
-            ValueError: If the subject names are not equal.
-        """
-        subject_names = [info.subject_name for info in infos]
-        if not all(subject_name == subject_names[0] for subject_name in subject_names):
-            raise ValueError('The subject name for at least one provided info is not equal!')
-
-    def _load_intensity_image(self, info: IntensityFileSeriesInfo) -> IntensityImage:
-        """Load an intensity image.
-
-        Args:
-            info (IntensityFileSeriesInfo): The :class:`IntensityFileSeriesInfo` to load.
-
-        Raises:
-            ValueError: If the provided file series contains more than one file.
-            NotImplementedError: If the image has more than three dimensions.
-
-        Returns:
-            IntensityImage: The loaded :class:`IntensityImage`.
-        """
-        if len(info.path) > 1:
-            raise ValueError('The provided file series contains more than one file!')
-
-        sitk_image = sitk.ReadImage(info.path[0], outputPixelType=self.intensity_pixel_type)
-
-        if sitk_image.GetDimension() > 3:
-            raise NotImplementedError(f'Conversion of {sitk_image.GetDimension()}D images is not supported!')
-
-        return IntensityImage(sitk_image, info.modality)
-
-    def _load_segmentation_image(self, info: SegmentationFileSeriesInfo) -> SegmentationImage:
-        """Load a segmentation image.
-
-                Args:
-                    info (SegmentationFileSeriesInfo): The :class:`SegmentationFileSeriesInfo` to load.
-
-                Raises:
-                    ValueError: If the provided file series contains more than one file.
-                    NotImplementedError: If the image has more than three dimensions.
-
-                Returns:
-                    SegmentationImage: The loaded :class:`SegmentationImage`.
-                """
-        if len(info.path) > 1:
-            raise ValueError('The provided file series contains more than one file!')
-
-        sitk_image = sitk.ReadImage(info.path[0], outputPixelType=self.segmentation_pixel_type)
-
-        if sitk_image.GetDimension() > 3:
-            raise NotImplementedError(f'Conversion of {sitk_image.GetDimension()}D images is not supported!')
-
-        return SegmentationImage(sitk_image, info.organ, info.rater)
-
-    def load(self) -> Subject:
-        """Load the :class:`Subject` as specified by the :class:`FileSeriesInfo` entries.
-
-        Returns:
-            Subject: The loaded :class:`Subject`.
-        """
-        file_infos = self._clean_infos(self.infos)
-        if len(file_infos) != len(self.infos):
-            print('The infos contain DICOM infos which will be disregarded for conversion! '
-                  'Use the appropriate converter to ingest DICOM data instead')
-
-        self._check_subject_name(file_infos)
-
-        subject = Subject(file_infos[0].subject_name)
-
-        for info in file_infos:
-            if isinstance(info, IntensityFileSeriesInfo):
-                image = self._load_intensity_image(info)
-                subject.add_image(image)
-
-            elif isinstance(info, SegmentationFileSeriesInfo):
-                image = self._load_segmentation_image(info)
-                subject.add_image(image)
-
-            else:
-                raise ValueError('The provided info is not supported!')
-
-        return subject
-
-
-class IterableSubjectLoader(LoaderBase):
-    """An iterable loader to load a sequence of :class:`Subject` s from a list of :class:`FileSeriesInfo` entries.
-
-    Notes:
-        The ``info`` argument must be a list of lists of :class:`FileSeriesInfo` entries. Each list of
-        :class:`FileSeriesInfo` entries represents a separate :class:`Subject`.
-
-    Args:
-        info (Tuple[Tuple[FileSeriesInfo]]): The nested :class:`FileSeriesInfo` entries to load the subjects from.
-        intensity_pixel_type (int): The pixel type of the intensity images.
-        segmentation_pixel_type (int): The pixel type of the segmentation images.
-    """
-
-    def __init__(self,
-                 info: Tuple[Tuple[FileSeriesInfo]],
-                 intensity_pixel_type: int = sitk.sitkFloat32,
-                 segmentation_pixel_type: int = sitk.sitkUInt8
-                 ) -> None:
-        super().__init__()
-
-        assert info, 'The infos must not be empty!'
-        self.info = info
-
-        self.intensity_pixel_type = intensity_pixel_type
-        self.segmentation_pixel_type = segmentation_pixel_type
-
-        self.current_idx = 0
-        self.num_subjects = len(self.info)
-
-    def __iter__(self):
-        self.current_idx = 0
-        return self
-
-    def __next__(self):
-        if self.current_idx < self.num_subjects:
-            subject = SubjectLoader(self.info[self.current_idx]).load()
-            self.current_idx += 1
-            return subject
-
-        raise StopIteration()
-
-    def __len__(self):
-        return self.num_subjects
-
-
-class DicomLoader(DirectBaseLoader):
-
-    def __init__(self):
-        super().__init__()
-
-    @staticmethod
-    def _get_image_series_info(info: Tuple[SeriesInfo]
-                               ) -> Tuple[DicomSeriesImageInfo]:
-        """Extract the :class:`DicomSeriesImageInfo` entries from a sequence of :class:`SeriesInfo`.
-
-        Args:
-            info (Tuple[SeriesInfo]): The :class:`SeriesInfo` entries to filter.
-
-        Returns:
-            Tuple[DicomSeriesImageInfo]: The extracted :class:`DicomSeriesImageInfo` entries.
-        """
-        return tuple(entry for entry in info if isinstance(entry, DicomSeriesImageInfo))
-
-    @staticmethod
-    def _validate_patient_identification(infos: Tuple[DicomSeriesInfo]) -> bool:
-        if not infos:
-            return False
-
-        return all(info.patient_name == infos[0].patient_name and info.patient_id == infos[0].patient_id
-                   for info in infos)
-
-    @staticmethod
-    def _validate_registration_infos(reg_info: Tuple[DicomSeriesRegistrationInfo],
-                                     image_info: Tuple[DicomSeriesImageInfo]
-                                     ) -> bool:
-
-        def is_image_info_available(instance_uids: List[str],
-                                    image_info_: Tuple[DicomSeriesImageInfo]
-                                    ) -> bool:
-            comparison = [[info.series_instance_uid == uid for uid in instance_uids] for info in image_info_]
-            return all(any(comparison_) for comparison_ in comparison)
-
-        if not image_info:
-            return False
-
-        if not reg_info:
-            return True
-
-        identity_uids = []
-        transform_uids = []
-        for reg_info_entry in reg_info:
-            reg_info_entry.update() if not reg_info_entry.is_updated() else None
-            identity_uids.append(reg_info_entry.referenced_series_instance_uid_identity)
-            transform_uids.append(reg_info_entry.referenced_series_instance_uid_transform)
-
-        if is_image_info_available(identity_uids, image_info) and is_image_info_available(transform_uids, image_info):
-            return True
-
-        return False
-
-    # TODO add here a validate_rtss function
-
-    def load(self, info: Tuple[SeriesInfo]) -> Subject:
-        # sort the SeriesInfo entries such that only DicomSeriesInfo entries are existing
-        image_info: Tuple[DicomSeriesImageInfo] = self._extract_info_by_type(info, DicomSeriesImageInfo)
-        reg_info: Tuple[DicomSeriesRegistrationInfo] = self._extract_info_by_type(info, DicomSeriesRegistrationInfo)
-        rtss_info: Tuple[DicomSeriesRTSSInfo] = self._extract_info_by_type(info, DicomSeriesRTSSInfo)
-
-        selected_info: Tuple[DicomSeriesInfo, ...] = image_info + reg_info + rtss_info
-
-        # validate the DicomSeriesInfo entries
-        if not self._validate_patient_identification(selected_info):
-            raise ValueError('The provided image infos do not contain the same patient identification!')
-
-        if not self._validate_registration_infos(reg_info, image_info):
-            raise ValueError('The provided registration infos are invalid!')
-
-        # create the subject
-        subject = Subject(selected_info[0].patient_name)
-
-        # convert and add the DICOM intensity images to the subject
-        intensity_images = DicomImageSeriesConverter(image_info, reg_info).convert()
-        subject.add_images(intensity_images, force=True)
-
-        # convert and add the DICOM segmentation images to the subject
-        if rtss_info:
-            segmentation_images = DicomRTSSSeriesConverter(rtss_info, image_info, reg_info).convert()
-            subject.add_images(segmentation_images, force=True)
-
-        return subject
-
-
-class IterableDicomLoader(LoaderBase):
-
-    def __init__(self, infos: Tuple[Tuple[SeriesInfo]]):
-        super().__init__()
-
-        assert infos, 'The infos must not be empty!'
-        self.infos = infos
-
-        self.current_idx = 0
-        self.num_subjects = len(self.infos)
-
-    def __iter__(self):
-        self.current_idx = 0
-        return self
-
-    def __next__(self):
-        if self.current_idx < self.num_subjects:
-            subject = DicomLoader().load(self.infos[self.current_idx])
-            self.current_idx += 1
-            return subject
-
-        raise StopIteration()
-
-    def __len__(self):
-        return self.num_subjects
-
-    def load(self) -> Subject:
-        raise NotImplementedError(f'The load method is not implemented for {self.__class__.__name__} because it '
-                                  'remains unused!')
-
-
-class SubjectLoaderV2(DirectBaseLoader):
 
     def __init__(self,
                  intensity_pixel_value_type: int = sitk.sitkFloat32,
@@ -375,6 +154,16 @@ class SubjectLoaderV2(DirectBaseLoader):
     def _load_intensity_images(info: Tuple[IntensityFileSeriesInfo],
                                pixel_value_type: sitk.sitkFloat32
                                ) -> Tuple[IntensityImage]:
+        """Load the intensity images.
+
+        Args:
+            info (Tuple[IntensityFileSeriesInfo]): The :class:`IntensityFileSeriesInfo` entries containing the file
+             paths to the images.
+            pixel_value_type (int): The pixel value type for the intensity images.
+
+        Returns:
+            Tuple[IntensityImage]: The loaded intensity images.
+        """
         images = []
         for info_entry in info:
             image = sitk.ReadImage(info_entry.get_path()[0], pixel_value_type)
@@ -386,6 +175,16 @@ class SubjectLoaderV2(DirectBaseLoader):
     def _load_segmentation_images(info: Tuple[SegmentationFileSeriesInfo],
                                   pixel_value_type: sitk.sitkUInt8
                                   ) -> Tuple[SegmentationImage]:
+        """Load the segmentation images.
+
+        Args:
+            info (Tuple[SegmentationFileSeriesInfo]): The :class:`SegmentationFileSeriesInfo` entries containing the
+                file paths to the images.
+            pixel_value_type (int): The pixel value type for the segmentation images.
+
+        Returns:
+            Tuple[SegmentationImage]: The loaded segmentation images.
+        """
         images = []
         for info_entry in info:
             image = sitk.ReadImage(info_entry.get_path()[0], pixel_value_type)
@@ -395,29 +194,38 @@ class SubjectLoaderV2(DirectBaseLoader):
 
     @staticmethod
     def _validate_patient_identification(info: Tuple[SeriesInfo]) -> bool:
+        """Validate the patient identification of the provided :class:`SeriesInfo` entries.
+
+        Args:
+            info (Tuple[SeriesInfo]): The :class:`SeriesInfo` entries to check.
+
+        Returns:
+            bool: True if the patient identification is valid for all info entries, otherwise False.
+        """
         if not info:
             return False
 
-        patient_names = []
-        patient_ids = []
-        for info_entry in info:
-            if isinstance(info_entry, DicomSeriesInfo):
-                patient_names.append(info_entry.patient_name)
-                patient_ids.append(info_entry.patient_id)
-            elif isinstance(info_entry, FileSeriesInfo):
-                patient_names.append(info_entry.subject_name)
-            else:
-                raise ValueError(f'Unknown type {type(info_entry)}!')
+        names = [entry.get_patient_name() for entry in info]
+        ids = [entry.get_patient_id() for entry in info]
 
-        result_patient_name = all(patient_name == patient_names[0] for patient_name in patient_names)
-        result_patient_id = all(patient_id == patient_ids[0] for patient_id in patient_ids)
-
-        return result_patient_name and result_patient_id
+        return all(name == names[0] for name in names) and all(id_ == ids[0] for id_ in ids)
 
     @staticmethod
     def _validate_registration(reg_info: Tuple[DicomSeriesRegistrationInfo],
                                image_info: Tuple[DicomSeriesImageInfo]
                                ) -> bool:
+        """Validate the ReferencedSeriesInstanceUIDs of the provided :class:`DicomSeriesRegistrationInfo` entries by
+         checking if the referenced DICOM image data is provided.
+
+        Args:
+            reg_info (Tuple[DicomSeriesRegistrationInfo]): The :class:`DicomSeriesRegistrationInfo` entries to check.
+            image_info (Tuple[DicomSeriesImageInfo]): The :class:`DicomSeriesImageInfo` entries containing the
+             referenced SeriesInstanceUIDs.
+
+        Returns:
+            bool: True if the image infos for all registration infos is available, otherwise False.
+
+        """
 
         def is_image_info_available(instance_uids: List[str],
                                     image_info_: Tuple[DicomSeriesImageInfo]
@@ -447,6 +255,16 @@ class SubjectLoaderV2(DirectBaseLoader):
     def _validate_rtss_info(rtss_info: Tuple[DicomSeriesRTSSInfo],
                             image_info: Tuple[DicomSeriesImageInfo]
                             ) -> bool:
+        """Validate if all SeriesInstanceUIDs referenced in the RTSSs are provided.
+
+        Args:
+            rtss_info (Tuple[DicomSeriesRTSSInfo]): The :class:`DicomSeriesRTSSInfo` entries to check.
+            image_info (Tuple[DicomSeriesImageInfo]): The :class:`DicomSeriesImageInfo` entries containing the
+             SeriesInstanceUIDs.
+
+        Returns:
+            bool: True if the referenced image infos for all RTSS infos are available, otherwise False.
+        """
         if not rtss_info:
             return True
 
@@ -458,7 +276,32 @@ class SubjectLoaderV2(DirectBaseLoader):
 
         return all(comparison)
 
-    def load(self, info: Tuple[SeriesInfo]) -> Subject:
+    def load(self, info: Tuple[SeriesInfo, ...]) -> Subject:
+        """Load a :class:`Subject` from the provided :class:`SeriesInfo` entries.
+
+        Args:
+            info (Tuple[SeriesInfo, ...]): The :class:`SeriesInfo` entries containing the necessary information for
+             loading the subject.
+
+        Raises:
+            ValueError: If ``info`` is an empty tuple.
+            ValueError: If ``info`` is not a tuple of :class:`SeriesInfo` entries.
+            ValueError: If the patient name and patient id of the provided :class:`SeriesInfo` entries are not equal.
+            ValueError: If not all referenced :class:`DicomSeriesImageInfo` entries are provided for registration.
+            ValueError: If not all referenced :class:`DicomSeriesImageInfo` entries are provided for RTSS construction.
+
+        Returns:
+            Subject: The loaded subject.
+
+        """
+        # check if the info entries have the correct structure
+        if not info:
+            raise ValueError('The provided info entries are empty.')
+
+        if not all(isinstance(entry, SeriesInfo) for entry in info):
+            raise ValueError('The provided info entries are not of type SeriesInfo. '
+                             'Make sure to provide a tuple of SeriesInfo entries.')
+
         # separate the info entries
         dicom_image_info = self._extract_info_by_type(info, DicomSeriesImageInfo)
         dicom_reg_info = self._extract_info_by_type(info, DicomSeriesRegistrationInfo)
@@ -468,21 +311,21 @@ class SubjectLoaderV2(DirectBaseLoader):
 
         # validate the info entries
         if not self._validate_patient_identification(info):
-            raise ValueError('The patient identification is not unique!')
+            raise ValueError('The patient identification (patient_name and patient_id) is not unique!')
         
         if not self._validate_registration(dicom_reg_info, dicom_image_info):
-            raise ValueError('The registration information is not valid!')
+            raise ValueError('At least one referenced image in the registration is missing!')
         
         if not self._validate_rtss_info(dicom_rtss_info, dicom_image_info):
-            raise ValueError('The RTSS information is not valid!')
+            raise ValueError('The referenced image in the RTSS is not available!')
 
         # create the subject
         if dicom_image_info:
-            subject = Subject(dicom_image_info[0].patient_name)
+            subject = Subject(dicom_image_info[0].get_patient_name())
         elif intensity_image_info:
-            subject = Subject(intensity_image_info[0].subject_name)
+            subject = Subject(intensity_image_info[0].get_patient_name())
         elif segmentation_image_info:
-            subject = Subject(segmentation_image_info[0].subject_name)
+            subject = Subject(segmentation_image_info[0].get_patient_name())
         else:
             raise ValueError('Subject can not be constructed because a subject name is missing!')
 
@@ -494,25 +337,94 @@ class SubjectLoaderV2(DirectBaseLoader):
 
         if dicom_rtss_info:
             dicom_segmentations = DicomRTSSSeriesConverter(dicom_rtss_info, dicom_image_info, dicom_reg_info).convert()
-            subject.add_images(dicom_segmentations)
+            subject.add_images(dicom_segmentations, force=True)
 
         intensity_images = self._load_intensity_images(intensity_image_info, self.intensity_pixel_type)
         segmentation_images = self._load_segmentation_images(segmentation_image_info, self.segmentation_pixel_type)
-        subject.add_images(intensity_images + segmentation_images)
+        subject.add_images(intensity_images + segmentation_images, force=True)
 
         return subject
 
 
-class IterableSubjectLoaderV2(LoaderBase):
+class IterableSubjectLoader(Loader):
+    """An iterable loader for loading a sequence of subjects based on their :class:`SeriesInfo` entries.
+    This loader can load both DICOM data and discrete image file formats (e.g. NIFTI). However, it raises an error if
+    not all subject level info entries contain the same patient name and patient id since subject naming would be
+    ambiguous.
 
-    def __init__(self, infos: Tuple[Tuple[SeriesInfo, ...], ...]):
+    Notes:
+        For loading iteratively larger DICOM dataset we recommend to use the :class:`SubjectLoader` instead because the
+        crawling process can require a lot of time and memory due to preloading routines.
+
+    Raises:
+        ValueError: If ``info`` is an empty tuple.
+        ValueError: If ``info`` is not a tuple of tuples of :class:`SeriesInfo` entries.
+
+    Args:
+        info (Tuple[Tuple[SeriesInfo, ...], ...]): The :class:`SeriesInfo` entries for all subjects to load.
+        intensity_pixel_value_type (int): The pixel value type of the intensity images (default: sitk.sitkFloat32).
+        segmentation_pixel_value_type (int): The pixel value type of the segmentation images (default: sitk.sitkUInt8).
+
+    Examples:
+
+        Load, normalize and save a NIFTI dataset with multiple subjects:
+
+        >>> from argparse import ArgumentParser
+        >>> from pyradise.fileio import DatasetFileCrawler, IterableSubjectLoader, SubjectWriter
+        >>> from pyradise.process import ZScoreNormalizationFilter, NormalizationFilterParameters
+        >>>
+        >>>
+        >>> def main(input_path: str, output_path: str) -> None:
+        >>>     # Crawl the dataset info
+        >>>     info = DatasetFileCrawler(input_path, '.nii.gz').execute()
+        >>>
+        >>>     # Construct the loader
+        >>>     loader = IterableSubjectLoader(info)
+        >>>
+        >>>     # Construct the normalization filter
+        >>>     normalization_params = NormalizationFilterParameters(loop_axis=1)
+        >>>     normalization_filter = ZScoreNormalizationFilter(normalization_params)
+        >>>
+        >>>     # Construct the writer
+        >>>     writer = SubjectWriter()
+        >>>
+        >>>     # Iteratively load the subjects
+        >>>     for subject in loader:
+        >>>         # Normalize the images
+        >>>         subject = normalization_filter.execute(subject)
+        >>>
+        >>>         # Save the subject
+        >>>         writer.write_to_subject_folder(output_path, subject, write_transforms=False)
+        >>>
+        >>>
+        >>> if __name__ == '__main__':
+        >>>     parser = ArgumentParser()
+        >>>     parser.add_argument('--input_path', type=str, help='The dataset input directory.')
+        >>>     parser.add_argument('--output_path', type=str, help='The dataset output directory.')
+        >>>     args = parser.parse_args()
+        >>>
+        >>>     main(args.input_path, args.output_path)
+    """
+
+    def __init__(self,
+                 info: Tuple[Tuple[SeriesInfo, ...], ...],
+                 intensity_pixel_value_type: int = sitk.sitkFloat32,
+                 segmentation_pixel_value_type: int = sitk.sitkUInt8
+                 ):
         super().__init__()
 
-        assert infos, 'The infos must not be empty!'
-        self.infos = infos
+        if not info:
+            raise ValueError('The provided infos are empty.')
+        if not all(isinstance(entry, tuple) for entry in info):
+            raise ValueError('The provided first level info entries are not of type tuple. '
+                             'Make sure that the info is a tuple of tuples.')
+        self.info = info
+
+        self.intensity_pixel_type = intensity_pixel_value_type
+        self.segmentation_pixel_type = segmentation_pixel_value_type
 
         self.current_idx = 0
-        self.num_subjects = len(self.infos)
+        self.num_subjects = len(self.info)
 
     def __iter__(self):
         self.current_idx = 0
@@ -520,7 +432,8 @@ class IterableSubjectLoaderV2(LoaderBase):
 
     def __next__(self) -> Subject:
         if self.current_idx < self.num_subjects:
-            subject = SubjectLoaderV2().load(self.infos[self.current_idx])
+            loader = SubjectLoader(self.intensity_pixel_type, self.segmentation_pixel_type)
+            subject = loader.load(self.info[self.current_idx])
             self.current_idx += 1
             return subject
 

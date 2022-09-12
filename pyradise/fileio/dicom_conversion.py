@@ -52,7 +52,7 @@ from .series_info import (
     DicomSeriesRTSSInfo,
     RegistrationInfo)
 
-__all__ = ['Converter', 'DicomSeriesToSubjectConverter', 'SubjectToRTSSConverter', 'DicomImageSeriesConverter',
+__all__ = ['Converter', 'SubjectToRTSSConverter', 'DicomImageSeriesConverter',
            'DicomRTSSSeriesConverter', 'ROIData', 'Hierarchy', 'RTSSToSegmentConverter', 'SegmentToRTSSConverter']
 
 ROI_GENERATION_ALGORITHMS = ['AUTOMATIC', 'SEMIAUTOMATIC', 'MANUAL']
@@ -1705,152 +1705,8 @@ class DicomRTSSSeriesConverter(Converter):
         return tuple(images)
 
 
-class DicomSeriesToSubjectConverter(Converter):
-    """A converter for converting multiple DICOM series (i.e. :class:`DicomSeriesInfo` instances) to a
-    :class:`Subject` instance. This converter is most often used in PyRaDiSe due to its flexibility to process
-    DICOM images, DICOM registrations and DICOM RTSS files commonly.
-
-
-    Args:
-        infos (Tuple[DicomSeriesInfo, ...]): The :class:`DicomSeriesInfo` entries specifying the :class:`Subject`.
-        validate_info (bool): If True, validates the :class:`DicomSeriesInfo` entries if they belong to the same patient
-         (default: True).
-    """
-
-    def __init__(self,
-                 infos: Tuple[DicomSeriesInfo, ...],
-                 validate_info: bool = True,
-                 ) -> None:
-        super().__init__()
-        self.infos = infos
-        self.validate_info = validate_info
-        self.image_infos, self.reg_infos, self.rtss_infos = self._separate_infos(infos)
-
-    @staticmethod
-    def _separate_infos(infos: Tuple[DicomSeriesInfo]
-                        ) -> Tuple[Tuple[DicomSeriesImageInfo],
-                                   Tuple[DicomSeriesRegistrationInfo],
-                                   Tuple[DicomSeriesRTSSInfo]]:
-        """Separate the provided :class:`DicomSeriesInfo` entries into groups according to the specific
-        :class:`DicomSeriesInfo` subtype.
-
-        Args:
-            infos (Tuple[DicomSeriesInfo]):  The :class:`DicomSeriesInfo` entries to separate into groups.
-
-        Returns:
-            Tuple[Tuple[DicomSeriesImageInfo],
-            Tuple[DicomSeriesRegistrationInfo],
-            Tuple[DicomSeriesRTSSInfo]]: The separated :class:`DicomSeriesInfo` entries.
-        """
-        image_infos = []
-        registration_infos = []
-        rtss_infos = []
-
-        for info in infos:
-            if isinstance(info, DicomSeriesImageInfo):
-                image_infos.append(info)
-
-            elif isinstance(info, DicomSeriesRegistrationInfo):
-                registration_infos.append(info)
-
-            elif isinstance(info, DicomSeriesRTSSInfo):
-                rtss_infos.append(info)
-
-            else:
-                raise NotImplementedError('Unknown DicomSeriesInfo type!')
-
-        return tuple(image_infos), tuple(registration_infos), tuple(rtss_infos)
-
-    def _validate_patient_ident(self) -> bool:
-        """Validate the patient identification using all available :class:`DicomSeriesInfo` entries.
-
-        Returns:
-            bool: True if all :class:`DicomSeriesInfo` entries belong to the same patient, otherwise False.
-        """
-        if not self.infos:
-            return False
-
-        patient_name = self.infos[0].patient_name
-        patient_id = self.infos[0].patient_id
-
-        identical_patient_names = all([info.patient_name == patient_name for info in self.infos])
-        identical_patient_ids = all([info.patient_id == patient_id for info in self.infos])
-
-        if identical_patient_names and identical_patient_ids:
-            return True
-
-        return False
-
-    def _validate_registrations(self) -> bool:
-        """Validate that for all :class:`DicomSeriesRegistrationInfo` entries the corresponding
-        :class:`DicomSeriesImageInfo` entries are available.
-
-        Returns:
-            bool: True if for all :class:`DicomSeriesRegistrationInfo` entries a matching
-             :class:`DicomSeriesImageInfo` entry exists, otherwise False.
-        """
-
-        def is_image_info_available(series_instance_uids: List[str],
-                                    image_infos: Tuple[DicomSeriesImageInfo]
-                                    ) -> bool:
-            result = []
-            for series_instance_uid in series_instance_uids:
-                entry_result = any([info.series_instance_uid == series_instance_uid for info in image_infos])
-                result.append(entry_result)
-            return all(result)
-
-        if not self.infos:
-            return False
-
-        if not self.reg_infos:
-            return True
-
-        series_uids_ident = []
-        series_uids_trans = []
-
-        for reg_info in self.reg_infos:
-            reg_info.update() if not reg_info.is_updated() else None
-            series_uids_ident.append(reg_info.referenced_series_instance_uid_identity)
-            series_uids_trans.append(reg_info.referenced_series_instance_uid_transform)
-
-        result_ident = is_image_info_available(series_uids_ident, self.image_infos)
-        result_trans = is_image_info_available(series_uids_trans, self.image_infos)
-
-        if result_ident and result_trans:
-            return True
-
-        return False
-
-    def convert(self) -> Subject:
-        """Convert the specified :class:`DicomSeriesInfo` into a :class:`Subject`.
-
-        Returns:
-            Subject: The :class:`Subject`.
-        """
-        if self.validate_info:
-            if not self._validate_patient_ident():
-                raise ValueError('Not all provided DicomSeriesInfo entries belong to the same patient!')
-
-            if not self._validate_registrations():
-                raise ValueError('Not all DicomSeriesRegistrationInfo entries have a matching DicomSeriesImageInfo!')
-
-        # create the subject
-        subject = Subject(self.infos[0].patient_name)
-
-        # convert the intensity image data
-        intensity_images = DicomImageSeriesConverter(self.image_infos, self.reg_infos).convert()
-        subject.add_images(intensity_images, force=True)
-
-        # convert the rtss data to segmentation images
-        if self.rtss_infos:
-            segmentation_images = DicomRTSSSeriesConverter(self.rtss_infos, self.image_infos, self.reg_infos).convert()
-            subject.add_images(segmentation_images, force=True)
-
-        return subject
-
-
 class SubjectToRTSSConverter(Converter):
-    """A convert for converting the :class:`SegmentationImage` entries of a :class:`Subject` to a RTSS
+    """A converter for converting the :class:`SegmentationImage` entries of a :class:`Subject` to a RTSS
     :class:`Dataset`. This class is intended to be used for creating the output of a process pipeline.
 
     Args:

@@ -50,6 +50,9 @@ class SeriesInfo(ABC):
 
         self._check_paths(self.path)
 
+        self.patient_name = ''
+        self.patient_id = ''
+
         self._is_updated = False
 
     @staticmethod
@@ -85,6 +88,22 @@ class SeriesInfo(ABC):
             Tuple[str]: The paths assigned to the info object.
         """
         return self.path
+
+    def get_patient_name(self) -> str:
+        """Get the patient name.
+
+        Returns:
+            str: The patient name.
+        """
+        return self.patient_name
+
+    def get_patient_id(self) -> str:
+        """Get the patient ID.
+
+        Returns:
+            str: The patient ID.
+        """
+        return self.patient_id
 
     def is_updated(self) -> bool:
         """Check if is updated.
@@ -126,7 +145,9 @@ class FileSeriesInfo(SeriesInfo):
         subject_name_ = subject_name.replace(' ', '_')
         pattern = r"""[^\da-zA-Z_-]+"""
         regex = re.compile(pattern)
-        self.subject_name = regex.sub(r'', subject_name_)
+
+        # to stay consistent the subject name is called patient name as for DICOM info
+        self.patient_name = regex.sub(r'', subject_name_)
 
     @abstractmethod
     def update(self) -> None:

@@ -1,5 +1,5 @@
-API
-===
+API Reference
+=============
 
 The functionality of PyRaDiSe is split into the following packages:
 
@@ -13,7 +13,7 @@ The functionality of PyRaDiSe is split into the following packages:
 
 .. toctree::
     :maxdepth: 3
-    :caption: Packages
+    :caption: Packages & Modules
 
     pyradise.data
     pyradise.fileio

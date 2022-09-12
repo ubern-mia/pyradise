@@ -1484,7 +1484,7 @@ class DicomImageSeriesConverter(Converter):
 
         selected = []
         for reg_info in self.reg_info:
-            reg_info.update() if not reg_info.is_updated else None
+            reg_info.update() if not reg_info.is_updated() else None
 
             if reg_info.referenced_series_instance_uid_transform == image_info.series_instance_uid:
                 selected.append(reg_info)
@@ -1568,7 +1568,7 @@ class DicomImageSeriesConverter(Converter):
             # get the registration info if available
             reg_info = self._get_registration_info(info)
 
-            if not info.is_updated:
+            if not info.is_updated():
                 info.update()
 
             # if no registration info is available, the image is added as is
@@ -1692,7 +1692,7 @@ class DicomRTSSSeriesConverter(Converter):
             ref_reg_info = self._get_referenced_registration_info(rtss_info)
 
             if ref_reg_info:
-                ref_reg_info.update() if not ref_reg_info.is_updated else None
+                ref_reg_info.update() if not ref_reg_info.is_updated() else None
                 reg_dataset = ref_reg_info.dataset
             else:
                 reg_dataset = None
@@ -1809,7 +1809,7 @@ class DicomSeriesToSubjectConverter(Converter):
         series_uids_trans = []
 
         for reg_info in self.reg_infos:
-            reg_info.update() if not reg_info.is_updated else None
+            reg_info.update() if not reg_info.is_updated() else None
             series_uids_ident.append(reg_info.referenced_series_instance_uid_identity)
             series_uids_trans.append(reg_info.referenced_series_instance_uid_transform)
 

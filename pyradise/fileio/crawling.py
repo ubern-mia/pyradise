@@ -639,8 +639,7 @@ class DatasetDicomCrawler(Crawler):
             subject_info = SubjectDicomCrawler(subject_dir_path, self.config_file_name,
                                                self.write_config).execute()
 
-            if subject_info:
-                subject_infos.append(subject_info)
+            subject_infos.append(subject_info) if subject_info else None
 
         return tuple(subject_infos)
 

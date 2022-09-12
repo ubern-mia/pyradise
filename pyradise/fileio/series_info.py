@@ -50,7 +50,7 @@ class SeriesInfo(ABC):
 
         self._check_paths(self.path)
 
-        self.is_updated = False
+        self._is_updated = False
 
     @staticmethod
     def _check_paths(paths: Union[str, Tuple[str, ...]],
@@ -85,6 +85,14 @@ class SeriesInfo(ABC):
             Tuple[str]: The paths assigned to the info object.
         """
         return self.path
+
+    def is_updated(self) -> bool:
+        """Check if is updated.
+
+        Returns:
+            bool: True if is updated, False otherwise.
+        """
+        return self._is_updated
 
     @abstractmethod
     def update(self) -> None:
@@ -144,11 +152,13 @@ class IntensityFileSeriesInfo(FileSeriesInfo):
                  subject_name: str,
                  modality: Modality
                  ) -> None:
+        if not isinstance(path, str):
+            raise TypeError(f'Expected a string for the path but got {type(path)} instead.')
         super().__init__(path, subject_name)
 
         self.modality = modality
 
-        self.is_updated = True
+        self.update()
 
     def get_modality(self) -> Modality:
         """Get the :class:`Modality`.
@@ -175,7 +185,7 @@ class IntensityFileSeriesInfo(FileSeriesInfo):
         Returns:
             None
         """
-        self.is_updated = True
+        self._is_updated = True
 
 
 class SegmentationFileSeriesInfo(FileSeriesInfo):
@@ -200,12 +210,14 @@ class SegmentationFileSeriesInfo(FileSeriesInfo):
                  organ: Organ,
                  rater: Rater
                  ) -> None:
+        if not isinstance(path, str):
+            raise TypeError(f'Expected a single path as a string but got {type(path)}.')
         super().__init__(path, subject_name)
 
         self.organ = organ
         self.rater = rater
 
-        self.is_updated = True
+        self.update()
 
     def get_organ(self) -> Organ:
         """Get the :class:`Organ`.
@@ -251,7 +263,7 @@ class SegmentationFileSeriesInfo(FileSeriesInfo):
         Returns:
             None
         """
-        self.is_updated = True
+        self._is_updated = True
 
 
 class DicomSeriesInfo(SeriesInfo):
@@ -283,7 +295,7 @@ class DicomSeriesInfo(SeriesInfo):
 
         self._get_dicom_base_info()
 
-        self.is_updated = False
+        self._is_updated = False
 
     # noinspection DuplicatedCode
     def _get_dicom_base_info(self,
@@ -386,7 +398,7 @@ class DicomSeriesImageInfo(DicomSeriesInfo):
         Returns:
             None
         """
-        self.is_updated = True
+        self._is_updated = True
 
 
 # noinspection PyUnresolvedReferences
@@ -682,7 +694,7 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
         """
         self.image_infos = image_infos
 
-        self.is_updated = False
+        self._is_updated = False
 
     def get_image_infos(self) -> Tuple[DicomSeriesImageInfo, ...]:
         """Get the :class:`DicomSeriesImageInfo` entries.
@@ -724,7 +736,7 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
         if not self.persistent_image_infos:
             self.image_infos = tuple()
 
-        self.is_updated = True
+        self._is_updated = True
 
 
 class DicomSeriesRTSSInfo(DicomSeriesInfo):
@@ -742,8 +754,10 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
         self.dataset: Optional[Dataset] = None
         self.rater: Rater = Rater.get_default()
         self.referenced_instance_uid = ''
+
         super().__init__(path)
-        self.is_updated = True
+
+        self.update()
 
     def _get_dicom_base_info(self,
                              additional_tags: Optional[Sequence[Tag]] = None
@@ -771,7 +785,7 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
         self.rater = self._get_rater()
         self.referenced_instance_uid = self._get_referenced_series_instance_uid()
 
-        self.is_updated = True
+        self._is_updated = True
 
         return self.dataset
 
@@ -835,4 +849,4 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
         Returns:
             None
         """
-        self.is_updated = True
+        self._is_updated = True

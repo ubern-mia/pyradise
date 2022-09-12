@@ -252,7 +252,7 @@ class SubjectWriter:
         Returns:
             None
         """
-        subject_path = os.path.join(base_dir_path, subject.name)
+        subject_path = os.path.normpath(os.path.join(base_dir_path, subject.name))
         if not os.path.exists(subject_path):
             os.mkdir(subject_path)
         else:

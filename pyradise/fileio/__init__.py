@@ -31,9 +31,11 @@ from .selection import (
     NoRegistrationInfoSelector)
 
 from .loading import (
-    Loader,
+    DirectBaseLoader,
     SubjectLoader,
-    IterableSubjectLoader)
+    IterableSubjectLoader,
+    SubjectLoaderV2,
+    IterableSubjectLoaderV2)
 
 from .dicom_conversion import (
     ROIData,

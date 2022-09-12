@@ -3,12 +3,12 @@ API
 
 The functionality of PyRaDiSe is split into the following packages:
 
-* | **Data**
+* | **Data Package**
   | TEXT FROM PAPER...
-* | **FileIO**
+* | **FileIO Package**
   | TEXT FROM PAPER...
-* | **Process**
-   | TEXT FROM PAPER...
+* | **Process Package**
+  | TEXT FROM PAPER...
 
 
 .. toctree::

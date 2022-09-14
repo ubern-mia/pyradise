@@ -89,11 +89,11 @@ class ModalityConfiguration:
             self.configuration.append(config_entry)
 
     @classmethod
-    def from_dicom_series_info(cls, dicom_infos: Tuple[DicomSeriesInfo]) -> "ModalityConfiguration":
+    def from_dicom_series_info(cls, dicom_infos: Tuple[DicomSeriesInfo, ...]) -> "ModalityConfiguration":
         """Generate a modality configuration from DICOM series infos.
 
         Args:
-            dicom_infos (Tuple[DicomSeriesInfo]): The DicomSeriesInfo from which the modality information will be
+            dicom_infos (Tuple[DicomSeriesInfo, ...]): The DicomSeriesInfo from which the modality information will be
              retrieved.
 
         Returns:
@@ -226,3 +226,25 @@ class ModalityConfiguration:
             return Modality.get_default(), False
 
         return None, False
+
+    def has_default_modalities(self) -> bool:
+        """Indicate if the modality configuration contains default modalities.
+
+        Returns:
+            bool: True if the modality configuration contains default modalities, otherwise False.
+        """
+        if not self.configuration:
+            return True
+        return any(entry.Modality.is_default() for entry in self.configuration)
+
+    def has_duplicate_modalities(self) -> bool:
+        """Indicate if the modality configuration contains duplicate :class:`Modality` entries.
+
+        Returns:
+            bool: True if the modality configuration contains :class:`Modality` entries, otherwise False.
+        """
+        if not self.configuration:
+            return False
+
+        modalities = [entry.Modality for entry in self.configuration]
+        return len(modalities) != len(set(modalities))

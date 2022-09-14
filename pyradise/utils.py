@@ -3,6 +3,7 @@ from re import sub
 from typing import (Sequence, Tuple, Sized, Iterable)
 
 import numpy as np
+import SimpleITK as sitk
 from pydicom import (dcmread, Dataset)
 from pydicom.tag import Tag
 
@@ -55,6 +56,71 @@ def is_dicom_file(path: str) -> bool:
     with open(path, 'rb') as fp:
         fp.seek(128)
         return fp.read(4).decode('utf-8') == 'DICM'
+
+
+def assume_is_segmentation(path: str) -> bool:
+    """Assume if the image is a segmentation image based on the pixel data type or the SOPClassUID for DICOM files.
+
+        Notes:
+            Assume that a segmentation image has the pixel data type unsigned char.
+
+        Args:
+            path (str): The path to the image file.
+
+        Returns:
+            bool: True if the image is assumed to be a segmentation image, False otherwise.
+        """
+    if any([entry in path for entry in ('.nii', '.nrrd', '.mha')]):
+        reader = sitk.ImageFileReader()
+        reader.LoadPrivateTagsOn()
+        reader.SetFileName(path)
+        reader.ReadImageInformation()
+        if reader.GetPixelIDValue() == 1:
+            return True
+        return False
+
+    elif is_dicom_file(path):
+        dataset = load_dataset_tag(path, (Tag(0x0008, 0x0016),))
+        sop_class_uid = str(dataset.SOPClassUID)
+        if sop_class_uid == '1.2.840.10008.5.1.4.1.1.66.4':
+            return True
+        return False
+
+    else:
+        raise ValueError(f'The path {path} specifies a not supported file type!')
+
+
+def assume_is_intensity_image(path: str) -> bool:
+    """Assume if the image is an intensity image based on the pixel data type or the SOPClassUID for DICOM files.
+
+    Notes:
+        Assume that an intensity image has a pixel data type which is different from unsigned char.
+
+    Args:
+        path (str): The path to the image file.
+
+    Returns:
+        bool: True if the image is assumed to be an intensity image, False otherwise.
+    """
+    if any([entry in path for entry in ('.nii', '.nrrd', '.mha')]):
+        reader = sitk.ImageFileReader()
+        reader.LoadPrivateTagsOn()
+        reader.SetFileName(path)
+        reader.ReadImageInformation()
+        if reader.GetPixelIDValue() != 1:
+            return True
+        return False
+
+    elif is_dicom_file(path):
+        dataset = load_dataset_tag(path, (Tag(0x0008, 0x0016),))
+        sop_class_uid = str(dataset.SOPClassUID)
+        sop_class_last_uid = int(sop_class_uid.split('.')[9])
+        if '1.2.840.10008.5.1.4.1.1' in sop_class_uid and sop_class_last_uid <= 20:
+            return True
+        return False
+
+    else:
+        raise ValueError(f'The path {path} specifies a not supported file type!')
 
 
 def remove_illegal_folder_chars(name: str) -> str:

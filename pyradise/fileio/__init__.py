@@ -13,6 +13,16 @@ from .series_info import (
     RegistrationInfo,
     RegistrationSequenceInfo)
 
+from .extraction import (
+    ModalityExtractor,
+    OrganExtractor,
+    RaterExtractor,
+    SimpleModalityExtractor,
+    SimpleOrganExtractor,
+    SimpleRaterExtractor)
+
+from pydicom.tag import Tag
+
 from .crawling import (
     Crawler,
     SubjectFileCrawler,

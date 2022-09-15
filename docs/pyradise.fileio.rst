@@ -57,6 +57,7 @@ expected to posses the required metadata. The selection of the approach is up to
 .. automodule:: pyradise.fileio.crawling
     :members:
     :show-inheritance:
+    :inherited-members:
 
 Modality Configuration Module
 -----------------------------
@@ -67,6 +68,7 @@ DESCRIPTION GOES HERE
 .. automodule:: pyradise.fileio.modality_config
     :members:
     :show-inheritance:
+    :inherited-members:
 
 Extraction Module
 -----------------
@@ -86,6 +88,7 @@ configuration files instead because they are more flexible.
 .. automodule:: pyradise.fileio.extraction
     :members:
     :show-inheritance:
+    :inherited-members:
 
 
 Series Information Module
@@ -97,6 +100,7 @@ DESCRIPTION GOES HERE
 .. automodule:: pyradise.fileio.series_info
     :members:
     :show-inheritance:
+    :inherited-members:
 
 
 Selection Module
@@ -108,6 +112,7 @@ DESCRIPTION GOES HERE
 .. automodule:: pyradise.fileio.selection
     :members:
     :show-inheritance:
+    :inherited-members:
 
 
 Loading Module
@@ -119,6 +124,7 @@ DESCRIPTION GOES HERE
 .. automodule:: pyradise.fileio.loading
     :members:
     :show-inheritance:
+    :inherited-members:
 
 
 DICOM Conversion Module
@@ -130,6 +136,7 @@ DESCRIPTION GOES HERE
 .. automodule:: pyradise.fileio.dicom_conversion
     :members:
     :show-inheritance:
+    :inherited-members:
 
 Writing Module
 --------------
@@ -140,6 +147,7 @@ DESCRIPTION GOES HERE
 .. automodule:: pyradise.fileio.writing
     :members:
     :show-inheritance:
+    :inherited-members:
 
 
 Dataset Construction Module
@@ -151,3 +159,4 @@ DESCRIPTION GOES HERE
 .. automodule:: pyradise.fileio.dataset_construction
     :members:
     :show-inheritance:
+    :inherited-members:

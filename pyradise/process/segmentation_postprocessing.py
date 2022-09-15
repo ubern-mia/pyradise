@@ -139,7 +139,7 @@ class SingleConnectedComponentFilter(Filter):
 
         if isinstance(image, SegmentationImage):
             itk_image = image.get_image()
-            itk_image_type = image.get_image_type_()
+            itk_image_type = image.get_image_itk_type()
         else:
             itk_image = image
             itk_image_type = itk.template(image)[1]

@@ -5,14 +5,13 @@ from typing import (
     Tuple,
     Union,
     Optional)
+from copy import deepcopy
 
 import SimpleITK as sitk
 import itk
 import numpy as np
 
-from .modality import (
-    # Modality,
-    Modality)
+from .modality import Modality
 from .organ import (
     Organ,
     OrganRaterCombination)
@@ -53,6 +52,22 @@ class Image(ABC):
 
         Returns:
             bool: n/a
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def copy_info(self,
+                  source: 'Image',
+                  include_transform_tape: bool = False
+                  ) -> None:
+        """Copy the image information from another image.
+
+        Args:
+            source (Image): The image to copy the information from.
+            include_transform_tape (bool): If True the :class:`TransformTape` is copied, otherwise not.
+
+        Returns:
+            None
         """
         raise NotImplementedError()
 
@@ -109,6 +124,14 @@ class Image(ABC):
             return self.convert_to_sitk_image(self.image)
 
         return self.image
+
+    def get_image_data(self) -> np.ndarray:
+        """Get the image data as a numpy array.
+
+        Returns:
+            np.ndarray: The image data as a numpy array.
+        """
+        return itk.GetArrayFromImage(self.image)
 
     def set_image(self, image: Union[sitk.Image, itk.Image]) -> None:
         """Set the image.
@@ -211,21 +234,7 @@ class Image(ABC):
         """
         return itk.template(self.image)[1][1]
 
-    @staticmethod
-    def get_image_type(image: Union[sitk.Image, itk.Image]) -> itk.Image:
-        """Get the image type from an image.
-
-        Args:
-            image (Union[sitk.Image, itk.Image]): The image to get the image type from.
-
-        Returns:
-            itk.Image: The image type.
-        """
-        if isinstance(image, sitk.Image):
-            image = Image.convert_to_itk_image(image)
-        return itk.Image[itk.template(image)[1]]
-
-    def get_image_type_(self) -> itk.Image:
+    def get_image_itk_type(self) -> itk.Image:
         """Get the image type of this image.
 
         Returns:
@@ -237,7 +246,7 @@ class Image(ABC):
         """Get the :class:`TransformTape`.
 
         Returns:
-            TransformTape: The :class:`TransformTape` of the image.
+            TransformTape: The :class:`TransformTape`.
         """
         return self.transform_tape
 
@@ -267,21 +276,60 @@ class IntensityImage(Image):
         """
         return True
 
+    def copy_info(self,
+                  source: 'IntensityImage',
+                  include_transform_tape: bool = False
+                  ) -> None:
+        """Copy the image information from another :class:`IntensityImage`.
+
+        The copied information includes the following attributes:
+            - :class:`Modality`
+            - :class:`TransformTape` (optional)
+
+        Raises:
+            ValueError: If the source image is not an instance of :class:`IntensityImage`.
+
+        Args:
+            source (IntensityImage): The source image.
+            include_transform_tape (bool): If True the :class:`TransformTape` is copied, otherwise not.
+
+        Returns:
+            None
+        """
+        if not isinstance(source, IntensityImage):
+            raise TypeError('The source image must be an instance of IntensityImage.')
+
+        self.modality = deepcopy(source.get_modality())
+
+        if include_transform_tape:
+            self.transform_tape = deepcopy(source.get_transform_tape())
+
     def get_modality(self,
                      as_str: bool = False
                      ) -> Union[Modality, str]:
-        """Get the :class:`Modality` of the image.
+        """Get the :class:`Modality`.
 
         Args:
             as_str (bool): If True returns the :class:`Modality` as a string, otherwise as type :class:`Modality`.
 
         Returns:
-            Union[Modality, str]: The :class:`Modality` of the image.
+            Union[Modality, str]: The :class:`Modality`.
         """
         if as_str:
             return self.modality.get_name()
 
         return self.modality
+
+    def set_modality(self, modality: Modality) -> None:
+        """Set the :class:`Modality`.
+
+        Args:
+            modality (Modality): The :class:`Modality`.
+
+        Returns:
+            None
+        """
+        self.modality = modality
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, IntensityImage):
@@ -322,6 +370,50 @@ class SegmentationImage(Image):
         """
         return False
 
+    def is_binary(self) -> bool:
+        """Check if the image is binary.
+
+        Returns:
+            bool: True if the image is binary, otherwise False.
+        """
+        image_np = itk.GetArrayViewFromImage(self.image)
+        unique_pixel_vals = np.unique(image_np)
+
+        if unique_pixel_vals.shape[0] == 2 and unique_pixel_vals[0] == 0:
+            return True
+
+        return False
+
+    def copy_info(self,
+                  source: 'SegmentationImage',
+                  include_transform_tape: bool = False
+                  ) -> None:
+        """Copy the image information from another :class:`SegmentationImage`.
+
+        The copied information includes the following attributes:
+            - :class:`Organ`
+            - :class:`Rater`
+            - :class:`TransformTape` (optional)
+
+        Raises:
+            ValueError: If the source image is not an instance of :class:`SegmentationImage`.
+
+        Args:
+            source (IntensityImage): The source image.
+            include_transform_tape (bool): If True the :class:`TransformTape` is copied, otherwise not.
+
+        Returns:
+            None
+        """
+        if not isinstance(source, SegmentationImage):
+            raise TypeError('The source image must be an instance of SegmentationImage.')
+
+        self.organ: Organ = deepcopy(source.get_organ())
+        self.rater: Rater = deepcopy(source.get_rater())
+
+        if include_transform_tape:
+            self.transform_tape = deepcopy(source.get_transform_tape())
+
     def get_organ(self,
                   as_str: bool = False
                   ) -> Union[Organ, str]:
@@ -338,6 +430,17 @@ class SegmentationImage(Image):
 
         return self.organ
 
+    def set_organ(self, organ: Organ) -> None:
+        """Set the :class:`Organ`.
+
+        Args:
+            organ (Organ): The :class:`Organ`.
+
+        Returns:
+            None
+        """
+        self.organ = organ
+
     def get_rater(self) -> Rater:
         """Get the :class:`Rater`.
 
@@ -345,6 +448,17 @@ class SegmentationImage(Image):
             Rater: The :class:`Rater`.
         """
         return self.rater
+
+    def set_rater(self, rater: Rater) -> None:
+        """Set the :class:`Rater`.
+
+        Args:
+            rater (Rater): The :class:`Rater`.
+
+        Returns:
+            None
+        """
+        self.rater: Rater = rater
 
     def get_organ_rater_combination(self) -> OrganRaterCombination:
         """Get the :class:`OrganRaterCombination`.
@@ -354,19 +468,17 @@ class SegmentationImage(Image):
         """
         return OrganRaterCombination(self.organ, self.rater)
 
-    def is_binary(self) -> bool:
-        """Check if the image is binary.
+    def set_organ_rater_combination(self, organ_rater_combination: OrganRaterCombination) -> None:
+        """Set the :class:`OrganRaterCombination`.
+
+        Args:
+            organ_rater_combination (OrganRaterCombination): The :class:`OrganRaterCombination`.
 
         Returns:
-            bool: True if the image is binary, otherwise False.
+            None
         """
-        image_np = itk.GetArrayViewFromImage(self.image)
-        unique_pixel_vals = np.unique(image_np)
-
-        if unique_pixel_vals.shape[0] == 2 and unique_pixel_vals[0] == 0:
-            return True
-
-        return False
+        self.organ: Organ = organ_rater_combination.organ
+        self.rater: Rater = organ_rater_combination.rater
 
     def __eq__(self, other) -> bool:
         return all((self.organ == other.organ, self.rater == other.rater, self.image == other.image))

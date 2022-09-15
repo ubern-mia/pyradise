@@ -52,6 +52,7 @@ The :mod:`subject` module provides the :class:`Subject` which is the main data o
 .. automodule:: pyradise.data.subject
     :show-inheritance:
     :members:
+    :inherited-members:
 
 
 Image Module
@@ -74,6 +75,7 @@ a :class:`SegmentationImage` is a segmentation mask (e.g. a segmentation of an o
 .. automodule:: pyradise.data.image
     :show-inheritance:
     :members:
+    :inherited-members:
 
 Taping Module
 --------------------
@@ -87,6 +89,7 @@ images.
 .. automodule:: pyradise.data.taping
     :show-inheritance:
     :members:
+    :inherited-members:
 
 
 Modality Module
@@ -110,6 +113,7 @@ taxonomically sufficient precise.
 .. automodule:: pyradise.data.modality
     :show-inheritance:
     :members:
+    :inherited-members:
 
 
 Rater Module
@@ -125,6 +129,7 @@ generated the contours / segmentations manually or an auto-segmentation algorith
 .. automodule:: pyradise.data.rater
     :show-inheritance:
     :members:
+    :inherited-members:
 
 Organ Module
 --------------------
@@ -138,3 +143,4 @@ The :mod:`organ` module provides the functionality to manage information about t
 .. automodule:: pyradise.data.organ
     :show-inheritance:
     :members:
+    :inherited-members:

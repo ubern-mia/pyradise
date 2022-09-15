@@ -41,7 +41,7 @@ class ExampleModalityExtractor(ModalityExtractor):
         if extracted_modality == 'CT':
             return Modality('CT')
         elif extracted_modality == 'MR':
-            return Modality.get_default()
+            return self._get_mr_modality(dataset_dict)
         else:
             return None
 
@@ -78,7 +78,7 @@ def main():
 
 def main2():
 
-    for i in range(52, 99):
+    for i in range(48, 99):
         input_path = f'D:/temp/dicom_test_data_v2/ISAS_GBM_0{i}'
         output_path = 'D:/temp/test_data_output'
 

@@ -3,12 +3,13 @@
 
 .. module:: pyradise.fileio
 .. currentmodule:: pyradise.fileio
+.. automodule:: pyradise.data.subject, pyradise.data.organ, pyradise.data.rater, pyradise.data.modality
 
 
 FileIO Package
 ==============
 
-The :mod:`pyradise.fileio` package provides functionality for converting DICOM data into :class:`pyradise.data.Subject`..
+The :mod:`pyradise.fileio` package provides functionality for converting DICOM data into :class:`Subject`.
 
 
 Crawling Module

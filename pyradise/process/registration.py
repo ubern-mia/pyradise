@@ -171,12 +171,12 @@ class ReferenceSubjectRegistrationFilter(Filter):
         fixed_image = params.reference_subject.get_image_by_modality(params.reference_modality)
         fixed_image_sitk = fixed_image.get_image(as_sitk=True)
 
-        assert floating_image_sitk.GetDimension() == fixed_image_sitk.GetDimension(), \
-            'The number of dimensions must be equal for the floating and the fixed image!'
+        if floating_image_sitk.GetDimension() != fixed_image_sitk.GetDimension():
+            raise ValueError("The floating and fixed image dimensions do not match!")
 
         dimensions = floating_image_sitk.GetDimension()
-
-        assert dimensions in (2, 3), f'The number of image dimensions must be 2 or 3, but is {dimensions}!'
+        if dimensions not in (2, 3):
+            raise ValueError("The image must have 2 or 3 dimensions. Different number of dimensions are not supported!")
 
         if params.registration_type == RegistrationType.BSPLINE:
             transform_domain_mesh_size = [10] * dimensions

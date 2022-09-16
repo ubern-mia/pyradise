@@ -1,16 +1,43 @@
-.. role:: hidden
-    :class: hidden-section
+.. role:: any
 
-.. module:: pyradise.fileio
-.. currentmodule:: pyradise.fileio
-.. automodule:: pyradise.data.subject, pyradise.data.organ, pyradise.data.rater, pyradise.data.modality
+.. automodule:: pyradise.fileio
 
 
 FileIO Package
 ==============
 
-The :mod:`pyradise.fileio` package provides functionality for converting DICOM data into :class:`Subject`.
+The :mod:`pyradise.fileio` package provides functionality for loading, converting, and writing medical images in
+discrete medical image formats and in the clinical DICOM format. In contrast to other medical image libraries such as
+for example `SimpleITK <https://simpleitk.org/>`_, the :mod:`pyradise.fileio` package can process DICOM-RT
+Structure Sets (DICOM-RTSS) which contain contours of delineated anatomical structures. Furthermore, the
+:mod:`pyradise.fileio` package is able to load, assign and apply DICOM registrations such that the associated DICOM
+images and DICOM-RTSS are registered to each other. In summary, this package provides the often missing piece of
+functionality to work easily with clinical DICOM data in radiotherapy.
 
+Due to the complex relations and dependencies between DICOM images, DICOM-RTSS, and DICOM registrations, the loading
+process is not as straightforward as loading a single DICOM image. However, the :mod:`pyradise.fileio` package tries
+to reduce the complexity of the loading process by providing simple and intuitive interfaces and mechanisms, automation,
+and neat examples. To understand the loading process, it is recommended to follow the provided examples.
+
+If the data successfully loaded and processed, the :mod:`pyradise.fileio` package provides functionality to write the
+resulting data in a structured way to disk. This includes the writing of the data in various formats such as for example
+NIFTI. In addition, the resulting data can also be converted into a DICOM-RTSS before writing it to disk.
+
+To understand the functionality of the :mod:`pyradise.fileio` package, we recommend to read the following sections for
+in the following orders:
+
+**Data Loading**
+    1. :ref:`Crawling Module <crawling_module>`
+    2. :ref:`Modality Configuration Module <modality_config_module>`
+    3. :ref:`Extraction Module <extraction_module>`
+    4. :ref:`Loading Module <loading_module>`
+
+**Data Writing**
+    1. :ref:`Writing Module <writing_module>`
+    2. :ref:`DICOM Conversion Module <dicom_conversion_module>` (for writing DICOM-RTSS)
+
+
+.. _crawling_module:
 
 Crawling Module
 ---------------
@@ -30,8 +57,6 @@ the data of the subject is contained in a single folder including sub-folders. F
 known commonly as a dataset, each subject must have its own directory at the top-most hierarchy level. For the
 respective dataset crawlers a execute-at-once and an iterative version is provided. The iterative version is
 especially useful if the user wants to process the data sequentially and wants to keep the memory footprint low.
-
-IMAGE ABOUT THE HIERARCHIES
 
 Due to the fact that not all information necessary for :class:`Subject` creation is available in a structured way
 each crawler provides interfaces for information retrieving methods. The discrete image file crawlers (recognized by
@@ -53,23 +78,48 @@ the :class:`ModalityExtractor` approach may be better suited for building deploy
 expected to posses the required metadata. The selection of the approach is up to the user.
 
 
-
-
 .. automodule:: pyradise.fileio.crawling
     :members:
     :show-inheritance:
     :inherited-members:
 
+
+.. _modality_config_module:
+
 Modality Configuration Module
 -----------------------------
 Module: :mod:`pyradise.fileio.modality_config`
 
-DESCRIPTION GOES HERE
+One drawback of the DICOM standard is that it does only provide the imaging modality in a minimal way (i.e. MR, CT,
+etc.) and little extra information about the acquisition parameters. If working with multiple images from the
+same modality, this information may not sufficient to distinguish between the different images. Therefore,
+the :mod:`modality_config` module provides functionality to build a persistent mapping between the DICOM images and
+their modality. This mapping is stored in a JSON file and may need to be modified manually. If there are not multiple
+images of the same DICOM modality, the modality configuration file is not required and can be omitted.
+
+This mechanism of identifying the different images is especially useful when working recurrently with the same DICOM
+data or if the DICOM attributes are guaranteed to be named consistently. If the DICOM attributes are not guaranteed
+to be named consistently, the user may want to use the :class:`ModalityExtractor` mechanism to extract the modality
+information directly from the DICOM data based on user defined rules or by accessing a different data source which
+provides the necessary modality information. The extractor approach is more flexible but requires the user to implement
+a custom set of rules to extract the modality information. The modality configuration approach is more convenient but
+requires the user to manually modify the configuration files if there is more than one DICOM image of the same DICOM
+modality.
+
+If using the modality configuration approach, the modality configuration file skeleton filled with the DICOM modalities
+can be generated automatically using the appropriate DICOM :class:`Crawler` from the :mod:`pyradise.fileio.crawling`
+module. The generated modality configuration files are stored in the same directory as the DICOM files. After modifying
+the generated modality configuration files manually or via an appropriate script, the data can be loaded using the
+appropriate :class:`Loader` from the :mod:`pyradise.fileio.loading` module.
+
 
 .. automodule:: pyradise.fileio.modality_config
     :members:
     :show-inheritance:
     :inherited-members:
+
+
+.. _extraction_module:
 
 Extraction Module
 -----------------
@@ -91,6 +141,7 @@ configuration files instead because they are more flexible.
     :show-inheritance:
     :inherited-members:
 
+.. _series_info_module:
 
 Series Information Module
 -------------------------
@@ -104,6 +155,8 @@ DESCRIPTION GOES HERE
     :inherited-members:
 
 
+.. _selection_module:
+
 Selection Module
 ----------------
 Module: :mod:`pyradise.fileio.selection`
@@ -115,6 +168,8 @@ DESCRIPTION GOES HERE
     :show-inheritance:
     :inherited-members:
 
+
+.. _loading_module:
 
 Loading Module
 --------------
@@ -128,6 +183,8 @@ DESCRIPTION GOES HERE
     :inherited-members:
 
 
+.. _dicom_conversion_module:
+
 DICOM Conversion Module
 -----------------------
 Module: :mod:`pyradise.fileio.dicom_conversion`
@@ -138,6 +195,9 @@ DESCRIPTION GOES HERE
     :members:
     :show-inheritance:
     :inherited-members:
+
+
+.. _writing_module:
 
 Writing Module
 --------------
@@ -150,6 +210,8 @@ DESCRIPTION GOES HERE
     :show-inheritance:
     :inherited-members:
 
+
+.. _dataset_construction_module:
 
 Dataset Construction Module
 ---------------------------

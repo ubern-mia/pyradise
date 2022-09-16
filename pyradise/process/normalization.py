@@ -97,7 +97,7 @@ class NormalizationFilter(LoopEntryFilter):
         """
         for image in subject.intensity_images:
             new_image = self._normalize_image(image, params)
-            subject.replace_image(image, new_image)
+            subject.replace_image(new_image, image)
 
         return subject
 

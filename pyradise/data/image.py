@@ -23,11 +23,12 @@ __all__ = ['Image', 'IntensityImage', 'SegmentationImage']
 
 
 class Image(ABC):
-    """Abstract class to store images with additional attributes compared to :class:`SimpleITK.Image` and
+    """An abstract class to store images with additional attributes compared to :class:`SimpleITK.Image` and
     :class:`itk.Image`.
 
-    The :class:`Image` contains a :class:`TransformTape` which is used to track and playback transformations applied
-    to the image, such that the original properties of the image can be retrieved.
+    In addition to standard image types, the :class:`Image` contains a :class:`TransformTape` which is used to track
+    and playback transformations applied to the image, such that the original physical properties (i.e. origin,
+    direction, spacing) of the image can be retrieved.
 
     Args:
         image (Union[sitk.Image, itk.Image]): The image data to be stored.
@@ -46,30 +47,20 @@ class Image(ABC):
 
         self.transform_tape = TransformTape()
 
-    @abstractmethod
-    def is_intensity_image(self) -> bool:
-        """Return True if the image is an intensity image otherwise False.
+    @staticmethod
+    def _return_image_as(image: Union[sitk.Image, itk.Image],
+                         as_sitk: bool
+                         ) -> Union[sitk.Image, itk.Image]:
+        if isinstance(image, sitk.Image) and as_sitk:
+            return image
 
-        Returns:
-            bool: n/a
-        """
-        raise NotImplementedError()
+        if isinstance(image, sitk.Image) and not as_sitk:
+            return Image.convert_to_itk_image(image)
 
-    @abstractmethod
-    def copy_info(self,
-                  source: 'Image',
-                  include_transform_tape: bool = False
-                  ) -> None:
-        """Copy the image information from another image.
+        if isinstance(image, itk.Image) and as_sitk:
+            return Image.convert_to_sitk_image(image)
 
-        Args:
-            source (Image): The image to copy the information from.
-            include_transform_tape (bool): If True the :class:`TransformTape` is copied, otherwise not.
-
-        Returns:
-            None
-        """
-        raise NotImplementedError()
+        return image
 
     @staticmethod
     def convert_to_sitk_image(image: itk.Image) -> sitk.Image:
@@ -111,57 +102,6 @@ class Image(ABC):
         image_itk.SetDirection(itk.GetMatrixFromArray(np.reshape(np.array(image.GetDirection()), [3] * 2)))
         return image_itk
 
-    def get_image(self, as_sitk: bool = False) -> Union[itk.Image, sitk.Image]:
-        """Get the image as an :class:`itk.Image` or :class:`SimpleITK.Image` (with ``as_sitk=True``).
-
-        Args:
-            as_sitk (bool): If True returns the image as a SimpleITK image else as a ITK image.
-
-        Returns:
-            Union[itk.Image, sitk.Image]: The image as the either a :class:`itk.Image` or a :class:`SimpleITK.Image`.
-        """
-        if as_sitk:
-            return self.convert_to_sitk_image(self.image)
-
-        return self.image
-
-    def get_image_data(self) -> np.ndarray:
-        """Get the image data as a numpy array.
-
-        Returns:
-            np.ndarray: The image data as a numpy array.
-        """
-        return itk.GetArrayFromImage(self.image)
-
-    def set_image(self, image: Union[sitk.Image, itk.Image]) -> None:
-        """Set the image.
-
-        Args:
-            image (Union[sitk.Image, itk.Image]): The image to be set.
-
-        Returns:
-            None
-        """
-        if isinstance(image, sitk.Image):
-            self.image = self.convert_to_itk_image(image)
-
-        else:
-            self.image = image
-
-    @staticmethod
-    def _return_image_as(image: Union[sitk.Image, itk.Image],
-                         as_sitk: bool
-                         ) -> Union[sitk.Image, itk.Image]:
-        if isinstance(image, sitk.Image) and as_sitk:
-            return image
-
-        if isinstance(image, sitk.Image) and not as_sitk:
-            return Image.convert_to_itk_image(image)
-
-        if isinstance(image, itk.Image) and as_sitk:
-            return Image.convert_to_sitk_image(image)
-
-        return image
 
     @staticmethod
     def cast(image: Union[sitk.Image, itk.Image],
@@ -187,12 +127,57 @@ class Image(ABC):
             input_image_type = itk.Image[itk.template(image)[1]]
             output_image_type = itk.Image[pixel_type, dimensions]
 
-            cast_fltr = itk.CastImageFilter[input_image_type, output_image_type].New()
-            cast_fltr.SetInput(image)
-            cast_fltr.Update()
-            img = cast_fltr.GetOutput()
+            caster = itk.CastImageFilter[input_image_type, output_image_type].New()
+            caster.SetInput(image)
+            caster.Update()
+            img = caster.GetOutput()
 
         return Image._return_image_as(img, as_sitk)
+
+    def get_image(self, as_sitk: bool = False) -> Union[itk.Image, sitk.Image]:
+        """Get the image as an :class:`itk.Image` or :class:`SimpleITK.Image` (with ``as_sitk=True``).
+
+        Args:
+            as_sitk (bool): If True returns the image as a SimpleITK image else as an ITK image.
+
+        Returns:
+            Union[itk.Image, sitk.Image]: The image as the either a :class:`itk.Image` or a :class:`SimpleITK.Image`.
+        """
+        if as_sitk:
+            return self.convert_to_sitk_image(self.image)
+
+        return self.image
+
+    def set_image(self, image: Union[sitk.Image, itk.Image]) -> None:
+        """Set the image.
+
+        Args:
+            image (Union[sitk.Image, itk.Image]): The image to be set.
+
+        Returns:
+            None
+        """
+        if isinstance(image, sitk.Image):
+            self.image = self.convert_to_itk_image(image)
+
+        else:
+            self.image = image
+
+    def get_image_data(self) -> np.ndarray:
+        """Get the image data as a numpy array.
+
+        Returns:
+            np.ndarray: The image data as a numpy array.
+        """
+        return itk.GetArrayFromImage(self.image)
+
+    def get_image_itk_type(self) -> itk.Image:
+        """Get the image type of this image.
+
+        Returns:
+            itk.Image: The image type of this image.
+        """
+        return itk.Image[itk.template(self.image)[1]]
 
     def get_origin(self) -> Tuple[float, ...]:
         """Get the origin of the image.
@@ -226,21 +211,13 @@ class Image(ABC):
         """
         return tuple(self.image.GetLargestPossibleRegion().GetSize())
 
-    def ndim(self) -> int:
+    def get_dimensions(self) -> int:
         """Get the number of image dimensions.
 
         Returns:
             int: The number of image dimensions.
         """
         return itk.template(self.image)[1][1]
-
-    def get_image_itk_type(self) -> itk.Image:
-        """Get the image type of this image.
-
-        Returns:
-            itk.Image: The image type of this image.
-        """
-        return itk.Image[itk.template(self.image)[1]]
 
     def get_transform_tape(self) -> TransformTape:
         """Get the :class:`TransformTape`.
@@ -250,10 +227,58 @@ class Image(ABC):
         """
         return self.transform_tape
 
+    def set_transform_tape(self, tape: TransformTape) -> None:
+        """Set the :class:`TransformTape`.
+
+        Args:
+            tape (TransformTape): The :class:`TransformTape`.
+
+        Returns:
+            None
+        """
+        self.transform_tape = tape
+
+    @abstractmethod
+    def copy_info(self,
+                  source: 'Image',
+                  include_transforms: bool = False
+                  ) -> None:
+        """Copy the image information from another image.
+
+        Args:
+            source (Image): The image to copy the information from.
+            include_transforms (bool): If True the :class:`TransformTape` is copied, otherwise not.
+
+        Returns:
+            None
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def is_intensity_image(self) -> bool:
+        """Return True if the image is an intensity image otherwise False.
+
+        Returns:
+            bool: n/a
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def __eq__(self, other: object):
+        """Check if the provided instance is of the same type and if it has the same identification.
+
+        Args:
+            other (object): The object to be checked.
+
+        Returns:
+            bool: True if the object is an image and possess the same identification.
+        """
+        raise NotImplementedError()
+
 
 class IntensityImage(Image):
-    """An image class for an intensity image with a :class:`TransformTape` and additional attributes to identify the
-    :class:`Modality`.
+    """An intensity image class including a :class:`TransformTape` and :class:`Modality` to identify the
+    imaging modality of the image.
 
     Args:
         image (Union[sitk.Image, itk.Image]): The image data as :class:`itk.Image` or :class:`SimpleITK.Image`.
@@ -267,42 +292,6 @@ class IntensityImage(Image):
         super().__init__(image)
 
         self.modality = modality
-
-    def is_intensity_image(self) -> bool:
-        """If the image is an instance of :class:`IntensityImage` this function returns True otherwise False.
-
-        Returns:
-            bool: True
-        """
-        return True
-
-    def copy_info(self,
-                  source: 'IntensityImage',
-                  include_transform_tape: bool = False
-                  ) -> None:
-        """Copy the image information from another :class:`IntensityImage`.
-
-        The copied information includes the following attributes:
-            - :class:`Modality`
-            - :class:`TransformTape` (optional)
-
-        Raises:
-            ValueError: If the source image is not an instance of :class:`IntensityImage`.
-
-        Args:
-            source (IntensityImage): The source image.
-            include_transform_tape (bool): If True the :class:`TransformTape` is copied, otherwise not.
-
-        Returns:
-            None
-        """
-        if not isinstance(source, IntensityImage):
-            raise TypeError('The source image must be an instance of IntensityImage.')
-
-        self.modality = deepcopy(source.get_modality())
-
-        if include_transform_tape:
-            self.transform_tape = deepcopy(source.get_transform_tape())
 
     def get_modality(self,
                      as_str: bool = False
@@ -331,19 +320,64 @@ class IntensityImage(Image):
         """
         self.modality = modality
 
+    def copy_info(self,
+                  source: 'IntensityImage',
+                  include_transforms: bool = False
+                  ) -> None:
+        """Copy the image information from another :class:`IntensityImage`.
+
+        The copied information includes the following attributes:
+            - :class:`Modality`
+            - :class:`TransformTape` (optional)
+
+        Raises:
+            ValueError: If the source image is not an instance of :class:`IntensityImage`.
+
+        Args:
+            source (IntensityImage): The source image.
+            include_transforms (bool): If True the :class:`TransformTape` is copied, otherwise not.
+
+        Returns:
+            None
+        """
+        if not isinstance(source, IntensityImage):
+            raise TypeError('The source image must be an instance of IntensityImage.')
+
+        self.modality = deepcopy(source.get_modality())
+
+        if include_transforms:
+            self.transform_tape = deepcopy(source.get_transform_tape())
+
+    def is_intensity_image(self) -> bool:
+        """If the image is an instance of :class:`IntensityImage` this function returns True otherwise False.
+
+        Returns:
+            bool: True
+        """
+        return True
+
     def __eq__(self, other: object) -> bool:
+        """Check if the provided instance is of the same type and if it has the same :class:`Modality`.
+
+        Args:
+            other (object): The object to be checked.
+
+        Returns:
+            bool: True if the object is an :class:`IntensityImage` and possess the same identification.
+
+        """
         if not isinstance(other, IntensityImage):
             return False
 
-        return all((self.modality == other.modality, self.image == other.image))
+        return self.modality == other.modality
 
     def __str__(self) -> str:
         return f'Intensity image: {self.modality.name}'
 
 
 class SegmentationImage(Image):
-    """An image class for a segmentation image with a :class:`TransformTape` and additional attributes for the
-    :class:`Organ` and a :class:`Rater`.
+    """A segmentation image class including a :class:`TransformTape` and additional attributes to identify the
+    :class:`Organ` segmented and the :class:`Rater` who created the segmentation.
 
     The specification of :class:`Rater` is optional and can be omitted if not explicitly used.
 
@@ -361,58 +395,6 @@ class SegmentationImage(Image):
         super().__init__(image)
         self.organ: Organ = organ
         self.rater: Rater = rater
-
-    def is_intensity_image(self) -> bool:
-        """If the image is an :class:`IntensityImage` this function returns True, otherwise False.
-
-        Returns:
-            bool: False
-        """
-        return False
-
-    def is_binary(self) -> bool:
-        """Check if the image is binary.
-
-        Returns:
-            bool: True if the image is binary, otherwise False.
-        """
-        image_np = itk.GetArrayViewFromImage(self.image)
-        unique_pixel_vals = np.unique(image_np)
-
-        if unique_pixel_vals.shape[0] == 2 and unique_pixel_vals[0] == 0:
-            return True
-
-        return False
-
-    def copy_info(self,
-                  source: 'SegmentationImage',
-                  include_transform_tape: bool = False
-                  ) -> None:
-        """Copy the image information from another :class:`SegmentationImage`.
-
-        The copied information includes the following attributes:
-            - :class:`Organ`
-            - :class:`Rater`
-            - :class:`TransformTape` (optional)
-
-        Raises:
-            ValueError: If the source image is not an instance of :class:`SegmentationImage`.
-
-        Args:
-            source (IntensityImage): The source image.
-            include_transform_tape (bool): If True the :class:`TransformTape` is copied, otherwise not.
-
-        Returns:
-            None
-        """
-        if not isinstance(source, SegmentationImage):
-            raise TypeError('The source image must be an instance of SegmentationImage.')
-
-        self.organ: Organ = deepcopy(source.get_organ())
-        self.rater: Rater = deepcopy(source.get_rater())
-
-        if include_transform_tape:
-            self.transform_tape = deepcopy(source.get_transform_tape())
 
     def get_organ(self,
                   as_str: bool = False
@@ -480,8 +462,71 @@ class SegmentationImage(Image):
         self.organ: Organ = organ_rater_combination.organ
         self.rater: Rater = organ_rater_combination.rater
 
+    def copy_info(self,
+                  source: 'SegmentationImage',
+                  include_transforms: bool = False
+                  ) -> None:
+        """Copy the image information from another :class:`SegmentationImage`.
+
+        The copied information includes the following attributes:
+            - :class:`Organ`
+            - :class:`Rater`
+            - :class:`TransformTape` (optional)
+
+        Raises:
+            ValueError: If the source image is not an instance of :class:`SegmentationImage`.
+
+        Args:
+            source (IntensityImage): The source image.
+            include_transforms (bool): If True the :class:`TransformTape` is copied, otherwise not.
+
+        Returns:
+            None
+        """
+        if not isinstance(source, SegmentationImage):
+            raise TypeError('The source image must be an instance of SegmentationImage.')
+
+        self.organ: Organ = deepcopy(source.get_organ())
+        self.rater: Rater = deepcopy(source.get_rater())
+
+        if include_transforms:
+            self.transform_tape = deepcopy(source.get_transform_tape())
+
+    def is_intensity_image(self) -> bool:
+        """If the image is an :class:`IntensityImage` this function returns True, otherwise False.
+
+        Returns:
+            bool: False
+        """
+        return False
+
+    def is_binary(self) -> bool:
+        """Check if the image is binary.
+
+        Returns:
+            bool: True if the image is binary, otherwise False.
+        """
+        image_np = itk.GetArrayViewFromImage(self.image)
+        unique_pixel_vals = np.unique(image_np)
+
+        if unique_pixel_vals.shape[0] == 2 and unique_pixel_vals[0] == 0:
+            return True
+
+        return False
+
     def __eq__(self, other) -> bool:
-        return all((self.organ == other.organ, self.rater == other.rater, self.image == other.image))
+        """Check if the provided instance is of the same type and if it has the same :class:`Organ` and :class:`Rater`.
+
+        Args:
+            other (object): The object to be checked.
+
+        Returns:
+            bool: True if the object is an :class:`SegmentationImage` and possess the same identification.
+        """
+        if not isinstance(other, SegmentationImage):
+            return False
+
+        return all((self.organ == other.organ, self.rater == other.rater))
 
     def __str__(self) -> str:
         if not self.rater:

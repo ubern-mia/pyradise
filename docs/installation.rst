@@ -32,6 +32,7 @@ PyRaDiSe requires Python 3.8 (or higher) and depends on the following packages:
 Building the documentation
 --------------------------
 Building the documentation requires the following packages:
+
  - `Sphinx <https://www.sphinx-doc.org/en/master/>`_
  - `PyData Sphinx Theme <https://pydata-sphinx-theme.readthedocs.io/en/stable/>`_
  - `nbsphinx <https://nbsphinx.readthedocs.io/en/latest/>`_
@@ -54,5 +55,5 @@ Then, build the documentation by running:
 
    make html
 
-The documentation will then be generated in the ``./_docs_build`` directory.
+The documentation will then be generated in the ``./_docs_build/html/index.html`` directory.
 

@@ -4,7 +4,10 @@ from typing import (
     Dict,
     Optional)
 
-from pyradise.data import Modality
+import SimpleITK as sitk
+import numpy as np
+
+from pyradise.data import Modality, IntensityImage
 from pyradise.fileio import (IterableDicomCrawler, ModalityExtractor, SubjectWriter,
                              SubjectLoader, SubjectDicomCrawler, Tag)
 
@@ -88,7 +91,25 @@ def main2():
 
         subject = SubjectLoader().load(info)
         print(subject.name)
-        writer.write_to_subject_folder(output_path, subject, False)
+        # writer.write_to_subject_folder(output_path, subject, False)
+
+        image_sitk = sitk.GetImageFromArray(np.ones((10, 10, 10), dtype=np.float32))
+        new_image = IntensityImage(image_sitk, Modality('T1c'))
+
+        # print(f'New image: {new_image}')
+        # print(f'Old image: {subject.intensity_images[0]}')
+
+        # subject.replace_image_(new_image, subject.intensity_images[0])
+        subject.replace_image(new_image)
+
+        # subject.remove_image(new_image)
+        # subject.remove_image_by_modality('CT')
+        # subject.remove_image_by_organ('Edema')
+
+        subject.add_image(new_image)
+
+
+        print(subject.name)
 
 
 if __name__ == '__main__':

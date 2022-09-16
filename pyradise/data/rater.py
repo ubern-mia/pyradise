@@ -6,12 +6,8 @@ __all__ = ['Rater']
 
 
 class Rater:
-    """Representation of a human or automatic rater which is typically used in combination with a
-    :class:`SegmentationImage` to render the assignment of multiple :class:`SegmentationImage` entries in a
-    :class:`Subject` feasible.
-
-    Notes:
-        Instead of the rater's name an abbreviation can be used in addition to anonymize the raters name on outputs.
+    """A class for identifying the rater who segmented a certain organ. Because the name of the rater takes every value,
+    the rater can either be a human expert or an auto-segmentation algorithm.
 
     Args:
         name (str): The name of the rater.
@@ -45,13 +41,15 @@ class Rater:
         """Get the abbreviation of the :class:`Rater`.
 
         Returns:
-            Optional[str]: The abbreviation of the :class:`Rater` if contained, otherwise None.
+            Optional[str]: The abbreviation of the :class:`Rater` if contained, otherwise :data:`None`.
         """
         return self.abbreviation
 
     @classmethod
     def get_default(cls) -> 'Rater':
         """Get the default :class:`Rater`.
+
+        The default :class:`Rater` name is 'NA' and its abbreviation is also 'NA'.
 
         Returns:
             Rater: The default :class:`Rater`.
@@ -68,6 +66,14 @@ class Rater:
 
     @staticmethod
     def _remove_illegal_characters(text: str) -> str:
+        """Remove a set of illegal characters from a string.
+
+        Args:
+            text (str): The string to remove illegal characters from.
+
+        Returns:
+            str: The string without illegal characters.
+        """
         illegal_characters = "[<>:/\\|?*\"]|[\0-\31]"
         return sub(illegal_characters, "", text)
 

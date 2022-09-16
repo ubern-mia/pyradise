@@ -534,8 +534,19 @@ class SubjectDicomCrawler(Crawler):
                     return
 
             else:
+                config = ModalityConfiguration.from_dicom_series_info(infos)
+
+                if config.has_duplicate_modalities():
+                    raise ValueError('The extracted modalities contain at least one duplicate modality. '
+                                     'This will cause ambiguity when loading the DICOM series. Use either a modality '
+                                     'configuration file or a modality extractor to resolve this issue.')
+
+                if config.has_default_modalities():
+                    raise ValueError('The extracted modalities contain at least one default modality. '
+                                     'This will cause ambiguity when loading the DICOM series. Use either a modality '
+                                     'configuration file or a modality extractor to resolve this issue.')
+
                 if self.write_config:
-                    config = ModalityConfiguration.from_dicom_series_info(infos)
                     config.to_file(os.path.join(self.path, self.config_file_name))
                     return
 

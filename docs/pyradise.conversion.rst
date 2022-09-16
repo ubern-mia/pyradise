@@ -1,7 +1,6 @@
 .. role:: hidden
     :class: hidden-section
 
-.. module:: pyradise.conversion
 
 Conversion Package
 ==================
@@ -21,7 +20,7 @@ The main concept of the :mod:`pyradise.conversion` package is illustrated in the
 
 Configuration Module
 --------------------
-Module: :mod:`pyradise.conversion.configuration`
+
 
 One drawback of working with DICOM images in radiotherapy is that the metadata used to identify a specific MR-sequence
 (e.g. T1w or T1c) can  be ambiguous or may not be provided. Furthermore, the naming of the necessary metadata may be
@@ -36,8 +35,8 @@ existing *modality configuration files* and provide the data to the :class:`Dico
 
 .. note::
     Typically, the :class:`ModalityConfiguration` is used inside of a DICOM-specific :class:`Crawler` and for most use
-cases it's sufficient to be aware that additional information on the sequence naming must be provided via a
-*modality configuration file*. Detailed information see for example :class:`DicomSubjectDirectoryCrawler`.
+    cases it's sufficient to be aware that additional information on the sequence naming must be provided via a
+    *modality configuration file*. Detailed information see for example :class:`DicomSubjectDirectoryCrawler`.
 
 **Example Modality Configuration File**
 
@@ -72,13 +71,11 @@ and was completed filling the tag ``Modality`` with values defined in :class:`cu
 
 |
 
-.. automodule:: pyradise.conversion.configuration
-    :show-inheritance:
-    :members:
+
 
 Crawling Module
 ---------------
-Module: :mod:`pyradise.conversion.crawling`
+
 
 The :mod:`crawling` module is responsible for retrieving :class:`DicomSeriesInfo` objects from DICOM files and
 *modality configuration files*, which contain all the necessary information for the subsequent conversion process.
@@ -156,18 +153,16 @@ structure.
 
 .. note::
     In case of large datasets or limited memory we recommend to use the :class:`IterableDicomDatasetDirectoryCrawler`
-which loads the sequentially and reduces memory usage.
+    which loads the sequentially and reduces memory usage.
 
 |
 
-.. automodule:: pyradise.conversion.crawling
-    :show-inheritance:
-    :members:
+
 
 
 Series Information Module
 -------------------------
-Module: :mod:`pyradise.conversion.series_information`
+
 
 The :mod:`series_information` module is responsible for providing all necessary information to the conversion process.
 Because DICOM images, registrations, and RT-STRUCTs contain different information necessary for the conversion process
@@ -179,15 +174,11 @@ subsequent conversion process.
 
 |
 
-.. automodule:: pyradise.conversion.series_information
-    :show-inheritance:
-    :members: SeriesInfo, DicomSeriesInfo, DicomSeriesImageInfo, DicomSeriesRegistrationInfo,
-            DicomSeriesRTStructureSetInfo, DicomSeriesInfoFilter, DicomSeriesImageInfoFilter,
-            NoDicomSeriesRegistrationInfoFilter
+
 
 DICOM Conversion Module
 -----------------------
-Module: :mod:`pyradise.conversion.dicom_conversion`
+
 
 The :mod:`dicom_conversion` module is responsible for the conversion of the data based on the information provided by
 the :class:`DicomSeriesInfo`. Different interfaces for converting from and to DICOM are available. In general, classes
@@ -214,25 +205,20 @@ PyRaDiSe whereas the remaining classes are designed for a more flexible use.
 
 .. note::
     In radiotherapy DICOM images often need to be registered to each other before processing. The converters of
-PyRaDiSe are feasible to process DICOM registration files and will automatically apply the appropriate transformations
-to the images if the DICOM registration files are provided.
+    PyRaDiSe are feasible to process DICOM registration files and will automatically apply the appropriate transformations
+    to the images if the DICOM registration files are provided.
 
 |
 
-.. automodule:: pyradise.conversion.dicom_conversion
-    :show-inheritance:
-    :members: DicomSubjectConverter, DicomSeriesRTStructureSetConverter, DicomSeriesImageConverter,
-                SubjectRTStructureSetConverter, RTSSToImageConverter, ImageToRTSSConverter
+
 
 Utilities Module
 ----------------
-Module: :mod:`pyradise.conversion.utils`
+
 
 The :mod:`utils` module provides functionality which is used at multiple locations in the :mod:`pyradise.conversion`
 package.
 
 |
 
-.. automodule:: pyradise.conversion.utils
-    :show-inheritance:
-    :members:
+

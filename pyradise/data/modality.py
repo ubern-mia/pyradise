@@ -10,11 +10,6 @@ class Modality:
         precisely the professional taxonomy of the community, but we decided to stick to it for the sake of clarity and
         ease of use.
 
-        The default :class:`Modality` is 'UNKNOWN'.
-
-        The :class:`Modality` class is predominantly used in combination with the :class:`IntensityImage` to
-        discriminate between different :class:`IntensityImage` instances.
-
     Args:
         name (str): The name of the modality.
 

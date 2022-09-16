@@ -1,9 +1,6 @@
 from typing import (
     Optional,
-    Tuple,
     Union)
-
-import numpy as np
 
 from .rater import Rater
 
@@ -12,10 +9,13 @@ __all__ = ['Organ', 'OrganRaterCombination']
 
 
 class Organ:
-    """A class for identifying the organ.
+    """A class for identifying an organ.
 
     Notes:
-        The :class:`Organ` is predominantly used to identify the organ represented on a :class:`SegmentationImage`.
+        The :class:`Organ` is used to identify the organ segmented on a :class:`SegmentationImage`. If multiple organs
+        are segmented on a single :class:`SegmentationImage`, the :class:`Organ` may be assigned an artificial
+        name describing the set of organs.
+
 
     Args:
         name (str): The name of the :class:`Organ`.
@@ -39,6 +39,9 @@ class Organ:
             return False
 
         return self.name == other.name
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 class OrganRaterCombination:

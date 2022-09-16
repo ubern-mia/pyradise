@@ -1,7 +1,6 @@
 .. role:: hidden
     :class: hidden-section
 
-.. module:: pyradise.serialization
 
 Serialization Package
 =====================
@@ -13,7 +12,7 @@ Furthermore, the package provides functionality to generate HDF5 datasets which 
 
 Subject Serialization Module
 ----------------------------
-Module: :mod:`pyradise.serialization.subject_serialization`
+
 
 The :mod:`subject_serialization` module provides functionality to store processed subject data as DICOM or as a
 discretized image format (i.e. NIFTI and NRRD, see :class:`ImageFileFormat`). The following writers are currently available:
@@ -30,26 +29,22 @@ discretized image format (i.e. NIFTI and NRRD, see :class:`ImageFileFormat`). Th
 
 |
 
-.. automodule:: pyradise.serialization.subject_serialization
-    :show-inheritance:
-    :members:
+
 
 Directory Building Module
 -------------------------
-Module: :mod:`pyradise.serialization.directory_building`
+
 
 The :mod:`directory_building` module provides functionality to generate a folder structure for storing subject data
 in a common dataset.
 
 |
 
-.. automodule:: pyradise.serialization.directory_building
-    :show-inheritance:
-    :members:
+
 
 HDF5 Building Module
 --------------------
-Module: :mod:`pyradise.serialization.h5_building`
+
 
 The HDF5 file format is a fast and reliable alternative to reading single files from disk for deep learning model training.
 Because PyRaDiSe can also be used for pre-processing data for deep learning model training we included this `pymia <https://pymia.readthedocs.io/en/latest/index.html>`_-based module with the aim to speed-up HDF5 generation when using PyRaDiSe for pre-processing.
@@ -120,8 +115,3 @@ The following example illustrates the usage of the HDF5 generation process.
 
 |
 
-.. automodule:: pyradise.serialization.h5_building
-    :show-inheritance:
-    :special-members:
-    :exclude-members: __init__, __dict__, __weakref__
-    :members:

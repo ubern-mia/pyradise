@@ -25,7 +25,7 @@ SegmentationImage = TypeVar('SegmentationImage')
 
 
 class Tape(ABC):
-    """An abstract class for a recording tape which records defined elements and can replay them upon request.
+    """An abstract class for a tape which records defined elements and can replay them upon request.
     """
 
     def __init__(self) -> None:
@@ -86,7 +86,8 @@ class TransformationInformation:
     """A class for holding information about the transformation of an image.
 
     Notes:
-        This class is used in the :class:`TransformTape` to record transformations applied to a certain :class:`Image`.
+        This class is used in combination with the :class:`TransformTape` to record transformations applied to a
+        certain :class:`Image`.
 
     Args:
         name (str): The name of the operation.
@@ -189,7 +190,7 @@ class TransformationInformation:
                    pre_orientation, post_orientation)
 
     @staticmethod
-    def get_matrix_from_direction(direction: Tuple[float]) -> np.ndarray:
+    def _get_matrix_from_direction(direction: Tuple[float]) -> np.ndarray:
         """Reshape a direction tuple into a direction matrix.
 
         Args:
@@ -253,7 +254,7 @@ class TransformationInformation:
             direction = self.post_transform_direction
 
         if as_matrix:
-            direction = self.get_matrix_from_direction(direction)
+            direction = self._get_matrix_from_direction(direction)
 
         return direction
 
@@ -310,7 +311,8 @@ class TransformationInformation:
 
 
 class TransformTape(Tape):
-    """A tape class for recording and playing back :class:`TransformationInformation` entries."""
+    """A transformation tape class to record and playback transformations.
+    """
 
     def __init__(self) -> None:
         super().__init__()
@@ -353,6 +355,14 @@ class TransformTape(Tape):
     # noinspection DuplicatedCode
     @staticmethod
     def playback(data: Union[IntensityImage, SegmentationImage]) -> Union[IntensityImage, SegmentationImage]:
+        """Play back the transformations of the provided image.
+
+        Args:
+            data (Union[IntensityImage, SegmentationImage]): The image to play back the transformations on.
+
+        Returns:
+            Union[IntensityImage, SegmentationImage]: The played back transformed image.
+        """
 
         image_sitk = data.get_image(as_sitk=True)
 

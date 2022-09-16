@@ -50,12 +50,18 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx_toolbox.more_autodoc.autonamedtuple',
               'sphinx_autodoc_typehints']
 
-napoleon_use_ivar = True
+templates_path = ['_templates']
+exclude_patterns = []
+
+# -- Options for autodoc -----------------------------------------------------
 autodoc_member_order = 'bysource'
 add_module_names = False
 
-templates_path = ['_templates']
-exclude_patterns = []
+# -- Options for napoleon extension ------------------------------------------
+napoleon_use_ivar = True
+napoleon_google_docstring = True
+napoleon_use_admonition_for_examples = True
+napoleon_use_admonition_for_notes = True
 
 # -- Options for nbsphinx ----------------------------------------------------
 nbsphinx_allow_errors = True

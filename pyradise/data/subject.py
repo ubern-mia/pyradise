@@ -1,12 +1,13 @@
 from typing import (
     Any,
+    Dict,
+    Tuple,
     List,
     Optional,
     Union,
-    Sequence,
-    Tuple
-)
-from collections import abc
+    Sequence)
+from collections import abc as col_abc
+from warnings import warn
 
 from .modality import Modality
 from .organ import Organ
@@ -19,22 +20,17 @@ from .image import (
 
 __all__ = ['Subject']
 
-OneOrMultipleImagesOrNone = Optional[Union[IntensityImage, SegmentationImage, Sequence[IntensityImage],
-                                           Sequence[SegmentationImage]]]
-
 
 class Subject:
     """The :class:`Subject` is the main data object which holds all :class:`IntensityImage` s and
-    :class:`SegmentationImage` s associated with a subject / patient.
-
-    The :class:`Subject` is constructed either manually by the user or by a converter (see :mod:`pyradise.fileio`
-    package) or loader (see :mod:`pyradise.fileio` package). The manual construction of the :class:`Subject` provides
-    more flexibility if the :class:`Subject` is used in combination with other libraries such as
-    `MONAI <https://monai.io/>`_ or `pymia <https://pymia.readthedocs.io/en/latest/#>`_.
+    :class:`SegmentationImage` s associated with the subject. Furthermore, it can hold any type of additional data
+    associated with the patient. Currently, the routines implemented in PyRaDiSe do not use this mechanism so it can be
+    used freely by the user.
 
     Args:
         name (str): The name of the subject.
-        images (OneOrMultipleImagesOrNone): One or multiple images to add to the subject.
+        images (Optional[Union[IntensityImage, SegmentationImage, Sequence[IntensityImage], Sequence[SegmentationImage]]]): One or multiple images to add to the subject.
+        data (Optional[Dict[str, Any]]): Additional data which is associated with the subject.
 
     Examples:
         The following example demonstrates the manual construction of a :class:`Subject`:
@@ -132,7 +128,9 @@ class Subject:
 
     def __init__(self,
                  name: str,
-                 images: OneOrMultipleImagesOrNone = None
+                 images: Optional[Union[IntensityImage, SegmentationImage, Sequence[IntensityImage],
+                                        Sequence[SegmentationImage]]] = None,
+                 data: Optional[Dict[str, Any]] = None
                  ) -> None:
         super().__init__()
 
@@ -147,7 +145,7 @@ class Subject:
         if isinstance(images, SegmentationImage):
             self.segmentation_images.append(images)
 
-        if isinstance(images, abc.Sequence):
+        if isinstance(images, col_abc.Sequence):
             for image in images:
                 if isinstance(image, IntensityImage):
                     self.intensity_images.append(image)
@@ -157,6 +155,46 @@ class Subject:
                     raise ValueError(f'At least one image is not of type {IntensityImage.__class__.__name__} or'
                                      f'{SegmentationImage.__class__.__name__}!')
 
+        # check validity of the additional data
+        if data is not None:
+            if not isinstance(data, dict):
+                raise TypeError('Additional data must be of type dict with the key providing an identifier for '
+                                'data retrieval.')
+            if not all(isinstance(key, str) for key in data.keys()):
+                raise TypeError('Additional data keys must be of type str because they are used as an identifier for'
+                                'data retrieval.!')
+        else:
+            data = {}
+
+        self.data: Dict[str, Any] = data
+
+
+    def _get_data_list_by_type(self, type_: type) -> List[Any]:
+        if type_ == IntensityImage:
+            return self.intensity_images
+        elif type_ == SegmentationImage:
+            return self.segmentation_images
+        else:
+            raise ValueError('The given data type is not supported or not contained in the subject!')
+
+    @staticmethod
+    def _check_for_single_candidate(candidates: List[Any],
+                                    entity_name: str,
+                                    return_first_on_multiple: bool
+                                    ) -> Any:
+        if len(candidates) == 1:
+            return candidates[0]
+
+        if len(candidates) > 1:
+            if return_first_on_multiple:
+                warn(f'The search for {entity_name} is ambiguous because there are multiple ({len(candidates)}) '
+                     'candidates which are equal. The first found candidate will be returned.')
+                return candidates[0]
+            else:
+                raise ValueError(f'There are multiple {entity_name} which fulfil the criterion ({len(candidates)})!')
+
+        return None
+
     def get_name(self) -> str:
         """Get the name of the subject.
 
@@ -165,54 +203,32 @@ class Subject:
         """
         return self.name
 
+    def get_modalities(self) -> Tuple[Optional[Modality], ...]:
+        """Get the modalities of the subject-associated intensity images.
+
+        Returns:
+            Tuple[Optional[Modality], ...]: The modalities of the intensity images.
+        """
+        modalities = [img.get_modality() for img in self.intensity_images]
+        return tuple(modalities)
+
+    def get_organs(self) -> Tuple[Optional[Organ], ...]:
+        """Get the organs of the subject-associated segmentation images.
+
+        Returns:
+            Tuple[Optional[Organ], ...]: The organs of the segmentation images.
+        """
+        organs = [seg.get_organ() for seg in self.segmentation_images]
+        return tuple(organs)
+
     def get_raters(self) -> Tuple[Optional[Rater], ...]:
-        """Get the raters of the segmentation images.
+        """Get the raters of the subject-associated segmentation images.
 
         Returns:
             Tuple[Optional[Rater], ...]: The raters of the segmentation images.
         """
         raters = [seg.get_rater() for seg in self.segmentation_images]
         return tuple(raters)
-
-    def replace_image(self,
-                      old_image: Union[IntensityImage, SegmentationImage],
-                      new_image: Union[IntensityImage, SegmentationImage]
-                      ) -> bool:
-        """Replace an existing image with a new one.
-
-        Args:
-            old_image (Union[IntensityImage, SegmentationImage]): The image to be replaced.
-            new_image (Union[IntensityImage, SegmentationImage]): The new image.
-
-        Returns:
-            bool: True if the replacement was successful otherwise False.
-        """
-        if not isinstance(old_image, type(new_image)):
-            raise TypeError('The old and the new image must be of the same type!')
-
-        if isinstance(old_image, IntensityImage):
-
-            if old_image.get_modality() != new_image.get_modality():
-                if new_image.get_modality() in [img.get_modality() for img in self.intensity_images]:
-                    raise ValueError(f'There is already an image existing with the same modality '
-                                     f'({new_image.get_modality().name}) for subject {self.name}!')
-
-            index = self.intensity_images.index(old_image)
-            self.intensity_images[index] = new_image
-            return True
-
-        if isinstance(old_image, SegmentationImage):
-
-            if old_image.get_organ() != new_image.get_organ():
-                if new_image.get_organ() in [img.get_organ() for img in self.segmentation_images]:
-                    raise ValueError(f'There is already an image existing with the same organ '
-                                     f'({new_image.get_organ().name}) for subject {self.name}!')
-
-            index = self.segmentation_images.index(old_image)
-            self.segmentation_images[index] = new_image
-            return True
-
-        return False
 
     def add_image(self,
                   image: Union[IntensityImage, SegmentationImage],
@@ -232,37 +248,18 @@ class Subject:
         Returns:
             None
         """
-        if isinstance(image, IntensityImage):
+        images = self._get_data_list_by_type(type(image))
 
-            if image.get_modality() in [img.get_modality() for img in self.intensity_images]:
-                raise ValueError(f'There is already an image existing with the same modality '
-                                 f'({image.get_modality().name}) for subject {self.name}!')
-
-            self.intensity_images.append(image)
-
-        if isinstance(image, SegmentationImage):
-            if image.get_organ() in [img.get_organ() for img in self.segmentation_images]:
+        for image in images:
+            if image == image:
                 if force:
-                    new_organ = image.get_organ()
-                    available_organs = [seg_image.get_organ(True) for seg_image in self.segmentation_images]
-
-                    available_identifier_found = False
-                    index = 0
-                    while not available_identifier_found:
-                        new_organ = Organ(image.get_organ(as_str=True) + f'_{index}')
-
-                        if new_organ.name not in available_organs:
-                            available_identifier_found = True
-
-                        index += 1
-
-                    image.organ = new_organ
-
+                    warn(f'An image of type {type(image).__name__} with the same properties is already contained in '
+                         f'the subject. The image will be added anyway due to force=True.')
                 else:
-                    raise ValueError(f'There is already an image existing with the same organ '
-                                     f'({image.get_organ().name}) for subject {self.name}!')
+                    raise ValueError(f'An image of type {type(image).__name__} with the same properties is already '
+                                     'contained in the subject. No image will be added!')
 
-            self.segmentation_images.append(image)
+        images.append(image)
 
     def add_images(self,
                    images: Sequence[Union[IntensityImage, SegmentationImage]],
@@ -281,110 +278,16 @@ class Subject:
         for image in images:
             self.add_image(image, force)
 
-    def _remove_image(self,
-                      image: Union[IntensityImage, SegmentationImage]
-                      ) -> bool:
-        if isinstance(image, IntensityImage):
-            self.intensity_images.remove(image)
-            return True
-
-        if isinstance(image, SegmentationImage):
-            self.segmentation_images.remove(image)
-            return True
-
-        return False
-
-    def remove_image_by_modality(self,
-                                 modality: Modality
-                                 ) -> bool:
-        """Remove one or multiple images as specified by the modality.
-
-        Args:
-            modality (Modality): The modality of all images to remove.
-
-        Returns:
-            bool: True when the removal procedure was successful otherwise False.
-        """
-        candidates = [img for img in self.intensity_images if img.get_modality() == modality]
-
-        if len(candidates) > 1:
-            raise ValueError(f'The removal of the image with the modality {modality.name} is ambiguous because '
-                             f'there are multiple ({len(candidates)}) images with this modality!')
-
-        if not candidates:
-            return False
-
-        return self._remove_image(candidates[0])
-
-    def remove_image_by_organ(self,
-                              organ: Union[Organ, str]
-                              ) -> bool:
-        """Remove one or multiple images as specified by the organ.
-
-        Args:
-            organ (Union[Organ, str]): The organ of all images to remove.
-
-        Returns:
-            bool: True when the removal procedure was successful otherwise False.
-        """
-        if isinstance(organ, str):
-            organ = Organ(organ, None)
-
-        candidates = [img for img in self.segmentation_images if img.get_organ() == organ]
-
-        if not candidates:
-            return False
-
-        results = []
-        for candidate in candidates:
-            result = self._remove_image(candidate)
-            results.append(result)
-
-        return all(results)
-
-    def remove_image(self,
-                     image: Union[IntensityImage, SegmentationImage]
-                     ) -> bool:
-        """Remove a given image from the subject.
-
-        Args:
-            image (Union[IntensityImage, SegmentationImage]): The image to remove from the subject.
-
-        Returns:
-            bool: True when the removal procedure was successful otherwise False.
-        """
-        if isinstance(image, IntensityImage):
-            candidates = [img for img in self.intensity_images if img == image]
-
-        else:
-            candidates = [img for img in self.segmentation_images if img == image]
-
-        if len(candidates) > 1:
-            raise ValueError(f'The removal of the image is ambiguous because there are multiple ({len(candidates)}) '
-                             f'images which are equal!')
-
-        if not candidates:
-            return False
-
-        return self._remove_image(candidates[0])
-
-    @staticmethod
-    def _check_for_single_candidate(candidates: List[Any]) -> Any:
-        if len(candidates) == 1:
-            return candidates[0]
-
-        if len(candidates) > 1:
-            raise ValueError(f'There are multiple candidates which fulfil the criterion ({len(candidates)})!')
-
-        return None
-
     def get_image_by_modality(self,
-                              modality: Union[Modality, str]
+                              modality: Union[Modality, str],
+                              return_first_on_multiple: bool = False
                               ) -> Optional[IntensityImage]:
         """Get one intensity image by its modality.
 
         Args:
             modality (Union[Modality, str]): The modality of the image to retrieve.
+            return_first_on_multiple (bool): Indicates if the first found image should be returned if there are
+             multiple candidates, otherwise an error is raised on multiple candidates (default: False).
 
         Returns:
             Optional[IntensityImage]: The intensity image or None if there are multiple candidates.
@@ -394,11 +297,32 @@ class Subject:
 
         candidates = [img for img in self.intensity_images if img.get_modality() == modality]
 
-        return self._check_for_single_candidate(candidates)
+        return self._check_for_single_candidate(candidates, 'modalities', return_first_on_multiple)
 
-    def get_image_by_rater(self,
-                           rater: Union[Rater, str]
-                           ) -> Optional[Tuple[SegmentationImage]]:
+    def get_image_by_organ(self,
+                           organ: Union[Organ, str],
+                           return_first_on_multiple: bool = False
+                           ) -> Optional[SegmentationImage]:
+        """Get one segmentation image by its organ.
+
+        Args:
+            organ (Union[Organ, str]): The organ of the image to retrieve.
+            return_first_on_multiple (bool): Indicates if the first found image should be returned if there are
+             multiple candidates, otherwise an error is raised on multiple candidates (default: False).
+
+        Returns:
+            Optional[SegmentationImage]: The segmentation image or None if there are multiple candidates.
+        """
+        if isinstance(organ, str):
+            organ = Organ(organ, None)
+
+        candidates = [img for img in self.segmentation_images if img.get_organ() == organ]
+
+        return self._check_for_single_candidate(candidates, 'organs', return_first_on_multiple)
+
+    def get_images_by_rater(self,
+                            rater: Union[Rater, str]
+                            ) -> Optional[Tuple[SegmentationImage]]:
         """Get one or multiple segmentation images by their rater.
 
         Args:
@@ -418,65 +342,307 @@ class Subject:
 
         return tuple(candidates)
 
-    def get_image_by_organ(self,
-                           organ: Union[Organ, str]
-                           ) -> Optional[SegmentationImage]:
-        """Get one segmentation image by its organ.
+    def get_image_by_organ_and_rater(self,
+                                     organ: Union[Organ, str],
+                                     rater: Union[Rater, str],
+                                     return_first_on_multiple: bool = False
+                                     ) -> Optional[SegmentationImage]:
+        """Get one segmentation image by its organ and rater.
 
         Args:
             organ (Union[Organ, str]): The organ of the image to retrieve.
+            rater (Union[Rater, str]): The rater of the image to retrieve.
+            return_first_on_multiple (bool): Indicates if the first found image should be returned if there are
+             multiple candidates, otherwise an error is raised on multiple candidates (default: False).
 
         Returns:
-            Optional[SegmentationImage]: The segmentation image or None if there are multiple candidates.
+            Optional[SegmentationImage]: The segmentation image or :data:`None` if there are multiple candidates.
+        """
+        if isinstance(organ, str):
+            organ = Organ(organ, None)
+        if isinstance(rater, str):
+            rater = Rater(rater)
+
+        candidates = [img for img in self.segmentation_images if img.get_organ() == organ and img.get_rater() == rater]
+
+        return self._check_for_single_candidate(candidates, 'organs and raters', return_first_on_multiple)
+
+    def replace_image(self,
+                      new_image: Union[IntensityImage, SegmentationImage],
+                      old_image: Optional[Union[IntensityImage, SegmentationImage]] = None
+                      ) -> bool:
+        """Replace an image in the subject either specified by an old image or by the properties of the new image.
+
+        The following properties are used to identify the image to be replaced:
+
+        - :class:`IntensityImage`: The :class:`Modality` of the image.
+        - :class:`SegmentationImage`: The :class:`Organ` and the :class:`Rater` of the image.
+
+        Args:
+            new_image (Union[IntensityImage, SegmentationImage]): The new image which will be inserted into the subject.
+            old_image (Optional[Union[IntensityImage, SegmentationImage]]): The old image which will be replaced by the
+             new image. If None, the new image properties are used to find an image to replace (default: None).
+
+        Returns:
+            bool: True if the image is replaced successfully, False otherwise.
+        """
+        def _get_equal_entities(reference: Any, candidates: Sequence[Any]) -> Tuple[Any]:
+            candidates_ = [candidate for candidate in candidates if isinstance(candidate, type(reference))]
+
+            if not candidates_:
+                return tuple()
+
+            return tuple(candidate for candidate in candidates_ if candidate == reference)
+
+        image_sequence = self._get_data_list_by_type(type(new_image))
+
+        if old_image is None:
+            equal_images = _get_equal_entities(new_image, image_sequence)
+
+            if not equal_images:
+                return False
+
+            if len(equal_images) > 1:
+                warn(f'More than one image of type {type(new_image).__name__} with the same properties is present '
+                     'in the subject. Exclusively the first image found will be replaced!')
+
+            old_image_idx = image_sequence.index(equal_images[0])
+            image_sequence[old_image_idx] = new_image
+            return True
+
+        else:
+            if not isinstance(old_image, type(new_image)):
+                raise TypeError('The new and old image must be of the same type '
+                                f'(new image: {type(new_image).__name__}, old image: {type(old_image).__name__})!')
+
+            try:
+                old_image_idx = image_sequence.index(old_image)
+            except ValueError:
+                warn(f'The old image is not contained in the subject. No replacement will be performed.')
+                return False
+
+            image_sequence[old_image_idx] = new_image
+            return True
+
+    def remove_image_by_modality(self,
+                                 modality: Union[Modality, str]
+                                 ) -> bool:
+        """Remove one or multiple images as specified by the modality.
+
+        Args:
+            modality (Union[Modality, str]): The modality of all images to remove.
+
+        Returns:
+            bool: True when the removal procedure was successful otherwise False.
+        """
+        if isinstance(modality, str):
+            modality = Modality(modality)
+
+        images = self._get_data_list_by_type(IntensityImage)
+        candidates = [img for img in images if img.get_modality() == modality]
+
+        if not candidates:
+            return False
+
+        success = True
+        for candidate in candidates:
+            try:
+                images.remove(candidate)
+            except ValueError:
+                success = False
+
+        return success
+
+    def remove_image_by_organ(self,
+                              organ: Union[Organ, str]
+                              ) -> bool:
+        """Remove one or multiple images as specified by the organ.
+
+        Args:
+            organ (Union[Organ, str]): The organ of all images to remove.
+
+        Returns:
+            bool: True when the removal procedure was successful otherwise False.
         """
         if isinstance(organ, str):
             organ = Organ(organ, None)
 
-        candidates = [img for img in self.segmentation_images if img.get_organ().name == organ.name]
+        images = self._get_data_list_by_type(SegmentationImage)
+        candidates = [img for img in images if img.get_organ() == organ]
 
-        return self._check_for_single_candidate(candidates)
+        if not candidates:
+            return False
 
-    def set_image(self,
-                  image: Union[IntensityImage, SegmentationImage]
-                  ) -> None:
-        """Replace an image with either the same modality in case of an intensity image or the same organ and rater
-        in case of a segmentation image.
+        success = True
+        for candidate in candidates:
+            try:
+                images.remove(candidate)
+            except ValueError:
+                success = False
+
+        return success
+
+    def remove_image_by_rater(self, rater: Union[Rater, str]) -> bool:
+        """Remove one or multiple images as specified by the rater.
 
         Args:
-            image (Union[IntensityImage, SegmentationImage]): The image to replace the existing one.
+            rater (Union[Rater, str]): The rater of all images to remove.
+
+        Returns:
+            bool: True when the removal procedure was successful, otherwise False.
+        """
+        if isinstance(rater, str):
+            rater = Rater(rater)
+
+        images = self._get_data_list_by_type(SegmentationImage)
+        candidates = [img for img in images if img.get_rater() == rater]
+
+        if not candidates:
+            return False
+
+        success = True
+        for candidate in candidates:
+            try:
+                images.remove(candidate)
+            except ValueError:
+                success = False
+
+        return success
+
+    def remove_image_by_organ_and_rater(self,
+                                        organ: Union[Organ, str],
+                                        rater: Union[Rater, str]
+                                        ) -> bool:
+        """Remove one or multiple images as specified by the organ and rater.
+
+        Args:
+            organ (Union[Organ, str]): The organ of all images to remove.
+            rater (Union[Rater, str]): The rater of all images to remove.
+
+        Returns:
+            bool: True when the removal procedure was successful, otherwise False.
+        """
+        if isinstance(organ, str):
+            organ = Organ(organ, None)
+        if isinstance(rater, str):
+            rater = Rater(rater)
+
+        images = self._get_data_list_by_type(SegmentationImage)
+        candidates = [img for img in images if img.get_organ() == organ and img.get_rater() == rater]
+
+        if not candidates:
+            return False
+
+        success = True
+        for candidate in candidates:
+            try:
+                images.remove(candidate)
+            except ValueError:
+                success = False
+
+        return success
+
+    def remove_image(self, image: Union[IntensityImage, SegmentationImage]) -> bool:
+        """Remove a given image from the subject.
+
+        Args:
+            image (Union[IntensityImage, SegmentationImage]): The image to remove from the subject.
+
+        Returns:
+            bool: True when the removal procedure was successful otherwise False.
+        """
+        images = self._get_data_list_by_type(type(image))
+        candidates = [img for img in images if img == image]
+
+        if len(candidates) > 1:
+            warn(f'The removal of the image is ambiguous because there are multiple ({len(candidates)}) '
+                 'images which are equal. Only the first found image will be removed')
+
+        if not candidates:
+            return False
+
+        images.remove(candidates[0])
+        return True
+
+    def add_data(self, data: Dict[str, Any]) -> None:
+        """Add additional data to the subject.
+
+        Args:
+            data (Dict[str, Any]): The additional datas.
 
         Returns:
             None
         """
-        if isinstance(image, IntensityImage):
+        self.data.update(data)
 
-            candidate_indices = []
-            for idx, img in enumerate(self.intensity_images):
-                if image.get_modality() == img.get_modality():
-                    candidate_indices.append(idx)
+    def add_data_by_key(self, key: str, data: Any) -> None:
+        """Add additional data by key to the subject.
 
-            if len(candidate_indices) != 1:
-                raise ValueError('The setting of the image is ambiguous because there are multiple images fulfilling'
-                                 'the criterion!')
+        Args:
+            key (str): The key of the additional data.
+            data (Any): The additional data.
 
-            self.intensity_images.remove(self.intensity_images[candidate_indices[0]])
-            self.intensity_images.append(image)
+        Returns:
+            None
+        """
+        self.data[key] = data
 
-        if isinstance(image, SegmentationImage):
+    def get_data(self) -> Dict[str, Any]:
+        """Get the additional data associated with the subject.
 
-            candidate_indices = []
-            for idx, img in enumerate(self.segmentation_images):
-                criteria = (image.get_organ() == img.get_organ(),
-                            image.get_rater() == img.get_rater())
-                if all(criteria):
-                    candidate_indices.append(idx)
+        Returns:
+            Dict[str, Any]: The additional data associated with the subject.
+        """
+        return self.data
 
-            if len(candidate_indices) != 1:
-                raise ValueError('The setting of the image is ambiguous because there are multiple images fulfilling'
-                                 'the criterion!')
+    def get_data_by_key(self, key: str) -> Any:
+        """Get additional data by key or :data:`None` if the key is not existing.
 
-            self.segmentation_images.remove(self.segmentation_images[candidate_indices[0]])
-            self.segmentation_images.append(image)
+        Args:
+            key (str): The key of the specific additional data.
+
+        Returns:
+            Any: The data or :data:`None`.
+        """
+        return self.data.get(key, None)
+
+    def replace_data(self, key: str, new_data: Any, add_if_missing: bool = False) -> bool:
+        """Replace data by a new value.
+
+        Args:
+            key (str): The key of the additional data.
+            new_data (Any): The new additional data.
+            add_if_missing (bool): If True, the additional data will be added if the key is not existing
+             (default: False).
+
+        Returns:
+            bool: True if the additional data is replaced successfully, False otherwise.
+        """
+        if key not in self.data.keys() and not add_if_missing:
+            warn(f'The key {key} is not contained in the additional data. No replacement will be performed.')
+            return False
+
+        self.data[key] = new_data
+        return True
+
+    def remove_additional_data(self) -> None:
+        """Remove all additional data from the subject.
+
+        Returns:
+            None
+        """
+        self.data.clear()
+
+    def remove_additional_data_by_key(self, key: str) -> bool:
+        """Remove additional data by a key from the subject.
+
+        Args:
+            key (str): The key of the additional data.
+
+        Returns:
+            bool: True when the removal procedure was successful otherwise False.
+        """
+        return self.data.pop(key, None) is not None
 
     def __str__(self) -> str:
         return f'{self.name} (Intensity Images: {len(self.intensity_images)} / ' \

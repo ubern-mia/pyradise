@@ -70,7 +70,7 @@ class ResamplingFilter(Filter):
             distant_point = tuple(image.get_image().TransformIndexToPhysicalPoint(image.get_size()))
             bounding_boxes.append((*origin, *distant_point))
 
-        n_dims = images[0].ndim()
+        n_dims = images[0].get_dimensions()
         lower_dim_limits = []
         upper_dim_limits = []
         for i in range(n_dims):
@@ -258,21 +258,21 @@ class ResamplingFilter(Filter):
         Returns:
             Subject: The processed subject.
         """
-
         ref_image = subject.get_image_by_modality(params.reference_modality)
         new_ref_image = self.resample_intensity_image(ref_image, ref_image, params, tuple(subject.segmentation_images))
-        subject.replace_image(ref_image, new_ref_image)
+        subject.replace_image(new_ref_image, ref_image)
 
         ref_image = subject.get_image_by_modality(params.reference_modality)
 
         for image in subject.intensity_images:
             if image.get_modality() == params.reference_modality:
                 continue
+
             new_image = self.resample_intensity_image(image, ref_image, params, tuple(subject.segmentation_images))
-            subject.replace_image(image, new_image)
+            subject.replace_image(new_image, image)
 
         for image in subject.segmentation_images:
             new_image = self.resample_segmentation_image(image, ref_image, params)
-            subject.replace_image(image, new_image)
+            subject.replace_image(new_image, image)
 
         return subject

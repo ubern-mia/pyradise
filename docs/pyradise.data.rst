@@ -1,43 +1,55 @@
-.. role:: hidden
-    :class: hidden-section
+.. role:: any
 
-.. module:: pyradise.data
+.. automodule:: pyradise.data
 
 Data Package
 ============
 
-The :mod:`pyradise.data` package contains the data model for PyRaDiSe which will be used during curation
-(see :mod:`pyradise.curation`) and serialization (see :mod:`pyradise.serialization`). Furthermore, if PyRaDiSe is used
-to load data from a discrete image file format (see :mod:`pyradise.loading`) PyRaDiSe will represent the data with
-the subsequently described data model.
+The :mod:`pyradise.data` package contains the data model for PyRaDiSe which will be used during loading
+(see :mod:`pyradise.fileio.loading`), processing (see :mod:`pyradise.process`) and writing (see
+:mod:`pyradise.fileio.writing`). The goal of the data model design is to provide an simple, lightweight, and extensible
+RT-oriented interface for the user to work with the data. First, simple because handling data with a simple interface
+should be easy and intuitive. Second, lightweight because the data model should not add a lot of overhead because
+processing of medical images typically requires large amounts of memory. Third, extensible because the data model
+should be easily extendable to support new features and new data types such as for example DICOM Dose Plans.
 
-The main data representation object in PyRaDiSe is the :class:`Subject` which contain sequences of
-:class:`IntensityImage` and :class:`SegmentationImage`. Both image types contain the image data
-(i.e. :class:`itk.Image`) and a :class:`TransformTape` which records all transformations and renders a playback of them
-feasible. This ensures that the original physical properties of each :class:`Image` can be restored after processing.
+The :class:`Subject` is the top-level data holding container combining all necessary subject-level information such as
+the subject's name, the intensity and segmentation images and additional user defined data in one common data structure.
+Typically, the :class:`Subject` is created directly by a :class:`SubjectLoader` when loading data from disk. However,
+it can also be constructed manually in order to render feasibility for working with other libraries such as
+`MONAI <https://monai.io/>`_.
+
+The :class:`Subject` comprises of a list of :class:`IntensityImage` and :class:`SegmentationImage` images with each
+image possessing additional information about the image content such as the :class:`Modality` or the :class:`Organ`
+segmented. Furthermore, each image contains a :class:`TransformTape` which is used to keep track of all necessary
+physical property (i.e. origin, direction, spacing, size) changes during processing. The :class:`TransformTape`
+provides also functionality to revert the changes to the original physical properties by playback the recorded changes.
+Each :class:`Image` type posses distinctive content-related information which are enlisted below:
 
 **Intensity Image**
 
-In addition to the image data and the transform tape, an intensity image contains information about the
-:class:`Modality`. In PyRaDiSe the modality provides information about the type of imaging modality or MR sequence.
-However, this taxonomy is not perfect to discriminate between different MR sequences but in our opinion is a sufficient
-approximation.
+In addition to the image data and the transform tape, an :class:`IntensityImage` contains information about the
+:class:`Modality`. The :class:`Modality` is used to distinguish between different image modalities and their details
+such as CT, PET, or MR. The naming of the different :class:`Modality` instances is determined during the loading of
+the :class:`Subject` using either a modality configuration file or a :class:`ModalityExtractor`.
 
 
 **Segmentation Image**
 
 Additionally to the image data and the transform tape, a :class:`SegmentationImage` contains information about the
-:class:`Organ` and the :class:`Rater` who generated the segmentations / contours. Due to the fact that a single
-:class:`Organ` is associated with each :class:`SegmentationImage` the image data typically is a binary mask.
-However, this paradigm is not enforced and the will be broken after the combination of multiple segmentation masks into
-one :class:`SegmentationImage` as it is required to serialize multi-label segmentations into one discrete image file.
+:class:`Organ` segmented on the image and the :class:`Rater` who generated the segmentations / contours. By design, each
+:class:`SegmentationImage` instance should contain a single organ / label to allow for simple processing. As explained
+earlier this is not a hard constraint and can be circumvented in appropriate cases such as for example if one needs
+to output multi-label segmentations.
 
-The main concept of the :mod:`pyradise.data` package is illustrated in the figures below.
+|
 
 .. image:: _static/data_image_0.png
     :width: 600
     :align: center
-    :alt: main concept conversion module
+    :alt: main concept data model
+
+*Figure: Schematic illustration of the subject and the images.*
 
 |
 
@@ -45,7 +57,8 @@ Subject Module
 --------------------
 Module: :mod:`pyradise.data.subject`
 
-The :mod:`subject` module provides the :class:`Subject` which is the main data object in PyRaDiSe.
+The subject module provides the :class:`Subject` which is the main data holding object in PyRaDiSe. The subject is
+constructed during loading an is used through the whole processing in PyRaDiSe.
 
 |
 
@@ -59,9 +72,9 @@ Image Module
 --------------------
 Module: :mod:`pyradise.data.image`
 
-The :mod:`image` module provide the functionality for the :class:`IntensityImage` and :class:`SegmentationImage` used
-in the :class:`Subject`. An :class:`IntensityImage` is an image with intensity values (e.g. images from an MR scan) and
-a :class:`SegmentationImage` is a segmentation mask (e.g. a segmentation of an organ).
+The image module provides the abstract :class:`Image` class and the implementations for the :class:`IntensityImage` and
+:class:`SegmentationImage` classes. If a new image type is required for a certain task, the new image type should be
+derived from the :class:`Image` class.
 
 .. image:: _static/data_image_1.png
     :width: 600
@@ -77,12 +90,13 @@ a :class:`SegmentationImage` is a segmentation mask (e.g. a segmentation of an o
     :members:
     :inherited-members:
 
+
 Taping Module
 --------------------
 Module: :mod:`pyradise.data.taping`
 
-The :mod:`taping` module provides the functionality for the recording and playback of the transformations applied to
-images.
+The :mod:`taping` module provides the abstract :class:`Tape` mechanism for recording and playback arbitrary data and
+an implementation for recording and playback transformations applied to images.
 
 |
 
@@ -96,10 +110,8 @@ Modality Module
 --------------------
 Module: :mod:`pyradise.data.modality`
 
-The :mod:`modality` module provides the functionality to manage information about the :class:`Modality` of a certain
-:class:`IntensityImage`. In PyRaDiSe the taxonomy for identifying the imaging modality or the MR sequence is identical.
-The name :class:`Modality` was a design choice for which we believe that it is easily understandable and is
-taxonomically sufficient precise.
+The :mod:`modality` module provides the functionality to manage the :class:`Modality` information of a certain
+:class:`IntensityImage`.
 
 .. image:: _static/data_image_2.png
     :width: 800
@@ -116,21 +128,6 @@ taxonomically sufficient precise.
     :inherited-members:
 
 
-Rater Module
---------------------
-Module: :mod:`pyradise.data.rater`
-
-The :mod:`rater` module provides the functionality to manage information about the expert rater (called :class:`Rater`)
-which generated the segmentation on a certain :class:`SegmentationImage`. The :class:`Rater` can be a human being which
-generated the contours / segmentations manually or an auto-segmentation algorithm (e.g. a deep learning model).
-
-|
-
-.. automodule:: pyradise.data.rater
-    :show-inheritance:
-    :members:
-    :inherited-members:
-
 Organ Module
 --------------------
 Module: :mod:`pyradise.data.organ`
@@ -144,3 +141,20 @@ The :mod:`organ` module provides the functionality to manage information about t
     :show-inheritance:
     :members:
     :inherited-members:
+
+
+Rater Module
+--------------------
+Module: :mod:`pyradise.data.rater`
+
+The :mod:`rater` module provides the functionality to manage information about the expert :class:`Rater` who generated
+the segmentation on a certain :class:`SegmentationImage`. The :class:`Rater` can take any name such that it can be used
+to identify a human expert as well as an auto-segmentation algorithm (e.g. a deep learning model).
+
+|
+
+.. automodule:: pyradise.data.rater
+    :show-inheritance:
+    :members:
+    :inherited-members:
+

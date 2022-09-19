@@ -87,7 +87,7 @@ class TransformationInformation:
 
     Notes:
         This class is used in combination with the :class:`TransformTape` to record transformations applied to a
-        certain :class:`Image`.
+        certain :class:`~pyradise.data.image.Image`.
 
     Args:
         name (str): The name of the operation.

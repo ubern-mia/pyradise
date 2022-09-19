@@ -30,7 +30,7 @@ def default_intensity_file_name_fn(subject: Subject,
                                    ) -> str:
     """The default intensity file name generation function.
 
-    Notes:
+    Important:
         The file name must not contain the file extension because this is provided by the writer.
 
     Args:
@@ -48,7 +48,7 @@ def default_segmentation_file_name_fn(subject: Subject,
                                       ) -> str:
     """The default segmentation file name generation function.
 
-    Notes:
+    Important:
         The file name must not contain the file extension because this is provided by the writer.
 
     Args:
@@ -66,9 +66,11 @@ class ImageFileFormat(Enum):
     """An enumeration of possible output image file formats.
 
     Notes:
-        The current implementation supports only the following formats:
-        - NIFTI (.nii, .nii.gz)
-        - NRRD (.nrrd)
+        The current implementation supports the following formats:
+
+            - NIFTI (.nii, .nii.gz)
+            - NRRD (.nrrd)
+            - MHA (.mha)
 
         More image file formats will be added in the future.
     """
@@ -82,24 +84,29 @@ class ImageFileFormat(Enum):
     NRRD = '.nrrd'
     """Image format NRRD / extension .nrrd"""
 
+    MHA = '.mha'
+    """Image format MHA / extension .mha"""
+
 
 class SubjectWriter:
-    """A class for writing the content of a subject to a directory.
+    """A class for writing the content of a :class:`~pyradise.data.subject.Subject` instance to a directory.
 
     Notes:
-        The current implementation of this class support the addition of separate functions for generating
-        the file names. Please be aware that certain patterns in the naming can cause problems when loading the data
-        again (e.g. multiple word organ names separated by underline while separating the rater also by underline).
+        This writer provides interfaces for file name generation functions which can be used to customize the file names
+        of the intensity and segmentation images. Please be aware that certain patterns may cause problems if
+        the data should be reloaded again (e.g. separation of information by underline while separating the raters name
+        also with underline). Thus, check carefully if the file name generation function is suitable for your use case.
 
-        Currently, the serialization of :class:`IntensityImage`, :class:`SegmentationImage` and transformations
-        is supported.
+        Currently, the serialization of :class:`~pyradise.data.image.IntensityImage` s,
+        :class:`~pyradise.data.image.SegmentationImage` s, and transformations from the
+        :class:`~pyradise.data.taping.TransformTape` is supported. Other data types may be added in the future.
 
     Args:
         file_format (ImageFileFormat): The output file format (default: ImageFileFormat.NIFTI_GZ).
         intensity_file_name_fn (Callable[[Subject, IntensityImage], str]): The function for generating the file names
-         of the intensity images.
+         of the intensity images (default: default_intensity_file_name_fn).
         segmentation_file_name_fn (Callable[[Subject, SegmentationImage], str]): The function for generating the file
-         names of the segmentation images.
+         names of the segmentation images (default: default_segmentation_file_name_fn).
         allow_override (bool): If True the writer can overwrite existing files, otherwise not (default: False).
     """
 
@@ -145,7 +152,7 @@ class SubjectWriter:
             raise ValueError(f'Unsupported data type {type(image)} received for serialization.')
 
         if with_extension:
-            return file_name + self.image_file_format.value
+            return file_name + self.image_file_format.value.name
 
         return file_name
 
@@ -196,13 +203,14 @@ class SubjectWriter:
               subject: Subject,
               write_transforms: bool = True
               ) -> None:
-        """Write a :class:`Subject` instance to the specified directory.
+        """Write a :class:`~pyradise.data.subject.Subject` instance to the specified directory.
 
         Args:
             path (str): The path to the subject directory.
-            subject (Subject): The :class:`Subject` which will be written.
-            write_transforms (bool): If True writes the transformation files for each :class:`IntensityImage` and
-             :class:`SegmentationImage`, otherwise not (default: True).
+            subject (Subject): The :class:`~pyradise.data.subject.Subject` to be written.
+            write_transforms (bool): If True writes the transformation files for each
+             :class:`~pyradise.data.image.IntensityImage` and :class:`~pyradise.data.image.SegmentationImage` instance,
+             otherwise not (default: True).
 
         Returns:
             None
@@ -216,7 +224,7 @@ class SubjectWriter:
 
         for image in images:
             image_file_name = self._generate_image_file_name(subject, image)
-            image_file_path = os.path.join(path, image_file_name + self.image_file_format.value)
+            image_file_path = os.path.join(path, image_file_name + self.image_file_format.value.name)
 
             self._check_file_path(image_file_path)
 
@@ -236,18 +244,19 @@ class SubjectWriter:
                                 subject: Subject,
                                 write_transforms: bool = True
                                 ) -> None:
-        """Write a :class:`Subject` instance to a separate subject directory within the specified base directory.
+        """Write a :class:`~pyradise.data.subject.Subject` instance to a separate subject directory within the
+        specified base directory. The newly created subject directory will be named with the subjects name.
 
         Notes:
-            The subject directory will be generated within the base directory path and will be named after the subject.
-            This is function is just a small wrapper around the write function and reduces the amount of code needed to
-            write subjects to separate directories.
+            This is function is just a wrapper around the write function and reduces the amount of code which is
+            required to write each subject to a separate directory.
 
         Args:
             base_dir_path (str): The path to the base directory where the subject directory will be placed.
-            subject (Subject): The :class:`Subject` which will be written.
-            write_transforms (bool): If True writes the transformation files for each :class:`IntensityImage` and
-             :class:`SegmentationImage`, otherwise not (default: True).
+            subject (Subject): The :class:`~pyradise.data.subject.Subject` to be written.
+            write_transforms (bool): If True writes the transformation files for each
+             :class:`~pyradise.data.image.IntensityImage` and :class:`~pyradise.data.image.SegmentationImage` instance,
+             otherwise not (default: True).
 
         Returns:
             None
@@ -262,15 +271,21 @@ class SubjectWriter:
 
 
 class DicomSeriesSubjectWriter:
-    """A combined writer which copies DICOM files specified by a tuple of :class:`DicomSeriesInfo` from a directory
-    to an output directory while adding the specified datasets as files. Furthermore, the writer is feasible to save
-    the data as a zip instead of a folder.
+    """A writer class for writing DICOM :class:`~pydicom.dataset.Dataset` instances to disk. In addition, it is feasible
+    to copy DICOM data (specified by :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries) from a source
+    directory to the target directory. This writer is also feasible to save all data within a zip file instead of
+    a directory.
 
-    In contrast to the :class:`DirectorySubjectWriter` the :class:`DicomSeriesSubjectWriter` provides a different
-    interface which takes a tuple of :class:`DicomSeriesInfo` instead of a directory path for copying existing data.
+    Note:
+        In contrast to the :class:`DirectorySubjectWriter` the :class:`DicomSeriesSubjectWriter` provides a different
+        interface which takes a tuple of :class:`~pyradise.fileio.series_info.DicomSeriesInfo` instead of a directory
+        path for copying existing data.
+
+        The additional copying functionality is useful if the input DICOM data should be copied to the output directory
+        as it is often the case when building processing pipelines.
 
     Args:
-        as_zip (bool): Indicates if the output should be a zip file or a normal folder (default: False).
+        as_zip (bool): Indicates if the output should be a zip file or a normal directory (default: False).
     """
 
     def __init__(self, as_zip: bool = False) -> None:
@@ -386,18 +401,15 @@ class DicomSeriesSubjectWriter:
               folder_name: Optional[str],
               series_infos: Optional[Tuple[DicomSeriesInfo, ...]] = None
               ) -> None:
-        """Write the data to a folder or a zip file.
-
-        Notes:
-            If the ``series_infos`` is not provided, no data will be copied into the output. However, the datasets will
-            be written to the output.
+        """Write the provided data to a directory or a zip file.
 
         Args:
-            datasets (Tuple[Tuple[str, Dataset], ...]): The additional datasets which should be stored.
+            datasets (Tuple[Tuple[str, Dataset], ...]): The :class:`~pydicom.dataset.Dataset` instances to write and
+             its file names.
             output_path (str): The output path.
             folder_name (str): The name of the output folder or the zip file.
-            series_infos (Optional[Tuple[DicomSeriesInfo]]): The series infos containing the path for DICOM files to
-             copy (default: None).
+            series_infos (Optional[Tuple[DicomSeriesInfo]]): The :class:`~pyradise.fileio.series_info.DicomSeriesInfo`
+             instances containing the path for DICOM files to copy (default: None).
 
         Returns:
             None
@@ -422,23 +434,20 @@ class DicomSeriesSubjectWriter:
 
 
 class DirectorySubjectWriter:
-    """A combined writer which copies data from a directory to another directory and adds additional datasets.
-    Furthermore, the writer can zip all data at the output directory.
+    """A writer class for writing DICOM :class:`~pydicom.dataset.Dataset` instances to disk. In addition, it is feasible
+    to copy data (specified by a directory path) from a source directory to the target directory. This writer is also
+    feasible to save all data within a zip file instead of a directory.
 
-    In contrast to the :class:`DicomSeriesSubjectWriter` the :class:`DirectorySubjectWriter` provides a different
-    interface which takes a directory path instead of a tuple of :class:`DicomSeriesInfo` for copying existing data.
+    Note:
+        In contrast to the :class:`DicomSeriesSubjectWriter` the :class:`DirectorySubjectWriter` provides a different
+        interface which takes a directory path instead of a tuple of
+        :class:`~pyradise.fileio.series_info.DicomSeriesInfo` instances for copying existing data.
 
-    Notes:
-        This writer class is implemented with a focus on deployable segmentation pipelines which need to enrich the
-        input data with for example a DICOM RT-STRUCT. For this scenario we assume that we have an input directory,
-        a work directory, and an output directory. The pipeline may sort or unzip the input directory data to the work
-        directory from where it does the ingestion. After the process the input data from the work directory and
-        the newly generated DICOM RT need to be stored in the output directory. This writer class provides the
-        functionality to copy the data from the work directory to the output directory while also writing the
-        additional DICOM RT dataset to a file. If ``as_zip`` is set to True the output will be zipped.
+        The additional copying functionality is useful if the input DICOM data should be copied to the output directory
+        as it is often the case when building processing pipelines.
 
     Args:
-        as_zip (bool): Indicates if the output should be a zip file or a folder (default: False).
+        as_zip (bool): Indicates if the output should be a zip file or a normal directory (default: False).
     """
 
     def __init__(self, as_zip: bool = False) -> None:
@@ -546,14 +555,11 @@ class DirectorySubjectWriter:
               folder_name: Optional[str] = None,
               copy_dir_path: Optional[str] = None
               ) -> None:
-        """Write the data to a folder or a zip file.
-
-        Notes:
-            If the ``copy_dir_path`` is not provided, no data will be copied into the output. However, the datasets will
-            be written to the output.
+        """Write the provided data to a directory or a zip file.
 
         Args:
-            datasets (Tuple[Tuple[str, Dataset], ...]): Datasets to be written to the output directory or zip file.
+            datasets (Tuple[Tuple[str, Dataset], ...]): The :class:`~pydicom.dataset.Dataset` instances to write and
+             its file names.
             output_path (str): The path to the output base directory.
             folder_name (Optional[str]): The name of the folder or the zip file (default: None).
             copy_dir_path (str): The path to the directory from which all data should be copied (default: None).

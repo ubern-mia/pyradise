@@ -26,9 +26,9 @@ class Image(ABC):
     """An abstract class to store images with additional attributes compared to :class:`SimpleITK.Image` and
     :class:`itk.Image`.
 
-    In addition to standard image types, the :class:`Image` contains a :class:`TransformTape` which is used to track
-    and playback transformations applied to the image, such that the original physical properties (i.e. origin,
-    direction, spacing) of the image can be retrieved.
+    In addition to standard image types, the :class:`Image` contains a :class:`~pyradise.data.taping.TransformTape`
+    which is used to track and playback transformations applied to the image, such that the original physical
+    properties (i.e. origin, direction, spacing) of the image can be retrieved.
 
     Args:
         image (Union[sitk.Image, itk.Image]): The image data to be stored.
@@ -220,18 +220,18 @@ class Image(ABC):
         return itk.template(self.image)[1][1]
 
     def get_transform_tape(self) -> TransformTape:
-        """Get the :class:`TransformTape`.
+        """Get the :class:`~pyradise.data.taping.TransformTape`.
 
         Returns:
-            TransformTape: The :class:`TransformTape`.
+            TransformTape: The :class:`~pyradise.data.taping.TransformTape`.
         """
         return self.transform_tape
 
     def set_transform_tape(self, tape: TransformTape) -> None:
-        """Set the :class:`TransformTape`.
+        """Set the :class:`~pyradise.data.taping.TransformTape`.
 
         Args:
-            tape (TransformTape): The :class:`TransformTape`.
+            tape (TransformTape): The :class:`~pyradise.data.taping.TransformTape`.
 
         Returns:
             None
@@ -247,7 +247,8 @@ class Image(ABC):
 
         Args:
             source (Image): The image to copy the information from.
-            include_transforms (bool): If True the :class:`TransformTape` is copied, otherwise not.
+            include_transforms (bool): If True the :class:`~pyradise.data.taping.TransformTape` is copied,
+             otherwise not.
 
         Returns:
             None
@@ -277,12 +278,12 @@ class Image(ABC):
 
 
 class IntensityImage(Image):
-    """An intensity image class including a :class:`TransformTape` and :class:`Modality` to identify the
-    imaging modality of the image.
+    """An intensity image class including a :class:`~pyradise.data.taping.TransformTape` and
+    :class:`~pyradise.data.modality.Modality` to identify the imaging modality of the image.
 
     Args:
         image (Union[sitk.Image, itk.Image]): The image data as :class:`itk.Image` or :class:`SimpleITK.Image`.
-        modality (Modality): The image :class:`Modality`.
+        modality (Modality): The image :class:`~pyradise.data.modality.Modality`.
     """
 
     def __init__(self,
@@ -296,13 +297,14 @@ class IntensityImage(Image):
     def get_modality(self,
                      as_str: bool = False
                      ) -> Union[Modality, str]:
-        """Get the :class:`Modality`.
+        """Get the :class:`~pyradise.data.modality.Modality`.
 
         Args:
-            as_str (bool): If True returns the :class:`Modality` as a string, otherwise as type :class:`Modality`.
+            as_str (bool): If True returns the :class:`~pyradise.data.modality.Modality` as a string, otherwise as
+             type :class:`~pyradise.data.modality.Modality`.
 
         Returns:
-            Union[Modality, str]: The :class:`Modality`.
+            Union[Modality, str]: The :class:`~pyradise.data.modality.Modality`.
         """
         if as_str:
             return self.modality.get_name()
@@ -310,10 +312,10 @@ class IntensityImage(Image):
         return self.modality
 
     def set_modality(self, modality: Modality) -> None:
-        """Set the :class:`Modality`.
+        """Set the :class:`~pyradise.data.modality.Modality`.
 
         Args:
-            modality (Modality): The :class:`Modality`.
+            modality (Modality): The :class:`~pyradise.data.modality.Modality`.
 
         Returns:
             None
@@ -327,15 +329,17 @@ class IntensityImage(Image):
         """Copy the image information from another :class:`IntensityImage`.
 
         The copied information includes the following attributes:
-            - :class:`Modality`
-            - :class:`TransformTape` (optional)
+
+            - :class:`~pyradise.data.modality.Modality`
+            - :class:`~pyradise.data.taping.TransformTape` (optional)
 
         Raises:
             ValueError: If the source image is not an instance of :class:`IntensityImage`.
 
         Args:
             source (IntensityImage): The source image.
-            include_transforms (bool): If True the :class:`TransformTape` is copied, otherwise not.
+            include_transforms (bool): If True the :class:`~pyradise.data.taping.TransformTape` is copied,
+             otherwise not.
 
         Returns:
             None
@@ -357,7 +361,8 @@ class IntensityImage(Image):
         return True
 
     def __eq__(self, other: object) -> bool:
-        """Check if the provided instance is of the same type and if it has the same :class:`Modality`.
+        """Check if the provided instance is of the same type and if it has the same
+        :class:`~pyradise.data.modality.Modality`.
 
         Args:
             other (object): The object to be checked.
@@ -376,15 +381,16 @@ class IntensityImage(Image):
 
 
 class SegmentationImage(Image):
-    """A segmentation image class including a :class:`TransformTape` and additional attributes to identify the
-    :class:`Organ` segmented and the :class:`Rater` who created the segmentation.
+    """A segmentation image class including a :class:`~pyradise.data.taping.TransformTape` and additional attributes
+    to identify the :class:`~pyradise.data.organ.Organ` segmented and the :class:`~pyradise.data.rater.Rater` who
+    created the segmentation.
 
-    The specification of :class:`Rater` is optional and can be omitted if not explicitly used.
+    The specification of :class:`~pyradise.data.rater.Rater` is optional and can be omitted if not explicitly used.
 
     Args:
         image (Union[sitk.Image, itk.Image]): The segmentation image data.
-        organ (Organ): The :class:`Organ` represented by the segmentation image.
-        rater (Optional[Rater]): The :class:`Rater` of the segmentation image (default: None).
+        organ (Organ): The :class:`~pyradise.data.organ.Organ` represented by the segmentation image.
+        rater (Optional[Rater]): The :class:`~pyradise.data.rater.Rater` of the segmentation image (default: None).
     """
 
     def __init__(self,
@@ -399,13 +405,14 @@ class SegmentationImage(Image):
     def get_organ(self,
                   as_str: bool = False
                   ) -> Union[Organ, str]:
-        """Get the :class:`Organ`.
+        """Get the :class:`~pyradise.data.organ.Organ`.
 
         Args:
-            as_str (bool): It True the :class:`Organ` gets returned as a :class:`str`, otherwise as an :class:`Organ`.
+            as_str (bool): It True the :class:`~pyradise.data.organ.Organ` gets returned as a :class:`str`,
+             otherwise as an :class:`~pyradise.data.organ.Organ`.
 
         Returns:
-            Union[Organ, str]: The :class:`Organ`.
+            Union[Organ, str]: The :class:`~pyradise.data.organ.Organ`.
         """
         if as_str:
             return self.organ.name
@@ -413,10 +420,10 @@ class SegmentationImage(Image):
         return self.organ
 
     def set_organ(self, organ: Organ) -> None:
-        """Set the :class:`Organ`.
+        """Set the :class:`~pyradise.data.organ.Organ`.
 
         Args:
-            organ (Organ): The :class:`Organ`.
+            organ (Organ): The :class:`~pyradise.data.organ.Organ`.
 
         Returns:
             None
@@ -424,18 +431,18 @@ class SegmentationImage(Image):
         self.organ = organ
 
     def get_rater(self) -> Rater:
-        """Get the :class:`Rater`.
+        """Get the :class:`~pyradise.data.rater.Rater`.
 
         Returns:
-            Rater: The :class:`Rater`.
+            Rater: The :class:`~pyradise.data.rater.Rater`.
         """
         return self.rater
 
     def set_rater(self, rater: Rater) -> None:
-        """Set the :class:`Rater`.
+        """Set the :class:`~pyradise.data.rater.Rater`.
 
         Args:
-            rater (Rater): The :class:`Rater`.
+            rater (Rater): The :class:`~pyradise.data.rater.Rater`.
 
         Returns:
             None
@@ -443,18 +450,19 @@ class SegmentationImage(Image):
         self.rater: Rater = rater
 
     def get_organ_rater_combination(self) -> OrganRaterCombination:
-        """Get the :class:`OrganRaterCombination`.
+        """Get the :class:`~pyradise.data.organ.OrganRaterCombination`.
 
         Returns:
-            OrganRaterCombination: The combination of the :class:`Organ` and the :class:`Rater`.
+            OrganRaterCombination: The combination of the :class:`~pyradise.data.organ.Organ` and the
+            :class:`~pyradise.data.rater.Rater`.
         """
         return OrganRaterCombination(self.organ, self.rater)
 
     def set_organ_rater_combination(self, organ_rater_combination: OrganRaterCombination) -> None:
-        """Set the :class:`OrganRaterCombination`.
+        """Set the :class:`~pyradise.data.organ.OrganRaterCombination`.
 
         Args:
-            organ_rater_combination (OrganRaterCombination): The :class:`OrganRaterCombination`.
+            organ_rater_combination (OrganRaterCombination): The :class:`~pyradise.data.organ.OrganRaterCombination`.
 
         Returns:
             None
@@ -469,16 +477,18 @@ class SegmentationImage(Image):
         """Copy the image information from another :class:`SegmentationImage`.
 
         The copied information includes the following attributes:
-            - :class:`Organ`
-            - :class:`Rater`
-            - :class:`TransformTape` (optional)
+
+            - :class:`~pyradise.data.organ.Organ`
+            - :class:`~pyradise.data.rater.Rater`
+            - :class:`~pyradise.data.taping.TransformTape` (optional)
 
         Raises:
             ValueError: If the source image is not an instance of :class:`SegmentationImage`.
 
         Args:
             source (IntensityImage): The source image.
-            include_transforms (bool): If True the :class:`TransformTape` is copied, otherwise not.
+            include_transforms (bool): If True the :class:`~pyradise.data.taping.TransformTape` is copied, otherwise
+             not.
 
         Returns:
             None
@@ -515,7 +525,8 @@ class SegmentationImage(Image):
         return False
 
     def __eq__(self, other) -> bool:
-        """Check if the provided instance is of the same type and if it has the same :class:`Organ` and :class:`Rater`.
+        """Check if the provided instance is of the same type and if it has the same :class:`~pyradise.data.organ.Organ`
+         and :class:`~pyradise.rater.Rater`.
 
         Args:
             other (object): The object to be checked.

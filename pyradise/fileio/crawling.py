@@ -29,12 +29,10 @@ from .series_info import (
 from .extraction import (
     ModalityExtractor,
     RaterExtractor,
-    OrganExtractor,
-    SimpleModalityExtractor)
+    OrganExtractor)
 
 
-__all__ = ['Crawler', 'SubjectFileCrawler', 'DatasetFileCrawler', 'IterableFileCrawler',
-           'SubjectDicomCrawler', 'DatasetDicomCrawler', 'IterableDicomCrawler']
+__all__ = ['Crawler', 'SubjectFileCrawler', 'DatasetFileCrawler', 'SubjectDicomCrawler', 'DatasetDicomCrawler']
 
 
 class Crawler(ABC):
@@ -63,15 +61,14 @@ class Crawler(ABC):
 
 
 class SubjectFileCrawler(Crawler):
-    """A crawler for retrieving :class:`FileSeriesInfo` entries from a subject directory containing discrete image
-    files of a specified type (see ``extension`` parameter).
+    """A crawler for retrieving :class:`~pyradise.fileio.series_info.FileSeriesInfo` entries from a subject directory
+    containing discrete image files of a specified type (see ``extension`` parameter).
 
     The :class:`SubjectFileCrawler` is used for searching appropriate files within a specific subject directory
     containing all the subject's data. If there are multiple subjects in separate directories but within a
-    common top-level directory to be crawled we recommend using the :class:`DatasetFileCrawler` or the
-    :class:`IterableFileCrawler`.
+    common top-level directory to be crawled we recommend using the :class:`DatasetFileCrawler`.
 
-    Warning:
+    Important:
         The DICOM format is not supported by this crawler. Use the appropriate crawler variant instead.
 
     Raises:
@@ -84,6 +81,7 @@ class SubjectFileCrawler(Crawler):
         modality_extractor (ModalityExtractor): The modality extractor.
         organ_extractor (OrganExtractor): The organ extractor.
         rater_extractor (RaterExtractor): The rater extractor.
+
     """
 
     def __init__(self,
@@ -139,14 +137,94 @@ class SubjectFileCrawler(Crawler):
 
 
 class DatasetFileCrawler(Crawler):
-    """A crawler for retrieving :class:`FileSeriesInfo` entries from a dataset directory containing at least
-    one subject directory with image files of a specified type (see ``extension`` parameter).
+    """An iterable crawler for retrieving :class:`~pyradise.fileio.series_info.FileSeriesInfo` entries from a dataset
+    directory containing at least one subject directory with image files of a specified type (see ``extension``
+    parameter).
 
-    If you want to load a large dataset with many subjects, we recommend using the :class:`IterableFileCrawler`
-    which loads the subjects iteratively and thus reducing memory requirements.
+    If you want to load a large dataset with many subjects, we recommend using the iterative crawling approach instead
+    of crawling the data via :meth:`execute` to reduce memory consumption (see example below).
 
-    Warning:
+    Important:
         The DICOM format is not supported by this crawler. Use the appropriate crawler variant instead.
+
+    Example:
+
+        Demonstration of the iterative and the non-iterative loading approach:
+
+        >>> from pyradise.data import (Modality, Organ, Rater)
+        >>> from pyradise.fileio import (DatasetFileCrawler, ModalityExtractor,
+        >>>                              OrganExtractor, RaterExtractor, SubjectLoader)
+        >>>
+        >>>
+        >>> # An example modality extractor
+        >>> class MyModalityExtractor(ModalityExtractor):
+        >>>
+        >>>     def extract_from_dicom(self, path: str) -> Optional[Modality]:
+        >>>         return None
+        >>>
+        >>>     def extract_from_path(self, path: str) -> Optional[Modality]:
+        >>>         file_name = os.path.basename(path)
+        >>>         if 't1' in file_name:
+        >>>             return Modality('T1')
+        >>>         elif 't2' in file_name:
+        >>>             return Modality('T2')
+        >>>         else:
+        >>>             return None
+        >>>
+        >>>
+        >>> # An example organ extractor
+        >>> class MyOrganExtractor(OrganExtractor):
+        >>>
+        >>>     def extract(self, path: str) -> Optional[Organ]:
+        >>>         file_name = os.path.basename(path).lower()
+        >>>         if 'brainstem' in file_name:
+        >>>             return Organ('Brainstem')
+        >>>         elif 'tumor' in file_name:
+        >>>             return Organ('Tumor')
+        >>>         else:
+        >>>             return None
+        >>>
+        >>>
+        >>> # An example rater extractor
+        >>> class MyRaterExtractor(RaterExtractor):
+        >>>
+        >>>     def extract(self, path: str) -> Optional[Rater]:
+        >>>         file_name = os.path.basename(path).lower()
+        >>>         if 'example_expert' in file_name:
+        >>>             return Rater('ExampleExpert')
+        >>>         return None
+        >>>
+        >>>
+        >>> def main_iterative_crawling(dataset_path: str) -> None:
+        >>>     extension = '.nii.gz'
+        >>>
+        >>>     # Create the crawler
+        >>>     crawler = DatasetFileCrawler(dataset_path, extension, MyModalityExtractor(),
+        >>>                                  MyOrganExtractor(), MyRaterExtractor())
+        >>>
+        >>>     # Use the crawler iteratively (more memory efficient)
+        >>>     for series_info in crawler:
+        >>>         subject = SubjectLoader().load(series_info)
+        >>>         # Do something with the subject
+        >>>         print(subject.get_name())
+        >>>
+        >>>
+        >>> def main_crawling_using_execute_fn(dataset_path: str) -> None:
+        >>>     extension = '.nii.gz'
+        >>>
+        >>>     # Create the crawler
+        >>>     crawler = DatasetFileCrawler(dataset_path, extension, MyModalityExtractor(),
+        >>>                                  MyOrganExtractor(), MyRaterExtractor())
+        >>>
+        >>>     # Use the crawler with the execute function
+        >>>     # (all series info entries are loaded in one step)
+        >>>     series_infos = crawler.execute()
+        >>>
+        >>>     # Iterate over the series infos
+        >>>     for series_info in series_infos:
+        >>>         subject = SubjectLoader().load(series_info)
+        >>>         # Do something with the subject
+        >>>         print(subject.get_name())
 
     Raises:
         ValueError: If the ``extension`` parameter specifies the DICOM file extension (i.e. ``.dcm``).
@@ -177,6 +255,13 @@ class DatasetFileCrawler(Crawler):
         self.organ_extractor = organ_extractor
         self.rater_extractor = rater_extractor
 
+        subject_dir_paths = self._get_subject_dir_paths(self.path, self.extension)
+        self.subject_dir_path = tuple(sorted(subject_dir_paths))
+        self.subject_names = tuple(os.path.basename(path) for path in self.subject_dir_path)
+
+        self.current_idx = 0
+        self.num_subjects = len(self.subject_dir_path)
+
     @staticmethod
     def _get_subject_dir_paths(path: str, extension: str) -> Tuple[str, ...]:
         """Get the paths of the subject directories containing valid files.
@@ -206,99 +291,57 @@ class DatasetFileCrawler(Crawler):
         Returns:
             Tuple[Tuple[FileSeriesInfo, ...], ...]: The crawled data.
         """
-        # Get subject folders
-        subject_folders = [entry for entry in os.scandir(self.path) if entry.is_dir()]
-
         # Get subject files
         subject_files = []
-        for subject_folder in subject_folders:
-            subject_file_crawler = SubjectFileCrawler(subject_folder.path, subject_folder.name, self.extension,
+        for subject_dir, subject_name in zip(self.subject_dir_path, self.subject_names):
+            subject_file_crawler = SubjectFileCrawler(subject_dir, subject_name, self.extension,
                                                       self.modality_extractor, self.organ_extractor,
                                                       self.rater_extractor)
             subject_files.append(subject_file_crawler.execute())
 
         return tuple(subject_files)
 
-
-class IterableFileCrawler(DatasetFileCrawler):
-    """An iterable crawler for retrieving :class:`FileSeriesInfo` entries from a dataset directory containing at least
-    one subject directory with image files of a specified type (see ``extension`` parameter). In contrast to the
-    :class:`DatasetFileCrawler` this crawler loads the subjects iteratively reducing memory requirements.
-
-    Warning:
-        The DICOM format is not supported by this crawler. Use the appropriate crawler variant instead.
-
-    Raises:
-        ValueError: If the ``extension`` parameter specifies the DICOM file extension (i.e. ``.dcm``).
-
-    Args:
-        path (str): The dataset directory path to crawl for data.
-        extension (str): The file extension of the image files to be crawled.
-        modality_extractor (ModalityExtractor): The modality extractor.
-        organ_extractor (OrganExtractor): The organ extractor.
-        rater_extractor (RaterExtractor): The rater extractor.
-    """
-
-    def __init__(self,
-                 path: str,
-                 extension: str,
-                 modality_extractor: ModalityExtractor,
-                 organ_extractor: OrganExtractor,
-                 rater_extractor: RaterExtractor
-                 ) -> None:
-        super().__init__(path, extension, modality_extractor, organ_extractor, rater_extractor)
-
-        # Get subject directories and subject names
-        subject_dir_paths = self._get_subject_dir_paths(self.path, self.extension)
-        self.subject_dir_paths = tuple(sorted(subject_dir_paths))
-        self.subject_names = tuple(os.path.basename(subject_dir_path) for subject_dir_path in self.subject_dir_paths)
-
-        self.current_idx = 0
-        self.num_subjects = len(self.subject_dir_paths)
-
-    def __iter__(self):
+    def __iter__(self) -> "DatasetFileCrawler":
         self.current_idx = 0
         return self
 
-    def __next__(self) -> Tuple[FileSeriesInfo]:
+    def __next__(self) -> Tuple[FileSeriesInfo, ...]:
         if self.current_idx < self.num_subjects:
-            subject_info = SubjectFileCrawler(self.subject_dir_paths[self.current_idx],
-                                              self.subject_dir_paths[self.current_idx].name,
+            subject_info = SubjectFileCrawler(self.subject_dir_path[self.current_idx],
+                                              self.subject_names[self.current_idx],
                                               self.extension,
                                               self.modality_extractor,
                                               self.organ_extractor,
                                               self.rater_extractor).execute()
-
             self.current_idx += 1
-
             return subject_info
-
-        raise StopIteration
+        else:
+            raise StopIteration
 
     def __len__(self) -> int:
         return self.num_subjects
 
 
 class SubjectDicomCrawler(Crawler):
-    """A crawler for retrieving :class:`DicomSeriesInfo` entries from a subject directory containing DICOM files
-    (e.g. DICOM images, DICOM registrations, DICOM RTSS). Files of other formats then DICOM will be ignored and
-    can not be crawled with this type of crawler.
+    """A crawler for retrieving :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries from a subject directory
+    containing DICOM files (e.g. DICOM images, DICOM registrations, DICOM RTSS). Files of other formats then DICOM will
+    be ignored and can not be crawled with this type of crawler.
 
     The :class:`SubjectDicomCrawler` is used for searching appropriate files within a specific subject directory
     containing all the subject's data. If there are multiple subjects in separate directories but within a common
-    top-level directory to be crawled we recommend using the :class:`DatasetDicomCrawler` or the
-    :class:`IterableDicomCrawler`.
+    top-level directory to be crawled we recommend using the :class:`DatasetDicomCrawler`.
 
-    The prioritized method to extract the :class:`Modality` for the retrieved images is the usage of a modality
-    configuration file. If no modality configuration file is available the :class:`SubjectDicomCrawler` will try to
-    extract the :class:`Modality` from the retrieved images using the class:`ModalityExtractor`. If no
-    :class:`ModalityExtractor` is provided an exception will be raised.
+    The prioritized method to extract the :class:`~pyradise.data.modality.Modality` for the retrieved images is the
+    usage of a modality configuration file. If no modality configuration file is available the
+    :class:`SubjectDicomCrawler` will try to extract the :class:`~pyradise.data.modality.Modality` from the retrieved
+    images using the class:`ModalityExtractor`. If no :class:`~pyradise.fileio.extraction.ModalityExtractor` is
+    provided an exception will be raised.
 
     The :class:`SubjectDicomCrawler` can be used to generate the modality configuration file skeleton for a
     specific subject. In this case set the ``generate_modality_config`` parameter to ``True`` and execute the
     crawling process. The generated modality configuration file skeleton will be saved in the subject directory.
 
-    Warning:
+    Important:
         This crawler exclusively support the DICOM file format and does not support any other file format.
 
     Args:
@@ -359,7 +402,7 @@ class SubjectDicomCrawler(Crawler):
 
     @staticmethod
     def _get_registration_files(paths: Tuple[str, ...]) -> Tuple[str, ...]:
-        """"Get all DICOM registration files in the subject directory.
+        """Get all DICOM registration files in the subject directory.
 
         Args:
             paths (Tuple[str, ...]): The DICOM file paths to check if they specify a DICOM registration file.
@@ -381,7 +424,7 @@ class SubjectDicomCrawler(Crawler):
 
     @staticmethod
     def _get_rtss_files(paths: Tuple[str, ...]) -> Tuple[str, ...]:
-        """"Get all DICOM RTSS files in the subject directory.
+        """Get all DICOM RTSS files in the subject directory.
 
         Args:
             paths (Tuple[str, ...]): The DICOM file paths to check if they specify a DICOM RTSS file.
@@ -402,13 +445,15 @@ class SubjectDicomCrawler(Crawler):
 
     @staticmethod
     def _generate_image_infos(image_paths: Tuple[Tuple[str, ...], ...]) -> Tuple[DicomSeriesImageInfo]:
-        """Generate the :class:`DicomSeriesImageInfos` from the DICOM file paths specified.
+        """Generate the :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` entries for the DICOM file paths
+        specified.
 
         Args:
             image_paths (Tuple[Tuple[str, ...], ...]): The DICOM image file paths provided.
 
         Returns:
-            Tuple[DicomSeriesImageInfo, ...]: The retrieved :class:`DicomSeriesImageInfo` entries.
+            Tuple[DicomSeriesImageInfo, ...]: The retrieved :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo`
+            entries.
         """
         infos = []
 
@@ -422,14 +467,17 @@ class SubjectDicomCrawler(Crawler):
     def _generate_registration_infos(registration_paths: Tuple[str, ...],
                                      image_infos: Tuple[DicomSeriesImageInfo, ...]
                                      ) -> Tuple[DicomSeriesRegistrationInfo]:
-        """Generate the :class:`DicomSeriesRegistrationInfos` from the DICOM file paths specified.
+        """Generate the :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entries for the DICOM file
+        paths specified.
 
         Args:
             registration_paths (Tuple[str, ...]): The DICOM registration file paths provided.
-            image_infos (Tuple[DicomSeriesImageInfo, ...]): The available :class:`DicomSeriesImageInfo` entries.
+            image_infos (Tuple[DicomSeriesImageInfo, ...]): The available
+             :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` entries.
 
         Returns:
-            Tuple[DicomSeriesRegistrationInfo, ...]: The retrieved :class:`DicomSeriesRegistrationInfo`.
+            Tuple[DicomSeriesRegistrationInfo, ...]: The retrieved
+             :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entries.
         """
         infos = []
 
@@ -441,13 +489,15 @@ class SubjectDicomCrawler(Crawler):
 
     @staticmethod
     def _generate_rtss_info(rtss_paths: Tuple[str, ...]) -> Tuple[DicomSeriesRTSSInfo]:
-        """Generate the :class:`DicomSeriesRTStructureSetInfo` entries from the DICOM file paths specified.
+        """Generate the :class:`~pyradise.fileio.series_info.DicomSeriesRTStructureSetInfo` entries for the DICOM file
+        paths specified.
 
         Args:
             rtss_paths (Tuple[str, ...]): The DICOM RTSS file paths.
 
         Returns:
-            Tuple[DicomSeriesRTStructureSetInfo, ...]: AThe retrieved :class:`DicomSeriesRTStructureSetInfos`.
+            Tuple[DicomSeriesRTStructureSetInfo, ...]: AThe retrieved
+             :class:`~pyradise.fileio.series_info.DicomSeriesRTStructureSetInfo` entries.
         """
         infos = []
 
@@ -460,11 +510,11 @@ class SubjectDicomCrawler(Crawler):
     def _export_modality_config(self,
                                 infos: Tuple[DicomSeriesInfo, ...]
                                 ) -> None:
-        """Export the retrieved :class:`ModalityConfiguration` to a file.
+        """Export the retrieved :class:`~pyradise.fileio.modality_config.ModalityConfiguration` to a file.
 
         Args:
-            infos (Tuple[DicomSeriesInfo, ...]): The :class:`DicomSeriesInfo` entries containing the information to
-             export.
+            infos (Tuple[DicomSeriesInfo, ...]): The :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries
+             containing the information to export.
 
         Returns:
             None
@@ -473,13 +523,16 @@ class SubjectDicomCrawler(Crawler):
         config.to_file(os.path.join(self.path, self.config_file_name))
 
     def _apply_modality_config(self, infos: Tuple[DicomSeriesImageInfo, ...]) -> None:
-        """Load the :class:`ModalityConfiguration` from a file if available and apply it to the specified
-        :class:`DicomSeriesImageInfo` entries. If the :class:`ModalityConfiguration` file is not available and a
-        :class:`ModalityExtractor` is provided the extractor is used for modality determination. If
+        """Load the :class:`~pyradise.fileio.modality_config.ModalityConfiguration` from a file if available and apply
+        it to the specified :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` entries. If the
+        :class:`~pyradise.fileio.modality_config.ModalityConfiguration` file is not available and a
+        :class:`~pyradise.fileio.extraction.ModalityExtractor` is provided the extractor is used for modality
+        determination.
 
         Args:
-            infos (Tuple[DicomSeriesImageInfo, ...]): The available :class:`DicomSeriesImageInfo` entries to which the
-             loaded :class:`ModalityConfiguration` can be applied.
+            infos (Tuple[DicomSeriesImageInfo, ...]): The available
+             :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` entries to which the
+             loaded :class:`~pyradise.fileio.modality_config.ModalityConfiguration` can be applied.
 
         Returns:
             None
@@ -554,10 +607,10 @@ class SubjectDicomCrawler(Crawler):
                                  f'in the specified path ({self.path}) and there is no modality extractor provided!')
 
     def execute(self) -> Tuple[DicomSeriesInfo, ...]:
-        """Execute the crawling process to get the :class:`DicomSeriesInfo` entries.
+        """Execute the crawling process to retrieve the :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries.
 
         Returns:
-            Tuple[DicomSeriesInfo, ...]: The retrieved :class:`DicomSeriesInfo` entries.
+            Tuple[DicomSeriesInfo, ...]: The retrieved :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries.
         """
         # get the dicom file paths and sort them according to the file content
         file_paths = self._get_dicom_files()
@@ -583,28 +636,61 @@ class SubjectDicomCrawler(Crawler):
 
 
 class DatasetDicomCrawler(Crawler):
-    """A crawler for retrieving :class:`DicomSeriesInfo` entries from a dataset directory containing at least one
-    subject directory with DICOM files (e.g. DICOM images, DICOM registrations, DICOM RTSS). Files of other formats
-    then DICOM will be ignored and can not be crawled with this type of crawler.
+    """A crawler for retrieving :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries from a dataset directory
+    containing at least one subject directory with DICOM files (e.g. DICOM images, DICOM registrations, DICOM RTSS).
+    Files of other formats then DICOM will be ignored and can not be crawled with this type of crawler.
 
     The :class:`DatasetDicomCrawler` is used for searching appropriate files within a specific dataset directory
     containing at least one subject folder with DICOM files. If there is just one subject in a single directory to be
     crawled we recommend using the :class:`SubjectDicomCrawler`. If you want to load a large dataset with many subjects,
-    we recommend using the :class:`IterableDicomCrawler` which loads the subjects iteratively and thus have lower memory
-    requirements.
+    we recommend using the iterative crawling approach instead of crawling the data via :meth:`execute` to reduce
+    memory consumption (see example below).
 
-    The prioritized method to extract the :class:`Modality` for the retrieved images is the usage of a modality
-    configuration file. If no modality configuration file is available for a specific subject directory the
-    :class:`DatasetDicomCrawler` will try to extract the :class:`Modality` from the retrieved subject images using the
-    :class:`ModalityExtractor`. If no :class:`ModalityExtractor` is provided an exception will be raised.
+    The prioritized method to extract the :class:`~pyradise.data.modality.Modality` for the retrieved images is the
+    usage of a modality configuration file. If no modality configuration file is available for a specific subject
+    directory the :class:`DatasetDicomCrawler` will try to extract the :class:`~pyradise.data.modality.Modality` from
+    the retrieved subject images using the :class:`~pyradise.fileio.extraction.ModalityExtractor`. If no
+    :class:`~pyradise.fileio.extraction.ModalityExtractor` is provided an exception will be raised.
 
     The :class:`DatasetDicomCrawler` can be used to generate the modality configuration file skeletons for all
     subjects in the dataset directory. In this case set the ``generate_modality_config`` parameter to ``True`` and
     execute the crawling process. The generated modality configuration file skeletons will be saved in the appropriate
     subject directories.
 
-    Warning:
+    Important:
         This crawler exclusively support the DICOM file format and does not support any other file format.
+
+    Example:
+
+        Demonstration of the iterative and the non-iterative loading approach:
+
+        >>> from pyradise.fileio import (DatasetDicomCrawler, SubjectLoader)
+        >>>
+        >>>
+        >>> def main_iterative_crawling(dataset_path: str) -> None:
+        >>>     # Create the crawler (using the modality configuration file)
+        >>>     crawler = DatasetDicomCrawler(dataset_path)
+        >>>
+        >>>     # Use the crawler iteratively (more memory efficient)
+        >>>     for series_info in crawler:
+        >>>         subject = SubjectLoader().load(series_info)
+        >>>         # Do something with the subject
+        >>>         print(subject.get_name())
+        >>>
+        >>>
+        >>> def main_crawling_using_execute_fn(dataset_path: str) -> None:
+        >>>     # Create the crawler (using the modality configuration file)
+        >>>     crawler = DatasetDicomCrawler(dataset_path)
+        >>>
+        >>>     # Use the crawler with the execute function
+        >>>     # (all series info entries are loaded in one step)
+        >>>     series_infos = crawler.execute()
+        >>>
+        >>>     # Iterate over the series infos
+        >>>     for series_info in series_infos:
+        >>>         subject = SubjectLoader().load(series_info)
+        >>>         # Do something with the subject
+        >>>         print(subject.get_name())
 
     Args:
         path (str): The dataset directory path to crawl.
@@ -624,6 +710,12 @@ class DatasetDicomCrawler(Crawler):
         self.modality_extractor: Optional[ModalityExtractor] = modality_extractor
         self.config_file_name = modality_config_file_name
         self.write_config = write_modality_config
+
+        subject_dir_path = self._get_subject_dir_paths(self.path)
+        self.subject_dir_path = tuple(sorted(subject_dir_path))
+
+        self.current_idx = 0
+        self.num_subjects = len(self.subject_dir_path)
 
     @staticmethod
     def _get_subject_dir_paths(path: str) -> Tuple[str, ...]:
@@ -648,10 +740,11 @@ class DatasetDicomCrawler(Crawler):
         return tuple(subject_dir_paths)
 
     def execute(self) -> Tuple[Tuple[DicomSeriesInfo, ...], ...]:
-        """Execute the crawling process to get the :class:`DicomSeriesInfos` for each subject directory separately.
+        """Execute the crawling process to retrieve the :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries.
 
         Returns:
-            Tuple[Tuple[DicomSeriesInfo, ...], ...]: The retrieved :class:`DicomSeriesInfos`.
+            Tuple[Tuple[DicomSeriesInfo, ...], ...]: The retrieved :class:`~pyradise.fileio.series_info.DicomSeriesInfo`
+             entries.
         """
         subject_dir_paths = self._get_subject_dir_paths(self.path)
 
@@ -664,64 +757,15 @@ class DatasetDicomCrawler(Crawler):
 
         return tuple(subject_infos)
 
-
-class IterableDicomCrawler(DatasetDicomCrawler):
-    """An iterable crawler for retrieving :class:`DicomSeriesInfo` entries from a dataset directory containing at least
-    one subject directory with DICOM files (e.g. DICOM images, DICOM registrations, DICOM RTSS). Files of other formats
-    then DICOM will be ignored and can not be crawled with this type of crawler. Because the
-    :class:`IterableDicomCrawler` crawls the subjects iteratively it has lower memory requirements compared to the
-    :class:`DatasetDicomCrawler`.
-
-    The :class:`IterableDicomCrawler` is used for searching appropriate files within a specific dataset directory
-    containing at least one subject folder with DICOM files. If there is just one subject in a single directory to be
-    crawled we recommend using the :class:`SubjectDicomCrawler`.
-
-    The prioritized method to extract the :class:`Modality` for the retrieved images is the usage of a modality
-    configuration file. If no modality configuration file is available for a specific subject directory the
-    :class:`IterableDicomCrawler` will try to extract the :class:`Modality` from the retrieved subject images using the
-    :class:`ModalityExtractor`. If no :class:`ModalityExtractor` is provided an exception will be raised.
-
-    The :class:`IterableDicomCrawler` can be used to generate the modality configuration file skeletons for all
-    subjects in the dataset directory. In this case set the ``generate_modality_config`` parameter to ``True`` and
-    execute the crawling process. The generated modality configuration file skeletons will be saved in the appropriate
-    subject directories.
-
-    Warning:
-        This crawler exclusively support the DICOM file format and does not support any other file format.
-
-    Args:
-        path (str): The dataset directory path to crawl.
-        modality_extractor (Optional[ModalityExtractor]): The modality extractor (default: None).
-        modality_config_file_name (str): The file name for the modality configuration file within the subject
-         directory (default: modality_config.json).
-        write_modality_config (bool): If True writes the modality configuration retrieved to the subject directory
-         (default: False).
-    """
-
-    def __init__(self,
-                 path: str,
-                 modality_extractor: Optional[ModalityExtractor] = None,
-                 modality_config_file_name: str = 'modality_config.json',
-                 write_modality_config: bool = False
-                 ) -> None:
-        super().__init__(path, modality_extractor, modality_config_file_name, write_modality_config)
-
-        subject_dir_path = super()._get_subject_dir_paths(self.path)
-        self.subject_dir_path = tuple(sorted(subject_dir_path))
-
-        self.current_idx = 0
-        self.num_subjects = len(self.subject_dir_path)
-
-    def __iter__(self):
+    def __iter__(self) -> 'DatasetDicomCrawler':
         self.current_idx = 0
         return self
 
-    def __next__(self) -> Tuple[DicomSeriesInfo]:
+    def __next__(self) -> Tuple[DicomSeriesInfo, ...]:
         if self.current_idx < self.num_subjects:
             subject_info = SubjectDicomCrawler(self.subject_dir_path[self.current_idx], self.modality_extractor,
                                                self.config_file_name, self.write_config).execute()
             self.current_idx += 1
-
             return subject_info
 
         raise StopIteration

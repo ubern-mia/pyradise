@@ -15,31 +15,82 @@ from .series_info import (
     DicomSeriesRTSSInfo)
 
 __all__ = ['SeriesInfoSelector', 'SeriesInfoSelectorPipeline', 'ModalityInfoSelector', 'OrganInfoSelector',
-           'RaterInfoSelector', 'NoRegistrationInfoSelector']
+           'RaterInfoSelector', 'NoRegistrationInfoSelector', 'NoRTSSInfoSelector']
 
 
 class SeriesInfoSelector(ABC):
-    """An abstract series info selector class."""
+    """An abstract base class for all :class:`SeriesInfoSelector` classes. A selector is used to select a subset of
+    :class:`~pyradise.fileio.series_info.SeriesInfo` entries from a list of
+    :class:`~pyradise.fileio.series_info.SeriesInfo` entries such that unused entries will be excluded from the loading
+    and probable conversion procedures. The aim of using a selector is to improve speed and reduce memory usage while
+    allowing the input directory to contain unused data.
+    """
 
     @abstractmethod
     def execute(self, infos: Sequence[SeriesInfo]) -> Tuple[SeriesInfo]:
+        """Perform the selection procedure such that the appropriate :class:`~pyradise.fileio.series_info.SeriesInfo`
+        entries are kept.
+
+        Args:
+            infos (Sequence[SeriesInfo]): The :class:`~pyradise.fileio.series_info.SeriesInfo` entries to select from.
+
+        Returns:
+            Tuple[SeriesInfo]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
+        """
         raise NotImplementedError()
 
 
 class SeriesInfoSelectorPipeline:
+    """A class for constructing :class:`SeriesInfoSelector` pipelines. A pipeline is a sequence of
+    :class:`SeriesInfoSelector` s that are executed sequentially in a given order. The output of one selector is the
+    input of the next selector.
+
+    Args:
+        selectors (Sequence[SeriesInfoSelector]): The :class:`SeriesInfoSelector` s of the pipeline in a given order.
+    """
 
     def __init__(self, selectors: Sequence[SeriesInfoSelector]) -> None:
-        self.selectors = selectors
+        super().__init__()
+
+        self.selectors: List[SeriesInfoSelector] = [selector for selector in selectors]
+
+    def add_selector(self, selector: SeriesInfoSelector) -> None:
+        """Add a :class:`SeriesInfoSelector` to the pipeline.
+
+        Args:
+            selector (SeriesInfoSelector): The :class:`SeriesInfoSelector` to add.
+        """
+        self.selectors.append(selector)
 
     def execute(self, infos: Sequence[SeriesInfo]) -> Tuple[SeriesInfo]:
+        """Perform the selection of the :class:`~pyradise.fileio.series_info.SeriesInfo` entries according to
+        the :class:`SeriesInfoSelector` s specified.
+
+        Args:
+            infos (Sequence[SeriesInfo]): The :class:`~pyradise.fileio.series_info.SeriesInfo` entries to select from.
+
+        Returns:
+            Tuple[SeriesInfo]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
+        """
         for selector in self.selectors:
             infos = selector.execute(infos)
         return infos
 
 
 class ModalityInfoSelector(SeriesInfoSelector):
-    """A selector to remove all :class:`IntensityFileSeriesInfo` and :class:`DicomSeriesImageInfo` entries that do not
-    contain one of the specified :class:`Modality` s."""
+    """A :class:`SeriesInfoSelector` to remove all :class:`~pyradise.fileio.series_info.IntensityFileSeriesInfo` and
+    :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` entries that do not have a matching
+    :class:`~pyradise.data.modality.Modality`.
+
+     Note:
+         If a :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` entry is removed, the associated
+         :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entry is also removed because a
+         registration always requires both referenced registration images.
+
+     Args:
+         keep (Tuple[Modality]): The :class:`~pyradise.data.modality.Modality` entries of the
+          :class:`~pyradise.fileio.series_info.SeriesInfo` entries to keep.
+     """
 
     def __init__(self, keep: Tuple[Modality]) -> None:
         super().__init__()
@@ -78,14 +129,15 @@ class ModalityInfoSelector(SeriesInfoSelector):
     # noinspection DuplicatedCode
     # pylint: disable=duplicate-code
     def execute(self, infos: Sequence[SeriesInfo]) -> Tuple[SeriesInfo]:
-        """Remove all :class:`IntensityFileSeriesInfo` and :class:`DicomSeriesImageInfo` entries that do not contain
-        one of the specified :class:`Modality` s.
+        """Remove all :class:`~pyradise.fileio.series_info.IntensityFileSeriesInfo` and
+        :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` entries that do not contain
+        one of the specified :class:`~pyradise.data.modality.Modality` entries.
 
         Args:
-            infos (Sequence[SeriesInfo]): The :class:`SeriesInfo` entries to analyze.
+            infos (Sequence[SeriesInfo]): The :class:`~pyradise.fileio.series_info.SeriesInfo` entries to select from.
 
         Returns:
-            Tuple[SeriesInfo]: The filtered :class:`SeriesInfo` entries.
+            Tuple[SeriesInfo]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
         assert infos, 'The series infos must not be empty!'
 
@@ -105,8 +157,19 @@ class ModalityInfoSelector(SeriesInfoSelector):
 
 
 class OrganInfoSelector(SeriesInfoSelector):
-    """A selector to remove all :class:`SegmentationFileSeriesInfo` entries that do not contain one of the specified
-    :class:`Organ` s."""
+    """A :class:`SeriesInfoSelector` to remove all :class:`~pyradise.fileio.series_info.SegmentationFileSeriesInfo`
+    entries that do not have a matching :class:`~pyradise.data.organ.Organ`.
+
+    Important:
+        This selector does not remove :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` entries
+        because a DICOM-RTSS contains multiple organs and the information about the organs is not retrieved before
+        loading.
+
+    Args:
+        keep (Tuple[Organ]): The :class:`~pyradise.data.organ.Organ` entries of the
+         :class:`~pyradise.fileio.series_info.SeriesInfo` entries to keep.
+
+    """
 
     def __init__(self, keep: Tuple[Organ]) -> None:
         super().__init__()
@@ -115,18 +178,14 @@ class OrganInfoSelector(SeriesInfoSelector):
         self.keep = keep
 
     def execute(self, infos: Tuple[SeriesInfo]) -> Tuple[SeriesInfo]:
-        """Remove all :class:`SegmentationFileSeriesInfo` entries that do not contain one of the specified
-        :class:`Organ` s.
-
-        Notes:
-            :class:`DicomSeriesRTSSInfo` entries will NOT be analyzed if they contain the specified organs because the
-            data is not completely loaded yet!
+        """Remove all :class:`~pyradise.fileio.series_info.SegmentationFileSeriesInfo` entries that do not contain
+        one of the specified :class:`~pyradise.data.organ.Organ` entries.
 
         Args:
-            infos (Tuple[SeriesInfo]): The :class:`SeriesInfo` entries to analyze.
+            infos (Tuple[SeriesInfo]): The :class:`~pyradise.fileio.series_info.SeriesInfo` entries to select from.
 
         Returns:
-            Tuple[SeriesInfo]: The filtered :class:`SeriesInfo` entries.
+            Tuple[SeriesInfo]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
         assert infos, 'The series infos must not be empty!'
 
@@ -142,8 +201,13 @@ class OrganInfoSelector(SeriesInfoSelector):
 
 
 class RaterInfoSelector(SeriesInfoSelector):
-    """A selector to remove all :class:`SegmentationFileSeriesInfo` and :class:`DicomSeriesRTSSInfo` entries that do
-    not contain one of the specified :class:`Rater` s.
+    """A :class:`SeriesInfoSelector` to remove all :class:`~pyradise.fileio.series_info.SegmentationFileSeriesInfo` and
+    :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` entries that do not have a matching
+    :class:`~pyradise.data.rater.Rater`.
+
+    Args:
+        keep (Tuple[Rater]): The :class:`~pyradise.data.rater.Rater` entries of the
+         :class:`~pyradise.fileio.series_info.SeriesInfo` entries to keep.
     """
 
     def __init__(self, keep: Tuple[Rater]) -> None:
@@ -155,14 +219,15 @@ class RaterInfoSelector(SeriesInfoSelector):
     # noinspection DuplicatedCode
     # pylint: disable=duplicate-code
     def execute(self, infos: Tuple[SeriesInfo]) -> Tuple[SeriesInfo]:
-        """Remove all :class:`SegmentationFileSeriesInfo` and :class:`DicomSeriesRTSSInfo` entries that do not contain
-        one of the specified :class:`Rater` s.
+        """Remove all :class:`~pyradise.fileio.series_info.SegmentationFileSeriesInfo` and
+        :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` entries that do not contain one of the specified
+        :class:`~pyradise.data.rater.Rater` entries.
 
         Args:
-            infos (Tuple[SeriesInfo]): The :class:`SeriesInfo` entries to analyze.
+            infos (Tuple[SeriesInfo]): The :class:`~pyradise.fileio.series_info.SeriesInfo` entries to select from.
 
         Returns:
-            Tuple[SeriesInfo]: The filtered :class:`SeriesInfo` entries.
+            Tuple[SeriesInfo]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
         assert infos, 'The series infos must not be empty!'
 
@@ -182,16 +247,18 @@ class RaterInfoSelector(SeriesInfoSelector):
 
 
 class NoRegistrationInfoSelector(SeriesInfoSelector):
-    """A selector to exclude all :class:`DicomSeriesRegistrationInfo` from the provided :class:`SeriesInfo`."""
+    """A :class:`SeriesInfoSelector` to remove all :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo`
+    entries such that no registration is applied during loading."""
 
     def execute(self, infos: Tuple[SeriesInfo]) -> Tuple[SeriesInfo]:
-        """Returns all :class:`SeriesInfo` entries except the :class:`DicomSeriesRegistrationInfo` entries.
+        """Remove all :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entries from the provided
+        :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
 
         Args:
-            infos (Tuple[SeriesInfo]): The :class:`SeriesInfo` entries to analyze.
+            infos (Tuple[SeriesInfo]): The :class:`~pyradise.fileio.series_info.SeriesInfo` entries to select from.
 
         Returns:
-            Tuple[SeriesInfo]: The filtered :class:`SeriesInfo` entries.
+            Tuple[SeriesInfo]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
         assert infos, 'The series infos must not be empty!'
 
@@ -204,16 +271,18 @@ class NoRegistrationInfoSelector(SeriesInfoSelector):
 
 
 class NoRTSSInfoSelector(SeriesInfoSelector):
-    """A selector to exclude all :class:`DicomSeriesRTSSInfo` from the provided :class:`SeriesInfo`."""
+    """A :class:`SeriesInfoSelector` to remove all :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo`
+    entries such that all DICOM-RTSS data is excluded from loading."""
 
     def execute(self, infos: Tuple[SeriesInfo]) -> Tuple[SeriesInfo]:
-        """Returns all :class:`SeriesInfo` entries except the :class:`DicomSeriesRTSSInfo` entries.
+        """Remove all :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` entries from the provided
+        :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
 
         Args:
-            infos (Tuple[SeriesInfo]): The :class:`SeriesInfo` entries to analyze.
+            infos (Tuple[SeriesInfo]): The :class:`~pyradise.fileio.series_info.SeriesInfo` entries to select from.
 
         Returns:
-            Tuple[SeriesInfo]: The filtered :class:`SeriesInfo` entries.
+            Tuple[SeriesInfo]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
         assert infos, 'The series infos must not be empty!'
 

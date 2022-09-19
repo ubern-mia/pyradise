@@ -52,8 +52,8 @@ from .series_info import (
     DicomSeriesRTSSInfo,
     RegistrationInfo)
 
-__all__ = ['Converter', 'SubjectToRTSSConverter', 'DicomImageSeriesConverter',
-           'DicomRTSSSeriesConverter', 'ROIData', 'Hierarchy', 'RTSSToSegmentConverter', 'SegmentToRTSSConverter']
+__all__ = ['Converter', 'DicomImageSeriesConverter', 'DicomRTSSSeriesConverter', 'SubjectToRTSSConverter',
+           'RTSSToSegmentConverter', 'SegmentToRTSSConverter']
 
 ROI_GENERATION_ALGORITHMS = ['AUTOMATIC', 'SEMIAUTOMATIC', 'MANUAL']
 
@@ -177,18 +177,15 @@ class Hierarchy(IntEnum):
 
 
 class Converter(ABC):
-    """ Abstract base class for all converters.
-
-    Notes:
-        In PyRaDiSe one uses :class:`Converter` s exclusively to convert from and to DICOM because DICOM files contain
-        additional information beside the image data which need to be handled with care. If you want to load an image
-        in a discretized format (e.g. a NIFTI file) you need use the appropriate :class:`pyradise.fileio.Loader`
-        instead.
+    """An abstract base class for all :class:`Converter` classes. Typically, the :class:`Converter` classes are used to
+    convert DICOM data from and to other representations. For example, the :class:`DicomImageSeriesConverter` converts
+    DICOM image series to :class:`~pyradise.data.image.IntensityImage` instances and applies the associated DICOM
+    registration if provided.
     """
 
     @abstractmethod
     def convert(self) -> Any:
-        """Convert the provided :class:`DicomSeriesInfo`.
+        """Convert the provided :class:`~pyradise.fileio.series_info.DicomSeriesInfo`.
 
         Returns:
             Any: The converted data.
@@ -197,26 +194,27 @@ class Converter(ABC):
 
 
 class RTSSToSegmentConverter(Converter):
-    """A low-level DICOM RTSS to SimpleITK image converter generating one or multiple SimpleITK images depending on the
-    number of ROIs in the RTSS.
-
-    In contrast to the :class:`DicomRTSSSeriesConverter` this class generates a dict of binary
-    :class:`SimpleITK.Image` instead of a tuple of :class:`SegmentationImage`.
+    """A low-level DICOM-RTSS to SimpleITK image :class:`Converter` class converting the content of the DICOM-RTSS to
+    one or multiple SimpleITK images. In contrast to the :class:`DicomRTSSSeriesConverter` this class generates a dict
+    of binary :class:`SimpleITK.Image` instances and organ names instead of a tuple of
+    :class:`~pyradise.data.image.SegmentationImage` s.
 
     Notes:
-        Typically, this class is not used directly but rather via the :class:`DicomRTSSSeriesConverter` which processes
-        :class:`DicomSeriesInfo` objects directly.
+        Typically, this class is not used directly by the user but via the :class:`DicomRTSSSeriesConverter` which
+        processes :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries directly.
 
-        This class can be used with a DICOM registration which will be applied to the reference image and the RTSS.
-        However, the registration must be referenced in the referenced DICOM image, otherwise the registration will not
+        This class can be used with a DICOM registration which will be applied to the reference image and the structure
+        set. However, the registration must reference the corresponding DICOM image, otherwise the registration will not
         be applied.
 
     Args:
-        rtss_dataset (Union[str, Dataset]): The path to the DICOM-RTSS file or DICOM-RTSS :class:`Dataset`.
+        rtss_dataset (Union[str, Dataset]): The path to the DICOM-RTSS file or DICOM-RTSS
+         :class:`~pydicom.dataset.Dataset`.
         image_datasets (Union[Tuple[str], Tuple[Dataset]]): The path to the DICOM image files or the DICOM image
-         :class:`Dataset` s which are referenced in the ``rtss_dataset``.
+         :class:`~pydicom.dataset.Dataset` entries which are referenced in the ``rtss_dataset``.
         registration_dataset (Union[str, Dataset, None]): The path to a DICOM registration file or a DICOM
-         registration :class:`Dataset` which is referenced in the reference DICOM image (default: None).
+         registration :class:`~pydicom.dataset.Dataset` entry which contains a reference to the DICOM image
+         (default: None).
     """
 
     def __init__(self,
@@ -537,7 +535,7 @@ class RTSSToSegmentConverter(Converter):
         Notes:
             1. Augment each point with a '1' as the fourth coordinate for homogeneous coordinates.
             2. Multiply by a 4x4 transformation matrix
-            3. Throw away the adoptation for homogeneous coordinates
+            3. Throw away the adaptation for homogeneous coordinates
 
         Returns:
             np.ndarray: The transformed points.
@@ -671,7 +669,7 @@ class RTSSToSegmentConverter(Converter):
     def _create_image_from_mask(image_datasets: Tuple[Dataset, ...],
                                 mask: np.ndarray
                                 ) -> sitk.Image:
-        """Create a image from the numpy segmentation mask with appropriate orientation.
+        """Create an image from the numpy segmentation mask with appropriate orientation.
 
         Args:
             image_datasets (Tuple[Dataset, ...]): The image datasets used to create the image.
@@ -789,10 +787,12 @@ class RTSSToSegmentConverter(Converter):
         return dataset
 
     def convert(self) -> Dict[str, sitk.Image]:
-        """Convert a RTSS into a sequence of binary :class:`sitk.Image`.
+        """Convert a DICOM-RTSS :class:`~pydicom.dataset.Dataset` instance into a dict of binary
+        :class:`SimpleITK.Image` instances including their associated ROINames as a key in the dict.
 
         Returns:
-            Dict[str, sitk.Image]: The ROINames and the corresponding binary segmented :class:`sitk.Image` s.
+            Dict[str, sitk.Image]: The ROINames and the corresponding binary segmented :class:`SimpleITK.Image`
+            instances.
         """
         converted_images = {}
 
@@ -826,24 +826,25 @@ class RTSSToSegmentConverter(Converter):
 
 
 class SegmentToRTSSConverter(Converter):
-    """A low-level class for converting one or multiple segmentation images to a DICOM RTSS :class:`Dataset`.
+    """A low-level :class:`Converter` class for converting one or multiple
+    :class:`~pyradise.data.image.SegmentationImage` instances to a DICOM-RTSS :class:`~pydicom.dataset.Dataset`.
+    In contrast to the :class:`SubjectToRTSSConverter` class, this class generates the DICOM-RTSS from a sequence of
+    binary :class:`SimpleITK.Image` instances and the appropriate DICOM image :class:`~pydicom.dataset.Dataset`
+    instances instead of the :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries.
 
-    In contrast to the :class:`SubjectToRTSSConverter` this class generates the RTSS from a sequence of binary
-    :class:`SimpleITK.Image` s and the appropriate DICOM image :class:`Dataset` s instead of :class:`DicomSeriesInfo`
-    entries.
+    Warning:
+        The provided ``label_images`` must be binary, otherwise the conversion will fail.
 
     Notes:
-        Typically, this class is not used directly but rather via the :class:`SubjectToRTSSConverter` which processes
-        :class:`DicomSeriesInfo` objects and thus provides a more suitable interface for typical PyRaDiSe use cases.
-
-        The provided label images must be binary, otherwise the conversion will fail.
-
+        Typically, this class is not used directly by the used but via the :class:`SubjectToRTSSConverter` which
+        processes :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries and thus provides a more suitable
+        interface.
 
     Args:
         label_images (Union[Tuple[str, ...], Tuple[sitk.Image, ...]]): The path to the images or a sequence of
-         :class:`sitk.Image` s.
-        ref_image_datasets (Union[Tuple[str, ...], Tuple[Dataset, ...]]): The referenced image
-         :class:`Dataset` s.
+         :class:`SimpleITK.Image` instances.
+        ref_image_datasets (Union[Tuple[str, ...], Tuple[Dataset, ...]]): The referenced DICOM image
+         :class:`~pydicom.dataset.Dataset` instances.
         roi_names (Union[Tuple[str, ...], Dict[int, str], None]): The label names which will be assigned to the ROIs.
         colors (Optional[Tuple[Tuple[int, int, int], ...]]): The colors which will be assigned to the ROIs.
     """
@@ -1395,10 +1396,11 @@ class SegmentToRTSSConverter(Converter):
         rtss.RTROIObservationsSequence.append(rt_roi_observation)
 
     def convert(self) -> Dataset:
-        """Convert the :class:`SegmentationImage` entries of the provided subject to an RTSS :class:`Dataset`.
+        """Convert the provided :class:`SimpleITK.Image` instances to a DICOM-RTSS :class:`~pydicom.dataset.Dataset`
+        instance.
 
         Returns:
-            Dataset: The generated RTSS.
+            Dataset: The generated DICOM-RTSS :class:`~pydicom.dataset.Dataset`.
         """
         # generate the basic RTSS dataset
         rtss = self._generate_basic_rtss(self.image_datasets)
@@ -1421,13 +1423,14 @@ class SegmentToRTSSConverter(Converter):
 
 
 class DicomImageSeriesConverter(Converter):
-    """A converter for converting one or multiple DICOM images (i.e. :class:`DicomSeriesImageInfo`) to one or multiple
-    :class:`IntensityImage` s.
+    """A :class:`Converter` class for converting DICOM image series to one or multiple
+    :class:`~pyradise.data.image.IntensityImage` instances.
 
     Args:
-        image_info (Tuple[DicomSeriesImageInfo, ...]): The image info for the images to convert.
-        registration_info (Tuple[DicomSeriesRegistrationInfo, ...]): The registration info, if required
-         (default: tuple()).
+        image_info (Tuple[DicomSeriesImageInfo, ...]): The :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo`
+         entries of the images to convert.
+        registration_info (Tuple[DicomSeriesRegistrationInfo, ...]): The
+         :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entries (default: tuple()).
     """
 
     def __init__(self,
@@ -1551,10 +1554,11 @@ class DicomImageSeriesConverter(Converter):
         return resampled_image
 
     def convert(self) -> Tuple[IntensityImage, ...]:
-        """Convert the specified :class:`DicomSeriesImageInfo` entries into one or multiple :class:`IntensityImage` s.
+        """Convert the provided :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` entries to one or multiple
+        :class:`~pyradise.data.image.IntensityImage` instances.
 
         Returns:
-            Tuple[IntensityImage, ...]: The converted :class:`IntensityImage` s.
+            Tuple[IntensityImage, ...]: The converted :class:`~pyradise.data.image.IntensityImage` instances.
         """
         images = []
 
@@ -1592,17 +1596,24 @@ class DicomImageSeriesConverter(Converter):
 
 
 class DicomRTSSSeriesConverter(Converter):
-    """A converter for converting a DICOM RTSS (i.e. :class:`DicomSeriesRTSSInfo`) to one or multiple
-    :class:`SegmentationImage` s.
+    """A :class:`Converter` class for converting a DICOM-RTSS (i.e.
+    :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo`) to one or multiple
+    :class:`~pyradise.data.image.SegmentationImage` instances.
+
+    Notes:
+        The user may provide all available :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` and
+        :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entries to the corresponding ``image_infos``
+        and ``registration_infos``, respectively. In this case the :class:`DicomRTSSSeriesConverter` will sort out
+        unused entries.
 
     Args:
         rtss_infos (Union[DicomSeriesRTSSInfo, Tuple[DicomSeriesRTSSInfo, ...]]): The
-         :class:`DicomSeriesRTSSInfo` to be converted to :class:`SegmentationImage` s.
-        image_infos (Tuple[DicomSeriesImageInfo, ...]): :The class:`DicomSeriesImageInfo` s which will be used as a
-         reference image.
-        registration_infos(Optional[Tuple[DicomSeriesRegistrationInfo, ...]]: Possible
-         :class:`DicomSeriesRegistrationInfo` entries to be used for the RTSS.
-
+         :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` instance holding the information to be converted.
+        image_infos (Tuple[DicomSeriesImageInfo, ...]): The :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo`
+         entries which are referenced in the :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` instance.
+        registration_infos (Optional[Tuple[DicomSeriesRegistrationInfo, ...]]): The
+         :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entries referencing the DICOM image or
+         DICOM-RTSS.
     """
 
     def __init__(self,
@@ -1679,10 +1690,11 @@ class DicomRTSSSeriesConverter(Converter):
         return selected[0]
 
     def convert(self) -> Tuple[SegmentationImage, ...]:
-        """Convert the specified :class:`DicomSeriesRTSSInfo` into one or multiple :class:`SegmentationImage`.
+        """Convert the :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` instances into one or multiple
+        :class:`~pyradise.data.image.SegmentationImage` instances.
 
         Returns:
-            Tuple[SegmentationImage, ...]: The converted :class:`SegmentationImage` entries.
+            Tuple[SegmentationImage, ...]: The converted :class:`~pyradise.data.image.SegmentationImage` instances.
         """
         images = []
 
@@ -1706,14 +1718,20 @@ class DicomRTSSSeriesConverter(Converter):
 
 
 class SubjectToRTSSConverter(Converter):
-    """A converter for converting the :class:`SegmentationImage` entries of a :class:`Subject` to a RTSS
-    :class:`Dataset`. This class is intended to be used for creating the output of a process pipeline.
+    """A :class:`Converter` class for converting the :class:`~pyradise.data.image.SegmentationImage` instances of a
+    :class:`~pyradise.data.subject.Subject` instance to a :class:`~pydicom.dataset.Dataset` instance.
+
+    Notes:
+        This class is typically used at the end of a processing pipeline to output a DICOM-RTSS file containing the
+        segmentation results of the pipeline.
 
     Args:
-        subject (Subject): The :class:`Subject` instance to convert to an RTSS :class:`Dataset`.
-        infos (Tuple[DicomSeriesInfo]): The infos provided for the conversion (only :class:`DicomSeriesInfoImage`
-         considered).
-        reference_modality (Modality): The reference :class:`Modality` of the images to be used for the conversion.
+        subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be converted to a DICOM-RTSS
+         :class:`~pydicom.dataset.Dataset` instance.
+        infos (Tuple[DicomSeriesInfo]): The :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries provided for
+         the conversion (only :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` will be considered).
+        reference_modality (Modality): The reference :class:`~pyradise.data.modality.Modality` of the images to be
+         used for the conversion to DICOM-RTSS.
     """
 
     def __init__(self,
@@ -1738,10 +1756,12 @@ class SubjectToRTSSConverter(Converter):
         self.ref_modality = reference_modality
 
     def convert(self) -> Dataset:
-        """Convert a :class:`Subject` to a RTSS :class:`Dataset`.
+        """Convert a :class:`~pyradise.data.subject.Subject` instance to a DICOM-RTSS :class:`~pydicom.dataset.Dataset`
+        instance.
 
         Returns:
-            Dataset: The DICOM-RTSS :class:`Dataset` generated from the provided :class:`Subject` instance.
+            Dataset: The DICOM-RTSS :class:`~pydicom.dataset.Dataset` instance generated from the provided
+            :class:`~pyradise.data.subject.Subject` instance.
         """
         # get the image data and the label names
         sitk_images = []

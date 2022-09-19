@@ -31,11 +31,18 @@ __all__ = ['SeriesInfo', 'FileSeriesInfo', 'IntensityFileSeriesInfo', 'Segmentat
 
 
 class SeriesInfo(ABC):
-    """An abstract series information class. This class is used to store base information about a series of images,
-    registrations, or other types of large data objects.
+    """An abstract base class for all :class:`SeriesInfo` classes. A :class:`SeriesInfo` class is used to retrieve and
+    store content-specific information which is required by the :class:`~pyradise.fileio.loading.SubjectLoader` in
+    order to correctly load the data and to construct a :class:`~pyradise.data.subject.Subject`.
+
+    Depending on the type of data, the :class:`SeriesInfo` subclasses retrieve different information which is essential
+    for loading and :class:`~pyradise.data.subject.Subject` construction. For example, the
+    :class:`DicomSeriesImageInfo` retrieves and holds data about the :class:`~pyradise.data.modality.Modality`
+    whereas the :class:`DicomSeriesRTSSInfo` manages information about the :class:`~pyradise.data.rater.Rater` and
+    information about the referenced DICOM image series.
 
     Args:
-        path (Union[str, Tuple[str, ...]]): The path or paths specifying files.
+        path (Union[str, Tuple[str, ...]]): The path or paths to the files to load.
     """
 
     def __init__(self,
@@ -82,10 +89,10 @@ class SeriesInfo(ABC):
                 is_file_and_exists(path)
 
     def get_path(self) -> Tuple[str]:
-        """Get the paths assigned to the info object.
+        """Get the file paths assigned to the :class:`SeriesInfo` instance.
 
         Returns:
-            Tuple[str]: The paths assigned to the info object.
+            Tuple[str]: The file paths assigned to the :class:`SeriesInfo` instance.
         """
         return self.path
 
@@ -115,7 +122,7 @@ class SeriesInfo(ABC):
 
     @abstractmethod
     def update(self) -> None:
-        """Update the :class:`SeriesInfo`.
+        """Update the :class:`SeriesInfo` instance.
 
         Returns:
             None
@@ -124,14 +131,13 @@ class SeriesInfo(ABC):
 
 
 class FileSeriesInfo(SeriesInfo):
-    """A file series information class for storing basic information about a large file object which does not need to
-    be loaded directly. This class is used to store information about a files on a classical file system.
+    """An abstract base :class:`SeriesInfo` class for all discrete image files (e.g. NIFTI, NRRD, MHA, etc.).
 
-    Notes:
-        For DICOM files use :class:`DicomSeriesInfo` or one of its subtypes instead.
+    Important:
+        For DICOM files use a  :class:`DicomSeriesInfo` subclass instead.
 
     Args:
-        path (str): The path specifying the file.
+        path (str): The path to the discrete image file to load.
         subject_name (str): The name of the subject.
     """
 
@@ -148,10 +154,11 @@ class FileSeriesInfo(SeriesInfo):
 
         # to stay consistent the subject name is called patient name as for DICOM info
         self.patient_name = regex.sub(r'', subject_name_)
+        self.patient_id = self.patient_name
 
     @abstractmethod
     def update(self) -> None:
-        """Update the :class:`FileSeriesInfo`.
+        """Update the :class:`FileSeriesInfo` instance.
 
         Returns:
             None
@@ -160,11 +167,11 @@ class FileSeriesInfo(SeriesInfo):
 
 
 class IntensityFileSeriesInfo(FileSeriesInfo):
-    """A file series information class for storing basic information about an intensity image file containing also the
-    information about the :class:`Modality` of the intensity image.
+    """A :class:`FileSeriesInfo` class for intensity images. In addition to the information provided by the
+    :class:`FileSeriesInfo` class, this class contains also a :class:`~pyradise.data.modality.Modality` instance.
 
     Args:
-        path (str): The path specifying the file.
+        path (str): The path to the discrete intensity image file to load.
         subject_name (str): The name of the subject.
     """
 
@@ -182,18 +189,18 @@ class IntensityFileSeriesInfo(FileSeriesInfo):
         self.update()
 
     def get_modality(self) -> Modality:
-        """Get the :class:`Modality`.
+        """Get the :class:`~pyradise.data.modality.Modality`.
 
         Returns:
-            Modality: The :class:`Modality`.
+            Modality: The :class:`~pyradise.data.modality.Modality`.
         """
         return self.modality
 
     def set_modality(self, modality: Modality) -> None:
-        """Set the :class:`Modality`.
+        """Set the :class:`~pyradise.data.modality.Modality`.
 
         Args:
-            modality (Modality): The :class:`Modality` to be set.
+            modality (Modality): The :class:`~pyradise.data.modality.Modality` to be set.
 
         Returns:
             None
@@ -210,16 +217,17 @@ class IntensityFileSeriesInfo(FileSeriesInfo):
 
 
 class SegmentationFileSeriesInfo(FileSeriesInfo):
-    """A file series information class for storing basic information about a segmentation image file containing also the
-    information about the :class:`Organ` displayed on the image and the :class:`Rater` which generated the segmentation.
+    """A :class:`FileSeriesInfo` class for segmentation images. In addition to the information provided by the
+    :class:`FileSeriesInfo` class, this class contains also an :class:`~pyradise.data.organ.Organ` instance and a
+    :class:`~pyradise.data.rater.Rater` instance.
 
-    Notes:
+    Note:
         We assume that the segmentation image is a binary image with the foreground having the value 1 and the
         background being 0. If your images are different we recommend to separate the segmentation masks into separate
         files because in RT practice segmentations may overlap.
 
     Args:
-        path (str): The path specifying the file.
+        path (str): The path to the discrete segmentation image file to load.
         subject_name (str): The name of the subject.
         organ (Organ): The organ the segmentation is representing.
         rater (Rater): The rater who created the segmentation.
@@ -241,18 +249,18 @@ class SegmentationFileSeriesInfo(FileSeriesInfo):
         self.update()
 
     def get_organ(self) -> Organ:
-        """Get the :class:`Organ`.
+        """Get the :class:`~pyradise.data.organ.Organ`.
 
         Returns:
-            Organ: The :class:`Organ`.
+            Organ: The :class:`~pyradise.data.organ.Organ`.
         """
         return self.organ
 
     def set_organ(self, organ: Organ) -> None:
-        """Set the :class:`Organ`.
+        """Set the :class:`~pyradise.data.organ.Organ`.
 
         Args:
-            organ (Organ): The :class:`Organ` to be set.
+            organ (Organ): The :class:`~pyradise.data.organ.Organ` to be set.
 
         Returns:
             None
@@ -260,18 +268,18 @@ class SegmentationFileSeriesInfo(FileSeriesInfo):
         self.organ = organ
 
     def get_rater(self) -> Rater:
-        """Get the :class:`Rater`.
+        """Get the :class:`~pyradise.data.rater.Rater`.
 
         Returns:
-            Rater: The :class:`Rater`.
+            Rater: The :class:`~pyradise.data.rater.Rater`.
         """
         return self.rater
 
     def set_rater(self, rater: Rater) -> None:
-        """Set the :class:`Rater`.
+        """Set the :class:`~pyradise.data.rater.Rater`.
 
         Args:
-            rater (Rater): The :class:`Rater` to be set.
+            rater (Rater): The :class:`~pyradise.data.rater.Rater` to be set.
 
         Returns:
             None
@@ -279,7 +287,7 @@ class SegmentationFileSeriesInfo(FileSeriesInfo):
         self.rater = rater
 
     def update(self) -> None:
-        """Update the :class:`SegmentationFileSeriesInfo`.
+        """Update the :class:`SegmentationFileSeriesInfo` instance.
 
         Returns:
             None
@@ -288,14 +296,13 @@ class SegmentationFileSeriesInfo(FileSeriesInfo):
 
 
 class DicomSeriesInfo(SeriesInfo):
-    """An abstract DICOM series info class to store basic information about the DICOM file content.
-    This class and its subclasses are used exclusively for handling DICOM files.
+    """An abstract base :class:`SeriesInfo` class for all DICOM data (i.e. DICOM image, DICOM registration, DICOM-RTSS).
 
-    Notes:
-        When dealing with other file types than DICOM use :class:`FileSeriesInfo` or one of its subclasses instead.
+    Important:
+        For discrete image files use a  :class:`FileSeriesInfo` subclass instead.
 
     Args:
-        path (Union[str, Tuple[str, ...]]): The path or paths specifying DICOM files.
+        path (Union[str, Tuple[str, ...]]): The path or paths specifying DICOM files to load.
     """
 
     def __init__(self,
@@ -322,7 +329,7 @@ class DicomSeriesInfo(SeriesInfo):
     def _get_dicom_base_info(self,
                              additional_tags: Optional[Sequence[Tag]] = None
                              ) -> Dataset:
-        """Get the basis information from the initial DICOM file path.
+        """Get the basic information from the initial DICOM file path.
 
         Args:
             additional_tags (Optional[Sequence[Tag]]): Additional tags to retrieve from the DICOM file.
@@ -371,7 +378,7 @@ class DicomSeriesInfo(SeriesInfo):
 
     @abstractmethod
     def update(self) -> None:
-        """Update the :class:`DicomSeriesInfo`.
+        """Update the :class:`DicomSeriesInfo` instance.
 
         Returns:
             None
@@ -380,11 +387,11 @@ class DicomSeriesInfo(SeriesInfo):
 
 
 class DicomSeriesImageInfo(DicomSeriesInfo):
-    """A DICOM series image info class to store basic information about a DICOM image. This class contains additional
-    information about the :class:`Modality` of the image.
+    """A :class:`DicomSeriesInfo` class for DICOM images. In addition to the information provided by the
+    :class:`DicomSeriesInfo` class, this class contains also a :class:`~pyradise.data.modality.Modality` instance.
 
     Args:
-        paths (Tuple[str, ...]): The paths specifying DICOM files.
+        paths (Tuple[str, ...]): The paths to the DICOM image files to load.
     """
 
     def __init__(self,
@@ -395,18 +402,18 @@ class DicomSeriesImageInfo(DicomSeriesInfo):
         self.modality = Modality.get_default()
 
     def get_modality(self) -> Modality:
-        """Get the :class:`Modality` property.
+        """Get the :class:`~pyradise.data.modality.Modality` property.
 
         Returns:
-            Modality: The :class:`Modality` property.
+            Modality: The :class:`~pyradise.data.modality.Modality` property.
         """
         return self.modality
 
     def set_modality(self, modality: Modality) -> None:
-        """Set the :class:`Modality` property.
+        """Set the :class:`~pyradise.data.modality.Modality`.
 
         Args:
-            modality (Modality): The :class:`Modality` to be assigned.
+            modality (Modality): The :class:`~pyradise.data.modality.Modality` to be assigned.
 
         Returns:
             None
@@ -414,7 +421,7 @@ class DicomSeriesImageInfo(DicomSeriesInfo):
         self.modality = modality
 
     def update(self) -> None:
-        """Update the :class:`DicomSeriesImageInfo`.
+        """Update the :class:`DicomSeriesImageInfo` instance.
 
         Returns:
             None
@@ -427,7 +434,7 @@ class DicomSeriesImageInfo(DicomSeriesInfo):
 class ReferenceInfo:
     """A class storing one of multiple reference infos from a DICOM registration file.
 
-    Notes:
+    Warning:
         This class is intended for internal use only.
 
     Args:
@@ -445,7 +452,7 @@ class ReferenceInfo:
 class RegistrationSequenceInfo:
     """A class storing one of multiple registration sequence infos from a DICOM registration file.
 
-    Notes:
+    Warning:
         This class is intended for internal use only.
 
     Args:
@@ -463,8 +470,8 @@ class RegistrationSequenceInfo:
 class RegistrationInfo:
     """A class storing all necessary infos for applying a registration transformation to a DICOM image.
 
-    Notes:
-        For internal use only.
+    Warning:
+        This class is intended for internal use only.
 
     Args:
         registration_info (RegistrationSequenceInfo): The registration sequence info.
@@ -476,32 +483,34 @@ class RegistrationInfo:
     is_reference_image: bool
 
 
+
 class DicomSeriesRegistrationInfo(DicomSeriesInfo):
-    """A DICOM series registration info class to store basic information about a DICOM registration.
-    This class contains additional information about references of the registration image pair and the transformation
-    parameters.
+    """A :class:`DicomSeriesInfo` class for DICOM registrations. In addition to the information provided by the
+    :class:`DicomSeriesInfo` class, this class contains transformation parameters and references to the pair of DICOM
+    images associated with the registration.
 
     Args:
-        path (Union[str, Tuple[str, ...]]): The path or paths to the DICOM registration files.
+        path (str): The path to the DICOM registration file to load.
         image_infos (Tuple[DicomSeriesImageInfo, ...]): The :class:`DicomSeriesImageInfo` used.
         persistent_image_infos (bool): If True the class holds to the image_infos after updating, otherwise not
          (default: False).
     """
 
     def __init__(self,
-                 path: Union[str, Tuple[str, ...]],
+                 path: str,
                  image_infos: Tuple[DicomSeriesImageInfo, ...],
                  persistent_image_infos: bool = False
                  ) -> None:
+        super().__init__(path)
+
         self.image_infos = image_infos
         self.persistent_image_infos = persistent_image_infos
+
         self.transform: Optional[sitk.Transform] = None
         self.transform_parameters = tuple()
         self.referenced_series_instance_uid_transform = ''
         self.referenced_series_instance_uid_identity = ''
         self.dataset = None
-
-        super().__init__(path)
 
         # since the update is lightweight let's update this class upon instantiation
         self.update()
@@ -509,7 +518,7 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
     def _get_dicom_base_info(self,
                              additional_tags: Optional[Sequence[Tag]] = None
                              ) -> Dataset:
-        """Get the basis information from the initial DICOM file path.
+        """Get the basic information from the initial DICOM file path.
 
         Args:
             additional_tags (Optional[Sequence[Tag]]): Additional tags to retrieve from the DICOM file.
@@ -530,7 +539,7 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
 
     @staticmethod
     def get_referenced_series_info(registration_dataset: Dataset) -> Tuple[ReferenceInfo, ...]:
-        """Get the :class:`ReferenceInfos` from a dataset.
+        """Get the :class:`ReferenceInfo` entries from a dataset.
 
         Args:
             registration_dataset (Dataset): The registration dataset to extract the infos from.
@@ -559,13 +568,13 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
 
     @staticmethod
     def _get_registration_sequence_info(registration_dataset: Dataset) -> Tuple[RegistrationSequenceInfo, ...]:
-        """Get the :class:`RegistrationSequenceInfo` from a dataset.
+        """Get the :class:`RegistrationSequenceInfo` entries from a dataset.
 
         Args:
             registration_dataset (Dataset): The registration dataset to extract the information from.
 
         Returns:
-            Tuple[RegistrationSequenceInfo, ...]: The :class:`RegistrationSequenceInfo` retrieved from the dataset.
+            Tuple[RegistrationSequenceInfo, ...]: The :class:`RegistrationSequenceInfo` entries retrieved.
         """
         registration_info = []
 
@@ -604,7 +613,7 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
     @staticmethod
     def _get_unique_series_instance_uid_entries(infos: Union[Tuple[DicomSeriesImageInfo, ...], Tuple[Dataset, ...]]
                                                 ) -> Union[Tuple[DicomSeriesImageInfo, ...], Tuple[Dataset, ...]]:
-        """Get the unique series instance uid entries from a list of :class:`DicomSeriesImageInfo` or :class:`Dataset`.
+        """Get the unique SeriesInstanceUID entries from a list of :class:`DicomSeriesImageInfo` or datasets.
 
         Args:
             infos (Union[Tuple[DicomSeriesImageInfo, ...], Tuple[Dataset, ...]]): The infos to extract the unique
@@ -641,7 +650,7 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
     def get_registration_infos(registration_dataset: Dataset,
                                image_infos: Union[Tuple[DicomSeriesImageInfo, ...], Tuple[Dataset, ...]]
                                ) -> Tuple[RegistrationInfo, ...]:
-        """Extract the :class:`RegistrationSequenceInfo` with the corresponding :class:`ReferenceInfo`.
+        """Extract the :class:`RegistrationInfo` entries with the corresponding :class:`ReferenceInfo`.
 
         Args:
             registration_dataset (Dataset): The registration dataset to extract the registration infos from.
@@ -705,10 +714,10 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
     def set_image_infos(self,
                         image_infos: Tuple[DicomSeriesImageInfo, ...]
                         ) -> None:
-        """Set the :class:`DicomSeriesImageInfo`.
+        """Set the :class:`DicomSeriesImageInfo` entries.
 
         Args:
-            image_infos (Tuple[DicomSeriesImageInfo, ...]): The :class:`DicomSeriesImageInfos` to set.
+            image_infos (Tuple[DicomSeriesImageInfo, ...]): The :class:`DicomSeriesImageInfo` entries to set.
 
         Returns:
             None
@@ -732,7 +741,7 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
             None
         """
         if len(self.path) != 1:
-            raise ValueError(f'The number of registration files is different from 1 ({len(self.path)}), but must be 1!')
+            raise ValueError('Only one registration file path is allowed, but multiple or none are provided!')
 
         if not self.image_infos:
             raise ValueError('No image infos are provided and thus no registration is possible!')
@@ -761,16 +770,16 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
 
 
 class DicomSeriesRTSSInfo(DicomSeriesInfo):
-    """A DICOM series RTSS info class to store basic information about a DICOM RTSS.
-    This class contains additional information about the :class:`Rater` which created the contours and the referenced
-    image InstanceUID.
+    """A :class:`DicomSeriesInfo` class for DICOM-RTSS. In addition to the information provided by the
+    :class:`DicomSeriesInfo` class, this class contains a :class:`~pyradise.data.rater.Rater` instance and a reference
+    to the DICOM image associated with the DICOM-RTSS.
 
     Args:
-        path (Union[str, Tuple[str, ...]]): The path or paths specifying DICOM files.
+        path (str): The path to the DICOM-RTSS file to load.
     """
 
     def __init__(self,
-                 path: Union[str, Tuple[str, ...]]
+                 path: str
                  ) -> None:
         self.dataset: Optional[Dataset] = None
         self.rater: Rater = Rater.get_default()
@@ -783,7 +792,7 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
     def _get_dicom_base_info(self,
                              additional_tags: Optional[Sequence[Tag]] = None
                              ) -> Dataset:
-        """Get the basis information from the initial DICOM file path.
+        """Get the basic information from the initial DICOM file path.
 
         Args:
             additional_tags (Optional[Sequence[Tag]]): Additional tags to retrieve from the DICOM file.
@@ -803,20 +812,24 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
 
         self.dataset = super()._get_dicom_base_info(additional_tags_)
 
-        self.rater = self._get_rater()
-        self.referenced_instance_uid = self._get_referenced_series_instance_uid()
+        self.rater = self._get_rater_from_dicom(self.dataset)
+        self.referenced_instance_uid = self._get_referenced_series_instance_uid(self.dataset)
 
         self._is_updated = True
 
         return self.dataset
 
-    def _get_rater(self) -> Rater:
-        """Get the :class:`Rater` from the dataset.
+    @staticmethod
+    def _get_rater_from_dicom(dataset: Dataset) -> Rater:
+        """Get the :class:`~pyradise.data.rater.Rater` from the provided dataset.
+
+        Args:
+            dataset (Dataset): The dataset to retrieve the :class:`~pyradise.data.rater.Rater` from.
 
         Returns:
-            Rater: The Rater.
+            Rater: The rater.
         """
-        operator_name = str(self.dataset.get('OperatorsName', ''))
+        operator_name = str(dataset.get('OperatorsName', ''))
 
         if operator_name:
             operator_name = operator_name.replace(' ', '_')
@@ -824,7 +837,8 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
             regex = re.compile(pattern)
             operator_name = regex.sub(r'', operator_name)
 
-            abbreviation = ''.join(re.findall(r"""[A-Z]+""", operator_name))
+            search_pattern = r"""[A-Z]+"""
+            abbreviation = ''.join(re.findall(search_pattern, operator_name))
             abbreviation = abbreviation if abbreviation else None
 
             return Rater(operator_name, abbreviation)
@@ -832,22 +846,26 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
         return Rater.get_default()
 
     def get_rater(self) -> Rater:
-        """Get the :class:`Rater`.
+        """Get the :class:`~pyradise.data.rater.Rater`.
 
         Returns:
             Rater: The rater.
         """
         return self.rater
 
-    def _get_referenced_series_instance_uid(self) -> str:
+    @staticmethod
+    def _get_referenced_series_instance_uid(dataset: Dataset) -> str:
         """Get the referenced SeriesInstanceUID from the dataset.
+
+        Args:
+            dataset (Dataset): The dataset to retrieve the referenced SeriesInstanceUID from.
 
         Returns:
             str: The referenced SeriesInstanceUID
         """
         referenced_series_instance_uids = []
 
-        ref_frame_of_ref_sq = self.dataset.get('ReferencedFrameOfReferenceSequence', [])
+        ref_frame_of_ref_sq = dataset.get('ReferencedFrameOfReferenceSequence', [])
         for ref_frame_ref_item in ref_frame_of_ref_sq:
             rt_ref_study_sq = ref_frame_ref_item.get('RTReferencedStudySequence', [])
 

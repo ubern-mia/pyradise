@@ -53,6 +53,12 @@ def is_dicom_file(path: str) -> bool:
     Returns:
         bool: True if the path is specifying a DICOM file, False otherwise.
     """
+
+    file_name = os.path.basename(path)
+    if '.' in file_name:
+        file_extension = file_name.split('.')[-1]
+        return file_extension.lower() == 'dcm'
+
     with open(path, 'rb') as fp:
         fp.seek(128)
         return fp.read(4).decode('utf-8') == 'DICM'

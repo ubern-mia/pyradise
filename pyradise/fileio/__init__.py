@@ -27,10 +27,8 @@ from .crawling import (
     Crawler,
     SubjectFileCrawler,
     DatasetFileCrawler,
-    IterableFileCrawler,
     SubjectDicomCrawler,
-    DatasetDicomCrawler,
-    IterableDicomCrawler)
+    DatasetDicomCrawler)
 
 from .selection import (
     SeriesInfoSelector,
@@ -38,7 +36,8 @@ from .selection import (
     ModalityInfoSelector,
     OrganInfoSelector,
     RaterInfoSelector,
-    NoRegistrationInfoSelector)
+    NoRegistrationInfoSelector,
+    NoRTSSInfoSelector)
 
 from .loading import (
     ExplicitLoader,
@@ -46,14 +45,12 @@ from .loading import (
     IterableSubjectLoader)
 
 from .dicom_conversion import (
-    ROIData,
-    Hierarchy,
     Converter,
-    RTSSToSegmentConverter,
-    SegmentToRTSSConverter,
     DicomImageSeriesConverter,
     DicomRTSSSeriesConverter,
-    SubjectToRTSSConverter)
+    SubjectToRTSSConverter,
+    RTSSToSegmentConverter,
+    SegmentToRTSSConverter)
 
 from .writing import (
     ImageFileFormat,

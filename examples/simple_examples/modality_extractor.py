@@ -7,9 +7,10 @@ from typing import (
 import SimpleITK as sitk
 import numpy as np
 
-from pyradise.data import Modality, IntensityImage
+from pyradise.data import Modality, IntensityImage, Organ, Rater
 from pyradise.fileio import (IterableDicomCrawler, ModalityExtractor, SubjectWriter,
-                             SubjectLoader, SubjectDicomCrawler, Tag)
+                             SubjectLoader, SubjectDicomCrawler, Tag,  DatasetFileCrawler, OrganExtractor,
+                             RaterExtractor)
 
 
 class ExampleModalityExtractor(ModalityExtractor):
@@ -64,6 +65,36 @@ class ExampleModalityExtractor(ModalityExtractor):
             return None
 
 
+class ExampleOrganExtractor(OrganExtractor):
+
+    def extract(self, path: str) -> Optional[Organ]:
+        file_name = os.path.basename(path)
+
+        if 'Blood' in file_name:
+            return Organ('Blood')
+        elif 'Edema' in file_name:
+            return Organ('Edema')
+        elif 'Enhancing_Tumor' in file_name:
+            return Organ('Enhancing_Tumor')
+        elif 'Resection_Cavity' in file_name:
+            return Organ('Resection_Cavity')
+        elif 'GTV' in file_name:
+            return Organ('GTV')
+        else:
+            return None
+
+
+class ExampleRaterExtractor(RaterExtractor):
+
+    def extract(self, path: str) -> Optional[Rater]:
+        file_name = os.path.basename(path)
+
+        if 'Robert_Poel' in file_name:
+            return Rater('RP')
+        else:
+            return None
+
+
 def main():
     input_path = 'D:/temp/dicom_test_data_v2/'
     output_path = 'D:/temp/test_data_output'
@@ -112,6 +143,19 @@ def main2():
         print(subject.name)
 
 
+def main3():
+    input_path = 'D:/temp/test_data_output'
+
+    crawler = DatasetFileCrawler(input_path, '.nii.gz', ExampleModalityExtractor(), ExampleOrganExtractor(),
+                                 ExampleRaterExtractor())
+
+    for subject_info in crawler:
+        subject = SubjectLoader().load(subject_info)
+        print(subject.name)
+
+
+
 if __name__ == '__main__':
     # main()
-    main2()
+    # main2()
+    main3()

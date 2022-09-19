@@ -14,6 +14,7 @@ from .organ import Organ
 from .rater import Rater
 
 from .image import (
+    Image,
     IntensityImage,
     SegmentationImage)
 
@@ -22,14 +23,14 @@ __all__ = ['Subject']
 
 
 class Subject:
-    """The :class:`Subject` is the main data object which holds all :class:`IntensityImage` s and
-    :class:`SegmentationImage` s associated with the subject. Furthermore, it can hold any type of additional data
-    associated with the patient. Currently, the routines implemented in PyRaDiSe do not use this mechanism so it can be
-    used freely by the user.
+    """The :class:`Subject` is the main data object which holds all :class:`~pyradise.data.image.IntensityImage` s and
+    :class:`~pyradise.data.image.SegmentationImage` s associated with the subject. Furthermore, it can hold any type
+    of additional data associated with the patient. Currently, the routines implemented in PyRaDiSe do not use this
+    mechanism so it can be used freely by the user.
 
     Args:
         name (str): The name of the subject.
-        images (Optional[Union[IntensityImage, SegmentationImage, Sequence[IntensityImage], Sequence[SegmentationImage]]]): One or multiple images to add to the subject.
+        images (Optional[Union[Image, Sequence[Image]]]): One or multiple images to add to the subject.
         data (Optional[Dict[str, Any]]): Additional data which is associated with the subject.
 
     Examples:
@@ -128,8 +129,7 @@ class Subject:
 
     def __init__(self,
                  name: str,
-                 images: Optional[Union[IntensityImage, SegmentationImage, Sequence[IntensityImage],
-                                        Sequence[SegmentationImage]]] = None,
+                 images: Optional[Union[Image, Sequence[Image]]] = None,
                  data: Optional[Dict[str, Any]] = None
                  ) -> None:
         super().__init__()
@@ -375,8 +375,9 @@ class Subject:
 
         The following properties are used to identify the image to be replaced:
 
-        - :class:`IntensityImage`: The :class:`Modality` of the image.
-        - :class:`SegmentationImage`: The :class:`Organ` and the :class:`Rater` of the image.
+        - :class:`~pyradise.data.image.IntensityImage`: The :class:`~pyradise.data.modality.Modality` of the image.
+        - :class:`~pyradise.data.image.SegmentationImage`: The :class:`~pyradise.data.organ.Organ` and the
+          :class:`~pyradise.data.rater.Rater` of the image.
 
         Args:
             new_image (Union[IntensityImage, SegmentationImage]): The new image which will be inserted into the subject.

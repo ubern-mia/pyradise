@@ -26,7 +26,105 @@ ModalityConfigurationEntry = NamedTuple('ModalityConfigurationEntry',
 
 
 class ModalityConfiguration:
-    """Represents a configuration managing the :class:`Modality` handling."""
+    """A class representation the mapping between the :class:`~pyradise.data.modality.Modality` and multiple DICOM
+    images from one subject.
+
+    The modality configuration us used for the identification of the detailed modalities belonging to multiple DICOM
+    images from one subject. Typically, the modality configuration is stored in the subjects directory as a JSON file
+    which can be modified manually. The :class:`ModalityConfiguration` class provides methods to load and write the
+    modality configuration file. In addition, it provides functionality to retrieve the modality information from
+    a :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries and to add the modality information to
+    :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries.
+
+    Typically, the :class:`ModalityConfiguration` class is used as part of a :class:`~pyradise.fileio.crawling.Crawler`
+    which generates the modality configuration skeleton from a series of DICOM series. The modality configuration
+    skeleton can then be stored on disk and manually modified. After modification, the modality configuration can be
+    loaded and used to retrieve the modality information from a series of DICOM series.
+
+    Examples:
+
+        Generate the modality configuration skeleton from a series of DICOM series:
+
+        >>> from pyradise.fileio import DatasetDicomCrawler
+        >>>
+        >>> def generate_skeleton(dataset_path: str) -> None:
+        >>>     # Generate the modality configuration file skeleton by setting
+        >>>     # write_modality_config = True
+        >>>     crawler = DatasetDicomCrawler(dataset_path, write_modality_config=True)
+        >>>     crawler.execute()
+        >>>
+        >>>
+        >>> if __name__ == '__main__':
+        >>>     generate_skeleton('path/to/dataset')
+
+        Example of modality configuration file skeleton (named: modality_config.json):
+
+        >>> [
+        >>>    {
+        >>>        "SOPClassUID": "1.2.840.10008.5.1.4.1.1.4",
+        >>>        "StudyInstanceUID": "1.3.6.1.4.1.5962.99.1.1556635153761.6.0",
+        >>>        "SeriesInstanceUID": "1.3.6.1.4.1.5962.99.1.1556635153761.239.0",
+        >>>        "SeriesDescription": "t1_mpr_sag_we_p2_iso",
+        >>>        "SeriesNumber": 7,
+        >>>        "DICOM_Modality": "MR",
+        >>>        "Modality": "MR"
+        >>>   },
+        >>>   {
+        >>>        "SOPClassUID": "1.2.840.10008.5.1.4.1.1.2",
+        >>>        "StudyInstanceUID": "1.3.6.1.4.1.5962.99.1.1557406273346.1015.0",
+        >>>        "SeriesInstanceUID": "1.3.6.1.4.1.5962.99.1.1557406273346.1016.0",
+        >>>        "SeriesDescription": "t2_fl_sag_p2_iso",
+        >>>        "SeriesNumber": 2,
+        >>>        "DICOM_Modality": "MR",
+        >>>        "Modality": "MR"
+        >>>    }
+        >>> ]
+
+        Example of modality configuration file (named: modality_config.json) content with filled "Modality" field:
+
+        >>> [
+        >>>    {
+        >>>        "SOPClassUID": "1.2.840.10008.5.1.4.1.1.4",
+        >>>        "StudyInstanceUID": "1.3.6.1.4.1.5962.99.1.1556635153761.6.0",
+        >>>        "SeriesInstanceUID": "1.3.6.1.4.1.5962.99.1.1556635153761.239.0",
+        >>>        "SeriesDescription": "t1_mpr_sag_we_p2_iso",
+        >>>        "SeriesNumber": 7,
+        >>>        "DICOM_Modality": "MR",
+        >>>        "Modality": "T1c"
+        >>>   },
+        >>>   {
+        >>>        "SOPClassUID": "1.2.840.10008.5.1.4.1.1.2",
+        >>>        "StudyInstanceUID": "1.3.6.1.4.1.5962.99.1.1557406273346.1015.0",
+        >>>        "SeriesInstanceUID": "1.3.6.1.4.1.5962.99.1.1557406273346.1016.0",
+        >>>        "SeriesDescription": "t2_fl_sag_p2_iso",
+        >>>        "SeriesNumber": 2,
+        >>>        "DICOM_Modality": "MR",
+        >>>        "Modality": "FLAIR"
+        >>>    }
+        >>> ]
+
+        Load the data with modalities assigned according to the generated and modified modality configuration file:
+
+        >>> from pyradise.fileio import DatasetDicomCrawler, SubjectLoader
+        >>>
+        >>> def load_data(dataset_path: str) -> None:
+        >>>     # Create a crawler with write_modality_config = False to avoid
+        >>>     # overwriting the existing file
+        >>>     crawler = DatasetDicomCrawler(dataset_path,
+        >>>                                   write_modality_config=False)
+        >>>
+        >>>     # Load the data with modalities assigned according to the modality
+        >>>     # configuration file
+        >>>     for subject_info in crawler:
+        >>>         subject = SubjectLoader().load(subject_info)
+        >>>         # Do something with the subject
+        >>>         print(subject.get_name())
+        >>>
+        >>>
+        >>> if __name__ == '__main__':
+        >>>     load_data('path/to/dataset')
+
+     """
 
     def __init__(self) -> None:
         super().__init__()
@@ -90,10 +188,11 @@ class ModalityConfiguration:
 
     @classmethod
     def from_dicom_series_info(cls, dicom_infos: Tuple[DicomSeriesInfo, ...]) -> "ModalityConfiguration":
-        """Generate a modality configuration from DICOM series infos.
+        """Class method to generate a :class:`ModalityConfiguration` from a list of
+        :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries.
 
         Args:
-            dicom_infos (Tuple[DicomSeriesInfo, ...]): The DicomSeriesInfo from which the modality information will be
+            dicom_infos (Tuple[DicomSeriesInfo, ...]): The info entries from which the modality information will be
              retrieved.
 
         Returns:
@@ -146,10 +245,10 @@ class ModalityConfiguration:
                 path: str,
                 override: bool = False
                 ) -> None:
-        """Write the current modality information to a modality configuration file.
+        """Write the current modality configuration to a modality configuration file.
 
         Args:
-            path (str): The file path of the modality file.
+            path (str): The file path for the modality file.
             override (bool): Indicates if an existing modality file should be overwritten.
 
         Returns:
@@ -177,7 +276,8 @@ class ModalityConfiguration:
             json.dump(data, file, indent=4)
 
     def add_modality_to_info(self, info: DicomSeriesImageInfo) -> None:
-        """Add the modality information from the modality configuration to a DicomSeriesImageInfo if available.
+        """Add the modality information from the modality configuration to a
+        :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` entry, if the information is available.
 
         Args:
             info (DicomSeriesImageInfo): The DicomSeriesImageInfo to which the modality should be added.
@@ -238,10 +338,10 @@ class ModalityConfiguration:
         return any(entry.Modality.is_default() for entry in self.configuration)
 
     def has_duplicate_modalities(self) -> bool:
-        """Indicate if the modality configuration contains duplicate :class:`Modality` entries.
+        """Indicate if the modality configuration contains duplicate :class:`~pyradise.data.modality.Modality` entries.
 
         Returns:
-            bool: True if the modality configuration contains :class:`Modality` entries, otherwise False.
+            bool: True if the modality configuration contains duplicate modality entries, otherwise False.
         """
         if not self.configuration:
             return False

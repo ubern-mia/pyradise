@@ -46,7 +46,6 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.napoleon',
               'nbsphinx',
               'sphinx_copybutton',
-              'sphinxemoji.sphinxemoji',
               'sphinx_toolbox.more_autodoc.autonamedtuple',
               'sphinx_autodoc_typehints']
 

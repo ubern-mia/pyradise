@@ -2,9 +2,11 @@ from abc import (
     ABC,
     abstractmethod)
 from typing import (
+    Any,
     Tuple,
     Union,
-    Optional)
+    Optional,
+    TypeVar)
 from copy import deepcopy
 
 import SimpleITK as sitk
@@ -17,9 +19,100 @@ from .organ import (
     OrganRaterCombination)
 from .rater import Rater
 from .taping import TransformTape
+from ..utils import (convert_to_itk_image, convert_to_sitk_image)
+
+TransformInfo = TypeVar('TransformInfo')
+
+__all__ = ['Image', 'IntensityImage', 'SegmentationImage', 'ImageProperties']
 
 
-__all__ = ['Image', 'IntensityImage', 'SegmentationImage']
+class ImageProperties:
+    """A class to store image properties. This class is predominantly used in combination with a
+    :class:`~pyradise.data.taping.TransformTapeV2` to keep track of the image properties before or after a
+    transformation has been applied.
+
+    Args:
+        image (Union[sitk.Image, itk.Image]): The image to extract the properties from.
+        **kwargs: Additional information.
+    """
+
+    def __init__(self,
+                 image: Union[sitk.Image],
+                 **kwargs):
+        if isinstance(image, sitk.Image):
+            image_ = image
+        elif isinstance(image, itk.Image):
+            image_ = convert_to_sitk_image(image)
+        else:
+            raise TypeError('Image must be of type SimpleITK.Image or itk.Image')
+
+        self._spacing = image_.GetSpacing()
+        self._origin = image_.GetOrigin()
+        self._direction = image_.GetDirection()
+        self._size = image_.GetSize()
+        self.kwargs = kwargs
+
+    def get_entry(self, key: str) -> Any:
+        """Get entry from additional information.
+
+        Args:
+            key (str): Key of the entry.
+
+        Returns:
+            Any: The value of the entry or ``None`` if the key is not existing.
+        """
+        return self.kwargs.get(key, None)
+
+    def set_entry(self, key: str, value: Any) -> None:
+        """Set an entry as additional information.
+
+        Args:
+            key (str): Key of the entry.
+            value (Any): Value of the entry.
+
+        Returns:
+            None
+        """
+        if key in self.kwargs.keys():
+            raise ValueError(f'Key {key} already exists.')
+
+        self.kwargs[key] = value
+
+    @property
+    def origin(self) -> Tuple[float, ...]:
+        """Get the origin of the image.
+
+        Returns:
+            Tuple[float, ...]: The origin of the image.
+        """
+        return self._origin
+
+    @property
+    def spacing(self) -> Tuple[float, ...]:
+        """Get the spacing of the image.
+
+        Returns:
+            Tuple[float, ...]: The spacing of the image.
+        """
+        return self._spacing
+
+    @property
+    def direction(self) -> Tuple[float, ...]:
+        """Get the direction of the image.
+
+        Returns:
+            Tuple[float, ...]: The direction of the image.
+        """
+        return self._direction
+
+    @property
+    def size(self) -> Tuple[int, ...]:
+        """Get the size of the image.
+
+        Returns:
+            Tuple[int, ...]: The size of the image.
+        """
+        return self._size
 
 
 class Image(ABC):
@@ -40,7 +133,7 @@ class Image(ABC):
         super().__init__()
 
         if isinstance(image, sitk.Image):
-            self.image: itk.Image = self.convert_to_itk_image(image)
+            self.image: itk.Image = convert_to_itk_image(image)
 
         else:
             self.image: itk.Image = image
@@ -55,53 +148,12 @@ class Image(ABC):
             return image
 
         if isinstance(image, sitk.Image) and not as_sitk:
-            return Image.convert_to_itk_image(image)
+            return convert_to_itk_image(image)
 
         if isinstance(image, itk.Image) and as_sitk:
-            return Image.convert_to_sitk_image(image)
+            return convert_to_sitk_image(image)
 
         return image
-
-    @staticmethod
-    def convert_to_sitk_image(image: itk.Image) -> sitk.Image:
-        """Convert an :class:`itk.Image` to a :class:`SimpleITK.Image`.
-
-        Args:
-            image (itk.Image): The :class:`itk.Image` to be converted.
-
-        Returns:
-            sitk.Image: The converted :class:`SimpleITK.Image`.
-        """
-        if image.GetImageDimension() > 3:
-            raise NotImplementedError(f'Conversion of {image.GetDimension()}D images is not supported!')
-
-        is_vector_image = image.GetNumberOfComponentsPerPixel() > 1
-        image_sitk = sitk.GetImageFromArray(itk.GetArrayFromImage(image), isVector=is_vector_image)
-        image_sitk.SetOrigin(tuple(image.GetOrigin()))
-        image_sitk.SetSpacing(tuple(image.GetSpacing()))
-        image_sitk.SetDirection(itk.GetArrayFromMatrix(image.GetDirection()).flatten())
-        return image_sitk
-
-    @staticmethod
-    def convert_to_itk_image(image: sitk.Image) -> itk.Image:
-        """Convert a :class:`SimpleITK.Image` to an :class:`itk.Image`.
-
-        Args:
-            image (sitk.Image): The :class:`SimpleITK.Image` to be converted.
-
-        Returns:
-            itk.Image: The converted :class:`itk.Image`.
-        """
-        if image.GetDimension() > 3:
-            raise NotImplementedError(f'Conversion of {image.GetDimension()}D images is not supported!')
-
-        is_vector_image = image.GetNumberOfComponentsPerPixel() > 1
-        image_itk = itk.GetImageFromArray(sitk.GetArrayFromImage(image), is_vector=is_vector_image)
-        image_itk.SetOrigin(image.GetOrigin())
-        image_itk.SetSpacing(image.GetSpacing())
-        image_itk.SetDirection(itk.GetMatrixFromArray(np.reshape(np.array(image.GetDirection()), [3] * 2)))
-        return image_itk
-
 
     @staticmethod
     def cast(image: Union[sitk.Image, itk.Image],
@@ -134,8 +186,8 @@ class Image(ABC):
 
         return Image._return_image_as(img, as_sitk)
 
-    def get_image(self, as_sitk: bool = False) -> Union[itk.Image, sitk.Image]:
-        """Get the image as an :class:`itk.Image` or :class:`SimpleITK.Image` (with ``as_sitk=True``).
+    def get_image_data(self, as_sitk: bool = False) -> Union[itk.Image, sitk.Image]:
+        """Get the image data as an :class:`itk.Image` or :class:`SimpleITK.Image` (with ``as_sitk=True``).
 
         Args:
             as_sitk (bool): If True returns the image as a SimpleITK image else as an ITK image.
@@ -144,12 +196,12 @@ class Image(ABC):
             Union[itk.Image, sitk.Image]: The image as the either a :class:`itk.Image` or a :class:`SimpleITK.Image`.
         """
         if as_sitk:
-            return self.convert_to_sitk_image(self.image)
+            return convert_to_sitk_image(self.image)
 
         return self.image
 
-    def set_image(self, image: Union[sitk.Image, itk.Image]) -> None:
-        """Set the image.
+    def set_image_data(self, image: Union[sitk.Image, itk.Image]) -> None:
+        """Set the image data.
 
         Args:
             image (Union[sitk.Image, itk.Image]): The image to be set.
@@ -158,12 +210,12 @@ class Image(ABC):
             None
         """
         if isinstance(image, sitk.Image):
-            self.image = self.convert_to_itk_image(image)
+            self.image = convert_to_itk_image(image)
 
         else:
             self.image = image
 
-    def get_image_data(self) -> np.ndarray:
+    def get_image_data_as_np(self) -> np.ndarray:
         """Get the image data as a numpy array.
 
         Returns:
@@ -237,6 +289,18 @@ class Image(ABC):
             None
         """
         self.transform_tape = tape
+
+    def add_transform_info(self, info: TransformInfo) -> None:
+        """Add a :class:`~pyradise.data.taping.TransformInfo` instance to the
+        :class:`~pyradise.data.taping.TransformTape` instance of the image.
+
+        Args:
+            info (TransformInfo): The :class:`~pyradise.data.taping.TransformInfo` instance to be added.
+
+        Returns:
+            None
+        """
+        self.transform_tape.record(info)
 
     @abstractmethod
     def copy_info(self,

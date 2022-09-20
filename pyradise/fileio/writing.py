@@ -152,7 +152,7 @@ class SubjectWriter:
             raise ValueError(f'Unsupported data type {type(image)} received for serialization.')
 
         if with_extension:
-            return file_name + self.image_file_format.value.name
+            return file_name + str(self.image_file_format.value)
 
         return file_name
 
@@ -224,11 +224,11 @@ class SubjectWriter:
 
         for image in images:
             image_file_name = self._generate_image_file_name(subject, image)
-            image_file_path = os.path.join(path, image_file_name + self.image_file_format.value.name)
+            image_file_path = os.path.join(path, image_file_name + str(self.image_file_format.value))
 
             self._check_file_path(image_file_path)
 
-            itk.imwrite(image.get_image(), image_file_path)
+            itk.imwrite(image.get_image_data(), image_file_path)
 
             if write_transforms:
                 for i, transform_info in enumerate(image.get_transform_tape().get_recorded_elements()):

@@ -8,6 +8,7 @@ from .organ import (
 
 from .image import (
     Image,
+    ImageProperties,
     IntensityImage,
     SegmentationImage)
 
@@ -15,9 +16,10 @@ from .subject import Subject
 
 from .taping import (
     Tape,
-    TransformTape,
-    TransformationInformation)
+    TransformInfo,
+    TransformTape)
 
 
 __all__ = ['Modality', 'Rater', 'Organ', 'OrganRaterCombination', 'Image',
-           'IntensityImage', 'SegmentationImage', 'Subject', 'Tape', 'TransformTape', 'TransformationInformation']
+           'IntensityImage', 'SegmentationImage', 'Subject', 'Tape',
+           'TransformInfo', 'TransformTape', 'ImageProperties']

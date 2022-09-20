@@ -1,54 +1,68 @@
 from .base import (
     Filter,
-    FilterParameters,
+    FilterParams,
     LoopEntryFilter,
+    LoopEntryFilterParams,
     FilterPipeline)
 
-from .normalization import (
-    NormalizationFilter,
-    NormalizationFilterParameters,
-    ZScoreNormalizationFilter,
-    MinMaxNormalizationFilter)
+from .intensity import (
+    IntensityFilter,
+    IntensityLoopFilter,
+    IntensityLoopFilterParams,
+    ZScoreNormFilter,
+    ZeroOneNormFilter,
+    RescaleIntensityFilter,
+    RescaleIntensityFilterParams,
+    ClipIntensityFilter,
+    ClipIntensityFilterParams,
+    GaussianFilter,
+    GaussianFilterParams,
+    MedianFilter,
+    MedianFilterParams,
+    LaplacianFilter,
+    LaplacianFilterParams)
 
 from .orientation import (
     Coord,
     MajorTerms,
     SpatialOrientation,
     OrientationFilter,
-    OrientationFilterParameters)
+    OrientationFilterParams)
 
 from .registration import (
     RegistrationType,
-    ReferenceSubjectRegistrationFilter,
-    ReferenceSubjectRegistrationFilterParameters)
+    InterSubjectRegistrationFilter,
+    InterSubjectRegistrationFilterParams,
+    IntraSubjectRegistrationFilter,
+    IntraSubjectRegistrationFilterParams)
 
 from .resampling import (
     ResamplingFilter,
-    ResamplingFilterParameters)
+    ResamplingFilterParams)
 
 from .segmentation_combination import (
     SegmentationCombinationFilter,
-    SegmentationCombinationFilterParameters,
+    SegmentationCombinationFilterParams,
     CombineEnumeratedLabelFilter,
-    CombineEnumeratedLabelFilterParameters,
+    CombineEnumeratedLabelFilterParams,
     CombineSegmentationsFilter,
-    CombineSegmentationsFilterParameters)
+    CombineSegmentationsFilterParams)
 
 from .segmentation_postprocessing import (
     SingleConnectedComponentFilter,
-    SingleConnectedComponentFilterParameters,
+    SingleConnectedComponentFilterParams,
     AlphabeticOrganSortingFilter)
 
 from .transformation import (
     ApplyTransformationTapeFilter,
-    ApplyTransformationTapeFilterParameters,
+    ApplyTransformationTapeFilterParams,
     BackTransformSegmentationFilter,
     BackTransformSegmentationFilterParams,
     BackTransformIntensityImageFilter,
     BackTransformIntensityImageFilterParams,
     CopyReferenceTransformTapeFilter,
-    CopyReferenceTransformTapeFilterParameters)
+    CopyReferenceTransformTapeFilterParams)
 
 from .validation import (
     SegmentationCheckingFilter,
-    SegmentationCheckingFilterParameters)
+    SegmentationCheckingFilterParams)

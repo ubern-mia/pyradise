@@ -13,21 +13,22 @@ from pyradise.data import (
     IntensityImage,
     SegmentationImage,
     TransformTape,
-    TransformationInformation,
+    ImageProperties,
+    TransformInfo,
     OrganRaterCombination)
 from .base import (
     Filter,
-    FilterParameters)
+    FilterParams)
 
 
-__all__ = ['ApplyTransformationTapeFilterParameters', 'ApplyTransformationTapeFilter',
+__all__ = ['ApplyTransformationTapeFilterParams', 'ApplyTransformationTapeFilter',
            'BackTransformIntensityImageFilterParams', 'BackTransformIntensityImageFilter',
            'BackTransformSegmentationFilterParams', 'BackTransformSegmentationFilter',
-           'CopyReferenceTransformTapeFilterParameters', 'CopyReferenceTransformTapeFilter']
+           'CopyReferenceTransformTapeFilterParams', 'CopyReferenceTransformTapeFilter']
 
 
 # pylint: disable = too-few-public-methods
-class ApplyTransformationTapeFilterParameters(FilterParameters):
+class ApplyTransformationTapeFilterParams(FilterParams):
     """A class representing the parameters for a ApplyTransformationTapeFilter.
 
     Args:
@@ -57,13 +58,13 @@ class ApplyTransformationTapeFilter(Filter):
 
     @staticmethod
     def _get_images_to_process(subject: Subject,
-                               params: ApplyTransformationTapeFilterParameters
+                               params: ApplyTransformationTapeFilterParams
                                ) -> Tuple[Union[IntensityImage, SegmentationImage]]:
         """Get the images to process.
 
         Args:
             subject (Subject): The subject holding the data.
-            params (ApplyTransformationTapeFilterParameters): The parameters specifying the reference.
+            params (ApplyTransformationTapeFilterParams): The parameters specifying the reference.
 
         Returns:
             Tuple[Union[IntensityImage, SegmentationImage]]: The images to process.
@@ -91,13 +92,13 @@ class ApplyTransformationTapeFilter(Filter):
 
     @staticmethod
     def _get_transform_tape(subject: Subject,
-                            params: ApplyTransformationTapeFilterParameters
+                            params: ApplyTransformationTapeFilterParams
                             ) -> Optional[TransformTape]:
         """Get the correct transformation tape according to the specification in the parameters.
 
         Args:
             subject (Subject): The subject holding the data.
-            params (ApplyTransformationTapeFilterParameters): The parameters holding the reference.
+            params (ApplyTransformationTapeFilterParams): The parameters holding the reference.
 
         Returns:
             Optional[TransformTape]: The transform tape to apply.
@@ -124,7 +125,7 @@ class ApplyTransformationTapeFilter(Filter):
     # pylint: disable = duplicate-code
     # noinspection DuplicatedCode
     @staticmethod
-    def _is_reorient_only(transform_info: TransformationInformation,
+    def _is_reorient_only(transform_info: TransformInfo,
                           invert: bool
                           ) -> bool:
         transform = transform_info.get_transform(invert)
@@ -142,7 +143,7 @@ class ApplyTransformationTapeFilter(Filter):
     @staticmethod
     def _apply_transform(image: Union[IntensityImage, SegmentationImage],
                          transform_tape: Optional[TransformTape],
-                         params: ApplyTransformationTapeFilterParameters
+                         params: ApplyTransformationTapeFilterParams
                          ) -> Union[IntensityImage, SegmentationImage]:
         """Apply the transformation to the image and clears the transformation tape if allowed.
 
@@ -150,7 +151,7 @@ class ApplyTransformationTapeFilter(Filter):
             image (Union[IntensityImage, SegmentationImage]): The image to apply the transformations to.
             transform_tape (Optional[TransformTape]): The transformation tape holding the transformations.
              If none is provided the transformation type of the image itself is used.
-            params (ApplyTransformationTapeFilterParameters): The filter parameters.
+            params (ApplyTransformationTapeFilterParams): The filter parameters.
 
         Returns:
             Union[IntensityImage, SegmentationImage]: The modified image.
@@ -162,7 +163,7 @@ class ApplyTransformationTapeFilter(Filter):
 
         transform_infos = transform_tape_.get_recorded_elements(params.backward_playback)
 
-        image_sitk = image.get_image(as_sitk=True)
+        image_sitk = image.get_image_data(as_sitk=True)
 
         for transform_info in transform_infos:
 
@@ -196,12 +197,13 @@ class ApplyTransformationTapeFilter(Filter):
 
                 image_sitk = resample_filter.Execute(image_sitk)
 
-            new_transform_info = TransformationInformation.from_images(f'Inverse of {transform_info.name}',
-                                                                       transform,
-                                                                       image_sitk_pre, image_sitk)
-            image.get_transform_tape().record(new_transform_info)
+            # TODO Correct this
+            # new_transform_info = TransformationInformation.from_images(f'Inverse of {transform_info.name}',
+            #                                                            transform,
+            #                                                            image_sitk_pre, image_sitk)
+            # image.get_transform_tape().record(new_transform_info)
 
-        image.set_image(image_sitk)
+        image.set_image_data(image_sitk)
 
         if params.clear_transformation_tapes:
             image.get_transform_tape().reset()
@@ -210,13 +212,13 @@ class ApplyTransformationTapeFilter(Filter):
 
     def execute(self,
                 subject: Subject,
-                params: ApplyTransformationTapeFilterParameters
+                params: ApplyTransformationTapeFilterParams
                 ) -> Subject:
         """Execute the filter and reapplies the transformations.
 
         Args:
             subject (Subject): The subject to process.
-            params (ApplyTransformationTapeFilterParameters): The filters parameters.
+            params (ApplyTransformationTapeFilterParams): The filters parameters.
 
         Returns:
             Subject: The processed subject.
@@ -231,7 +233,7 @@ class ApplyTransformationTapeFilter(Filter):
         return subject
 
 
-class BackTransformSegmentationFilterParams(FilterParameters):
+class BackTransformSegmentationFilterParams(FilterParams):
     """A class for the parameters of a BackTransformSegmentationFilter."""
 
 
@@ -257,7 +259,7 @@ class BackTransformSegmentationFilter(Filter):
         return subject
 
 
-class BackTransformIntensityImageFilterParams(FilterParameters):
+class BackTransformIntensityImageFilterParams(FilterParams):
     """A class for the parameters of a BackTransformIntensityImageFilter."""
 
 
@@ -284,7 +286,7 @@ class BackTransformIntensityImageFilter(Filter):
 
 
 # pylint: disable = too-few-public-methods
-class CopyReferenceTransformTapeFilterParameters(FilterParameters):
+class CopyReferenceTransformTapeFilterParams(FilterParams):
     """A class for the parameters of a CopyReferenceTransformTapeFilter.
 
     Args:
@@ -317,13 +319,13 @@ class CopyReferenceTransformTapeFilter(Filter):
 
     def execute(self,
                 subject: Subject,
-                params: CopyReferenceTransformTapeFilterParameters
+                params: CopyReferenceTransformTapeFilterParams
                 ) -> Subject:
         """Execute the copying procedure for the transformation tape.
 
         Args:
             subject (Subject): The subject.
-            params (CopyReferenceTransformTapeFilterParameters): The filter parameters.
+            params (CopyReferenceTransformTapeFilterParams): The filter parameters.
 
         Returns:
             Subject: The modified subject.

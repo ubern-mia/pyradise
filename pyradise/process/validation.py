@@ -12,14 +12,14 @@ from pyradise.data import (
     SegmentationImage)
 from .base import (
     Filter,
-    FilterParameters)
+    FilterParams)
 
 
-__all__ = ['SegmentationCheckingFilterParameters', 'SegmentationCheckingFilter']
+__all__ = ['SegmentationCheckingFilterParams', 'SegmentationCheckingFilter']
 
 
 # pylint: disable = too-few-public-methods
-class SegmentationCheckingFilterParameters(FilterParameters):
+class SegmentationCheckingFilterParams(FilterParams):
     """A class representing parameters for a SegmentationCheckingFilter.
 
     Args:
@@ -55,19 +55,19 @@ class SegmentationCheckingFilter(Filter):
     @staticmethod
     def _add_new_organ_image(subject: Subject,
                              organ: Organ,
-                             params: SegmentationCheckingFilterParameters
+                             params: SegmentationCheckingFilterParams
                              ) -> None:
         """Construct and adds a new organ image to the subject.
 
         Args:
             subject (Subject): The subject to add the newly constructed image.
             organ (Organ): The organ the newly constructed image should have.
-            params (SegmentationCheckingFilterParameters): The parameters specifying the new image properties.
+            params (SegmentationCheckingFilterParams): The parameters specifying the new image properties.
 
         Returns:
             None
         """
-        reference_img_itk = params.reference_image.get_image()
+        reference_img_itk = params.reference_image.get_image_data()
 
         pixel_type = itk.ctype('unsigned char')
         dimensions = reference_img_itk.GetImageDimension()
@@ -98,13 +98,13 @@ class SegmentationCheckingFilter(Filter):
 
     def execute(self,
                 subject: Subject,
-                params: SegmentationCheckingFilterParameters
+                params: SegmentationCheckingFilterParams
                 ) -> Subject:
         """Execute the segmentation checking procedure.
 
         Args:
             subject (Subject): The subject to check and maybe to modify.
-            params (SegmentationCheckingFilterParameters): The filters parameters.
+            params (SegmentationCheckingFilterParams): The filters parameters.
 
         Returns:
             Subject: The processed subject.

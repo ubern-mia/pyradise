@@ -5,10 +5,13 @@ import SimpleITK as sitk
 
 from pyradise.data import (
     Subject,
-    TransformationInformation)
+    TransformInfo,
+    ImageProperties)
 from .base import (
     Filter,
-    FilterParameters)
+    FilterParams)
+
+__all_ = ['SpatialOrientation', 'OrientationFilter', 'OrientationFilterParameters']
 
 
 class Coord(Enum):
@@ -299,7 +302,7 @@ class SpatialOrientation(Enum):
 
 
 # pylint: disable = too-few-public-methods
-class OrientationFilterParameters(FilterParameters):
+class OrientationFilterParams(FilterParams):
     """A filter parameter class for an :class:`OrientationFilter`.
 
     Args:
@@ -319,39 +322,67 @@ class OrientationFilterParameters(FilterParameters):
 class OrientationFilter(Filter):
     """A filter class for reorienting image data of a :class:`Subject`."""
 
+    @staticmethod
+    def is_invertible() -> bool:
+        return True
+
     def execute(self,
                 subject: Subject,
-                params: OrientationFilterParameters
+                params: OrientationFilterParams
                 ) -> Subject:
         """Execute the image reorientation procedure.
 
         Args:
             subject (Subject): The :class:`Subject` instance to be processed.
-            params (OrientationFilterParameters): The filters parameters.
+            params (OrientationFilterParams): The filters parameters.
 
         Returns:
             Subject: The :class:`Subject` instance with oriented :class:`IntensityImage` and
              :class:`SegmentationImage` entries.
         """
-        images = []
-        images.extend(subject.intensity_images)
-        images.extend(subject.segmentation_images)
-
-        for image in images:
-            sitk_image = image.get_image(True)
+        for image in subject.get_images():
+            sitk_image = image.get_image_data(True)
 
             orient_filter = sitk.DICOMOrientImageFilter()
             orient_filter.SetDesiredCoordinateOrientation(params.output_orientation.name)
             oriented_sitk_image = orient_filter.Execute(sitk_image)
 
-            image.set_image(oriented_sitk_image)
+            image.set_image_data(oriented_sitk_image)
 
-            identity_transform = sitk.AffineTransform(3)
-            identity_transform.SetIdentity()
-
-            transform_info = TransformationInformation.from_images(self.__class__.__name__,
-                                                                   identity_transform,
-                                                                   sitk_image, oriented_sitk_image)
+            # record the transform on the tape
+            pre_orientation = orient_filter.GetOrientationFromDirectionCosines(sitk_image.GetDirection())
+            image_properties_pre = ImageProperties(sitk_image, orientation=pre_orientation)
+            image_properties_post = ImageProperties(oriented_sitk_image, orientation=params.output_orientation.name)
+            transform_info = TransformInfo(self.__class__.__name__, params, image_properties_pre,
+                                           image_properties_post)
             image.get_transform_tape().record(transform_info)
 
         return subject
+
+    def execute_inverse(self,
+                        subject: Subject,
+                        transform_info: TransformInfo
+                        ) -> Subject:
+        """Execute the inverse image reorientation procedure.
+
+        Args:
+            subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
+            transform_info (TransformInfo): The :class:`~pyradise.data.transform_info.TransformInfo` instance
+
+        Returns:
+            Subject: The :class:`~pyradise.data.subject.Subject` instance with reoriented
+            :class:`~pyradise.data.image.IntensityImage` and :class:`~pyradise.data.image.SegmentationImage` instances.
+        """
+        for image in subject.get_images():
+            sitk_image = image.get_image_data(True)
+
+            original_orientation = transform_info.pre_transform_image_properties.get_entry('orientation')
+            orient_filter = sitk.DICOMOrientImageFilter()
+            orient_filter.SetDesiredCoordinateOrientation(original_orientation)
+            oriented_sitk_image = orient_filter.Execute(sitk_image)
+
+            image.set_image_data(oriented_sitk_image)
+
+        return subject
+
+

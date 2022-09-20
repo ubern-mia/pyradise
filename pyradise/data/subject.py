@@ -42,7 +42,8 @@ class Subject:
         >>>
         >>> import SimpleITK as sitk
         >>>
-        >>> from pyradise.data import Subject, IntensityImage, SegmentationImage, Modality, Organ, Rater
+        >>> from pyradise.data import (Subject, IntensityImage, SegmentationImage,
+        >>>                            Modality, Organ, Rater)
         >>> from pyradise.fileio import SubjectWriter, ImageFileFormat
         >>>
         >>>
@@ -52,7 +53,10 @@ class Subject:
         >>>     file_paths = []
         >>>
         >>>     for file in os.listdir(path):
-        >>>         if any(organ.name in file for organ in valid_organs) and file.endswith('.nii.gz'):
+        >>>         if not file.endswith('.nii.gz'):
+        >>>             continue
+        >>>
+        >>>         if any(entry.name in file for entry in valid_organs):
         >>>             file_paths.append(os.path.join(path, file))
         >>>
         >>>     return tuple(sorted(file_paths))
@@ -64,7 +68,10 @@ class Subject:
         >>>     file_paths = []
         >>>
         >>>     for file in os.listdir(path):
-        >>>         if any(modality.get_name() in file for modality in valid_modalities) and file.endswith('.nii.gz'):
+        >>>         if not file.endswith('.nii.gz'):
+        >>>             continue
+        >>>
+        >>>         if any(entry.get_name() in file for entry in valid_modalities):
         >>>             file_paths.append(os.path.join(path, file))
         >>>
         >>>     return tuple(sorted(file_paths))
@@ -74,8 +81,10 @@ class Subject:
         >>>          output_dir: str
         >>>          ) -> None:
         >>>     # Retrieve image file paths
-        >>>     organs = (Organ('Brainstem'), Organ('Eyes'), Organ('Hippocampi'), Organ('OpticNerves'))
-        >>>     modalities = (Modality('CT'), Modality('T1c'), Modality('T1w'), Modality('T2w'))
+        >>>     organs = (Organ('Brainstem'), Organ('Eyes'),
+        >>>               Organ('Hippocampi'), Organ('OpticNerves'))
+        >>>     modalities = (Modality('CT'), Modality('T1c'),
+        >>>                   Modality('T1w'), Modality('T2w'))
         >>>
         >>>     segmentation_file_paths = get_segmentation_file_paths(input_dir, organs)
         >>>     intensity_file_paths = get_intensity_file_paths(input_dir, modalities)
@@ -83,28 +92,34 @@ class Subject:
         >>>     # Load the segmentation image files
         >>>     images = []
         >>>     for path, organ in zip(segmentation_file_paths, organs):
-        >>>         image = SegmentationImage(sitk.ReadImage(path, sitk.sitkUInt8), organ, Rater.get_default())
+        >>>         image = SegmentationImage(sitk.ReadImage(path, sitk.sitkUInt8),
+        >>>                                   organ, Rater.get_default())
         >>>         images.append(image)
         >>>
         >>>     # Load the intensity image files
         >>>     for path, modality in zip(intensity_file_paths, modalities):
-        >>>         image = IntensityImage(sitk.ReadImage(path, sitk.sitkFloat32), modality)
+        >>>         image = IntensityImage(sitk.ReadImage(path, sitk.sitkFloat32),
+        >>>                                modality)
         >>>         images.append(image)
         >>>
         >>>     # Construct the subject
         >>>     subject = Subject(os.path.basename(input_dir), images)
         >>>
-        >>>     # Display the subject name and properties of the intensity and segmentation images
+        >>>     # Display the subject name and properties of the intensity and
+        >>>     # segmentation images
         >>>     print(f'Subject {subject.get_name()} contains the following images:')
         >>>
         >>>     for image in subject.intensity_images:
-        >>>         print(f'Intensity image of modality {image.get_modality(True)} with size: {image.get_size()}')
+        >>>         print(f'Intensity image of modality {image.get_modality(True)} '
+        >>>               f'with size: {image.get_size()}')
         >>>
         >>>     for image in subject.segmentation_images:
-        >>>         print(f'Segmentation image of {image.get_organ(True)} with size: {image.get_size()}')
+        >>>         print(f'Segmentation image of {image.get_organ(True)} '
+        >>>               f'with size: {image.get_size()}')
         >>>
         >>>     # Write the subject to disk
-        >>>     SubjectWriter(ImageFileFormat.NRRD).write(output_dir, subject, write_transforms=False)
+        >>>     SubjectWriter(ImageFileFormat.NRRD).write(output_dir, subject,
+        >>>                                               write_transforms=False)
         >>>
         >>>
         >>> if __name__ == '__main__':
@@ -167,15 +182,6 @@ class Subject:
             data = {}
 
         self.data: Dict[str, Any] = data
-
-
-    def _get_data_list_by_type(self, type_: type) -> List[Any]:
-        if type_ == IntensityImage:
-            return self.intensity_images
-        elif type_ == SegmentationImage:
-            return self.segmentation_images
-        else:
-            raise ValueError('The given data type is not supported or not contained in the subject!')
 
     @staticmethod
     def _check_for_single_candidate(candidates: List[Any],
@@ -248,10 +254,10 @@ class Subject:
         Returns:
             None
         """
-        images = self._get_data_list_by_type(type(image))
+        images = self.get_images_by_type(type(image))
 
-        for image in images:
-            if image == image:
+        for image_ in images:
+            if image_ == image:
                 if force:
                     warn(f'An image of type {type(image).__name__} with the same properties is already contained in '
                          f'the subject. The image will be added anyway due to force=True.')
@@ -277,6 +283,14 @@ class Subject:
         """
         for image in images:
             self.add_image(image, force)
+
+    def get_images(self) -> List[Union[IntensityImage, SegmentationImage]]:
+        """Get all images of the subject.
+
+        Returns:
+            List[Union[IntensityImage, SegmentationImage]]: All images of the subject.
+        """
+        return [*self.intensity_images, *self.segmentation_images]
 
     def get_image_by_modality(self,
                               modality: Union[Modality, str],
@@ -367,6 +381,22 @@ class Subject:
 
         return self._check_for_single_candidate(candidates, 'organs and raters', return_first_on_multiple)
 
+    def get_images_by_type(self, image_type: type) -> List[Image]:
+        """Get all images of a specific type.
+
+        Args:
+            image_type: The type of the images to retrieve.
+
+        Returns:
+            List[Image]: A list of all images of the specified type.
+        """
+        if image_type == IntensityImage:
+            return self.intensity_images
+        elif image_type == SegmentationImage:
+            return self.segmentation_images
+        else:
+            raise ValueError('The given data type is not supported or not contained in the subject!')
+
     def replace_image(self,
                       new_image: Union[IntensityImage, SegmentationImage],
                       old_image: Optional[Union[IntensityImage, SegmentationImage]] = None
@@ -395,7 +425,7 @@ class Subject:
 
             return tuple(candidate for candidate in candidates_ if candidate == reference)
 
-        image_sequence = self._get_data_list_by_type(type(new_image))
+        image_sequence = self.get_images_by_type(type(new_image))
 
         if old_image is None:
             equal_images = _get_equal_entities(new_image, image_sequence)
@@ -439,8 +469,7 @@ class Subject:
         if isinstance(modality, str):
             modality = Modality(modality)
 
-        images = self._get_data_list_by_type(IntensityImage)
-        candidates = [img for img in images if img.get_modality() == modality]
+        candidates = [img for img in self.intensity_images if img.get_modality() == modality]
 
         if not candidates:
             return False
@@ -448,7 +477,7 @@ class Subject:
         success = True
         for candidate in candidates:
             try:
-                images.remove(candidate)
+                self.intensity_images.remove(candidate)
             except ValueError:
                 success = False
 
@@ -468,8 +497,7 @@ class Subject:
         if isinstance(organ, str):
             organ = Organ(organ, None)
 
-        images = self._get_data_list_by_type(SegmentationImage)
-        candidates = [img for img in images if img.get_organ() == organ]
+        candidates = [img for img in self.segmentation_images if img.get_organ() == organ]
 
         if not candidates:
             return False
@@ -477,7 +505,7 @@ class Subject:
         success = True
         for candidate in candidates:
             try:
-                images.remove(candidate)
+                self.segmentation_images.remove(candidate)
             except ValueError:
                 success = False
 
@@ -495,8 +523,7 @@ class Subject:
         if isinstance(rater, str):
             rater = Rater(rater)
 
-        images = self._get_data_list_by_type(SegmentationImage)
-        candidates = [img for img in images if img.get_rater() == rater]
+        candidates = [img for img in self.segmentation_images if img.get_rater() == rater]
 
         if not candidates:
             return False
@@ -504,7 +531,7 @@ class Subject:
         success = True
         for candidate in candidates:
             try:
-                images.remove(candidate)
+                self.segmentation_images.remove(candidate)
             except ValueError:
                 success = False
 
@@ -528,8 +555,7 @@ class Subject:
         if isinstance(rater, str):
             rater = Rater(rater)
 
-        images = self._get_data_list_by_type(SegmentationImage)
-        candidates = [img for img in images if img.get_organ() == organ and img.get_rater() == rater]
+        candidates = [img for img in self.segmentation_images if img.get_organ() == organ and img.get_rater() == rater]
 
         if not candidates:
             return False
@@ -537,7 +563,7 @@ class Subject:
         success = True
         for candidate in candidates:
             try:
-                images.remove(candidate)
+                self.segmentation_images.remove(candidate)
             except ValueError:
                 success = False
 
@@ -552,7 +578,7 @@ class Subject:
         Returns:
             bool: True when the removal procedure was successful otherwise False.
         """
-        images = self._get_data_list_by_type(type(image))
+        images = self.get_images_by_type(type(image))
         candidates = [img for img in images if img == image]
 
         if len(candidates) > 1:
@@ -644,6 +670,15 @@ class Subject:
             bool: True when the removal procedure was successful otherwise False.
         """
         return self.data.pop(key, None) is not None
+
+    def playback_transform_tapes(self) -> None:
+        """Playback the transform tapes.
+
+        Returns:
+            None
+        """
+        for image in self.get_images():
+            image.get_transform_tape().playback(image, subject=self)
 
     def __str__(self) -> str:
         return f'{self.name} (Intensity Images: {len(self.intensity_images)} / ' \

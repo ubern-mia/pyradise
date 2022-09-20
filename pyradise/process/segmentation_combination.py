@@ -16,11 +16,11 @@ from pyradise.data import (
     SegmentationImage)
 from .base import (
     Filter,
-    FilterParameters)
+    FilterParams)
 
 
 # pylint: disable = too-few-public-methods
-class SegmentationCombinationFilterParameters(FilterParameters):
+class SegmentationCombinationFilterParams(FilterParams):
     """A class representing the parameters for a SegmentationCombinationFilter."""
 
     def __init__(self,
@@ -73,13 +73,13 @@ class SegmentationCombinationFilter(Filter):
 
     @staticmethod
     def _is_exact_match(organ: Organ,
-                        params: SegmentationCombinationFilterParameters
+                        params: SegmentationCombinationFilterParams
                         ) -> bool:
         """Checks if the provided organ is an exact match with one of the organs in the parameters.
 
         Args:
             organ (Organ): The organ to check on match.
-            params (SegmentationCombinationFilterParameters): The filter parameters containing the organs to combine.
+            params (SegmentationCombinationFilterParams): The filter parameters containing the organs to combine.
 
         Returns:
             bool: True if the organ is an exact match otherwise False.
@@ -88,14 +88,14 @@ class SegmentationCombinationFilter(Filter):
 
     @staticmethod
     def _is_in_match(organ: Organ,
-                     params: SegmentationCombinationFilterParameters,
+                     params: SegmentationCombinationFilterParams,
                      case_sensitive: bool = False
                      ) -> bool:
         """Checks if the provided organ is an 'in' match with one of the organs in the parameters.
 
         Args:
             organ (Organ): The organ to check on match.
-            params (SegmentationCombinationFilterParameters): The filter parameters containing the organs to combine.
+            params (SegmentationCombinationFilterParams): The filter parameters containing the organs to combine.
             case_sensitive (bool): Indicates if the matching is case-sensitive or not.
 
         Returns:
@@ -159,18 +159,18 @@ class SegmentationCombinationFilter(Filter):
 
     @staticmethod
     def _combine_segmentations(segmentations: List[SegmentationImage],
-                               params: SegmentationCombinationFilterParameters
+                               params: SegmentationCombinationFilterParams
                                ) -> SegmentationImage:
         """Combines multiple segmentation images into one.
 
         Args:
             segmentations (List[SegmentationImage]): The segmentation images to combine.
-            params (SegmentationCombinationFilterParameters): The filters parameters.
+            params (SegmentationCombinationFilterParams): The filters parameters.
 
         Returns:
             SegmentationImage: The combined segmentation image.
         """
-        segmentations_sitk = [segmentation.get_image(as_sitk=True) for segmentation in segmentations]
+        segmentations_sitk = [segmentation.get_image_data(as_sitk=True) for segmentation in segmentations]
 
         SegmentationCombinationFilter._is_valid(segmentations_sitk)
 
@@ -194,13 +194,13 @@ class SegmentationCombinationFilter(Filter):
 
     @staticmethod
     def _contains_exclude_terms(organ: Organ,
-                                params: SegmentationCombinationFilterParameters
+                                params: SegmentationCombinationFilterParams
                                 ) -> bool:
         """Checks if the organ name contains exclude names (case-insensitive).
 
         Args:
             organ (Organ): The organ which name need to be checked.
-            params (SegmentationCombinationFilterParameters): The filter parameters containing the exclusion terms.
+            params (SegmentationCombinationFilterParams): The filter parameters containing the exclusion terms.
 
         Returns:
             bool: True if an exclusion term is contained.
@@ -217,13 +217,13 @@ class SegmentationCombinationFilter(Filter):
 
     def execute(self,
                 subject: Subject,
-                params: SegmentationCombinationFilterParameters
+                params: SegmentationCombinationFilterParams
                 ) -> Subject:
         """Executes the label combination procedure.
 
         Args:
             subject (Subject): The subject to be processed.
-            params (SegmentationCombinationFilterParameters): The filters parameters.
+            params (SegmentationCombinationFilterParams): The filters parameters.
 
         Returns:
             Subject: The processed subject.
@@ -268,7 +268,7 @@ class SegmentationCombinationFilter(Filter):
 
 
 # pylint: disable = too-few-public-methods
-class CombineEnumeratedLabelFilterParameters(FilterParameters):
+class CombineEnumeratedLabelFilterParams(FilterParams):
     """A class representing the parameters for a CombineEnumeratedLabelFilter."""
 
     def __init__(self,
@@ -327,13 +327,13 @@ class CombineEnumeratedLabelFilter(Filter):
 
     @staticmethod
     def is_match(segmentation: SegmentationImage,
-                 params: CombineEnumeratedLabelFilterParameters
+                 params: CombineEnumeratedLabelFilterParams
                  ) -> bool:
         """Checks if the provided segmentation fulfills the matching criterion to be selected for combination.
 
         Args:
             segmentation (SegmentationImage): The segmentation image to check for match.
-            params (CombineEnumeratedLabelFilterParameters): The filter parameters.
+            params (CombineEnumeratedLabelFilterParams): The filter parameters.
 
         Returns:
             bool: True if the segmentation image is a match otherwise False.
@@ -354,13 +354,13 @@ class CombineEnumeratedLabelFilter(Filter):
 
     @staticmethod
     def _get_index(segmentation: SegmentationImage,
-                   params: CombineEnumeratedLabelFilterParameters
+                   params: CombineEnumeratedLabelFilterParams
                    ) -> int:
         """Gets the output index of the segmentation.
 
         Args:
             segmentation (SegmentationImage): The segmentation image to get the index for.
-            params (CombineEnumeratedLabelFilterParameters): The filter parameter.
+            params (CombineEnumeratedLabelFilterParams): The filter parameter.
 
         Returns:
             int: The output index of the segmentation in the combined segmentation mask.
@@ -384,13 +384,13 @@ class CombineEnumeratedLabelFilter(Filter):
         Returns:
             None
         """
-        reference_image = segmentations[0][0].get_image(as_sitk=True)
+        reference_image = segmentations[0][0].get_image_data(as_sitk=True)
         reference_origin = reference_image.GetOrigin()
         reference_direction = reference_image.GetDirection()
         reference_size = reference_image.GetSize()
 
         for segmentation, _ in segmentations:
-            image = segmentation.get_image(as_sitk=True)
+            image = segmentation.get_image_data(as_sitk=True)
 
             criteria = (reference_origin == image.GetOrigin(),
                         reference_direction == image.GetDirection(),
@@ -402,29 +402,29 @@ class CombineEnumeratedLabelFilter(Filter):
 
     @staticmethod
     def _combine_labels(segmentations: Tuple[Tuple[SegmentationImage, int]],
-                        params: CombineEnumeratedLabelFilterParameters
+                        params: CombineEnumeratedLabelFilterParams
                         ) -> SegmentationImage:
         """Combines the segmentations into one common segmentation which is enumerated according to the provided
          parameters.
 
         Args:
             segmentations (Tuple[Tuple[SegmentationImage, int]]): The segmentations to combine and their indexes.
-            params (CombineEnumeratedLabelFilterParameters): The filter parameters.
+            params (CombineEnumeratedLabelFilterParams): The filter parameters.
 
         Returns:
             SegmentationImage: The combined segmentation image.
         """
-        combined_mask = np.zeros_like(sitk.GetArrayFromImage(segmentations[0][0].get_image(as_sitk=True)))
+        combined_mask = np.zeros_like(sitk.GetArrayFromImage(segmentations[0][0].get_image_data(as_sitk=True)))
 
         for segmentation, label_idx in segmentations:
-            mask = sitk.GetArrayFromImage(segmentation.get_image(as_sitk=True))
+            mask = sitk.GetArrayFromImage(segmentation.get_image_data(as_sitk=True))
 
             mask[mask != 0] = label_idx
 
             np.putmask(combined_mask, mask != 0, mask)
 
         image = sitk.GetImageFromArray(combined_mask)
-        image.CopyInformation(segmentations[0][0].get_image(as_sitk=True))
+        image.CopyInformation(segmentations[0][0].get_image_data(as_sitk=True))
 
         segmentation_image = SegmentationImage(image, params.output_organ, params.output_rater)
 
@@ -432,13 +432,13 @@ class CombineEnumeratedLabelFilter(Filter):
 
     def execute(self,
                 subject: Subject,
-                params: CombineEnumeratedLabelFilterParameters
+                params: CombineEnumeratedLabelFilterParams
                 ) -> Subject:
         """Executes the combination procedure.
 
         Args:
             subject (Subject): The subject from which to combine the segmentations.
-            params (CombineEnumeratedLabelFilterParameters): The filter parameters.
+            params (CombineEnumeratedLabelFilterParams): The filter parameters.
 
         Returns:
             Subject: The processed subject.
@@ -473,7 +473,7 @@ class CombineEnumeratedLabelFilter(Filter):
         return subject
 
 
-class CombineSegmentationsFilterParameters(FilterParameters):
+class CombineSegmentationsFilterParams(FilterParams):
     """A class representing the parameters for a CombineSegmentationsFilter."""
 
     def __init__(self,
@@ -513,13 +513,13 @@ class CombineSegmentationsFilter(Filter):
 
     @staticmethod
     def _get_matching_images(subject: Subject,
-                             params: CombineSegmentationsFilterParameters
+                             params: CombineSegmentationsFilterParams
                              ) -> Tuple[SegmentationImage]:
         """Get the matching images according to the specified organs.
 
         Args:
             subject (Subject): The subject holding the segmentation images.
-            params (CombineSegmentationsFilterParameters): The filters parameters.
+            params (CombineSegmentationsFilterParams): The filters parameters.
 
         Returns:
             Tuple[SegmentationImage]: The segmentation images for combination.
@@ -545,14 +545,14 @@ class CombineSegmentationsFilter(Filter):
         Returns:
             None
         """
-        reference_image = images[0].get_image(as_sitk=True)
+        reference_image = images[0].get_image_data(as_sitk=True)
         size = reference_image.GetSize()
         spacing = reference_image.GetSpacing()
         direction = reference_image.GetDirection()
         origin = reference_image.GetOrigin()
 
         for image in images[1:]:
-            image_sitk = image.get_image(as_sitk=True)
+            image_sitk = image.get_image_data(as_sitk=True)
             result = all((size == image_sitk.GetSize(),
                           spacing == image_sitk.GetSpacing(),
                           direction == image_sitk.GetDirection(),
@@ -564,41 +564,41 @@ class CombineSegmentationsFilter(Filter):
 
     @staticmethod
     def _combine_images(images: Tuple[SegmentationImage],
-                        params: CombineSegmentationsFilterParameters
+                        params: CombineSegmentationsFilterParams
                         ) -> SegmentationImage:
         """Combines a list of segmentation images to a new segmentation image.
 
         Args:
             images (Tuple[SegmentationImage]): The segmentation images to combine.
-            params (CombineSegmentationsFilterParameters): The parameters specifying the new organ and rater.
+            params (CombineSegmentationsFilterParams): The parameters specifying the new organ and rater.
 
         Returns:
             SegmentationImage: The combined segmentation image.
         """
-        new_image_np = sitk.GetArrayFromImage(images[0].get_image(as_sitk=True))
+        new_image_np = sitk.GetArrayFromImage(images[0].get_image_data(as_sitk=True))
         new_image_np[new_image_np != 0] = 1
 
         for image in images[1:]:
-            image_np = sitk.GetArrayFromImage(image.get_image(as_sitk=True))
+            image_np = sitk.GetArrayFromImage(image.get_image_data(as_sitk=True))
             image_np[image_np != 0] = 1
 
             np.putmask(new_image_np, image_np, 1)
 
         new_image_sitk = sitk.GetImageFromArray(new_image_np)
-        new_image_sitk.CopyInformation(images[0].get_image(as_sitk=True))
+        new_image_sitk.CopyInformation(images[0].get_image_data(as_sitk=True))
 
         new_image = SegmentationImage(new_image_sitk, params.new_organ, params.new_rater)
         return new_image
 
     def execute(self,
                 subject: Subject,
-                params: CombineSegmentationsFilterParameters
+                params: CombineSegmentationsFilterParams
                 ) -> Subject:
         """Executes the combination of multiple segmentation images as specified by the filters parameters.
 
         Args:
             subject (Subject): The subject to apply the filter on.
-            params (CombineSegmentationsFilterParameters): The filter parameters.
+            params (CombineSegmentationsFilterParams): The filter parameters.
 
         Returns:
             Subject: The processed subject.

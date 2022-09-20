@@ -8,9 +8,12 @@ Process Package
 
 DESCRIPTION GOES HERE
 
-Process Base Module
+Filter Base Module
 -------------------
 Module: :mod:`pyradise.process.base`
+
+.. module:: pyradise.process.base
+    :noindex:
 
 DESCRIPTION GOES HERE
 
@@ -18,13 +21,16 @@ DESCRIPTION GOES HERE
     :members:
     :show-inheritance:
 
-Normalization Module
+Intensity Module
 --------------------
-Module: :mod:`pyradise.process.normalization`
+Module: :mod:`pyradise.process.intensity`
+
+.. module:: pyradise.process.intensity
+    :noindex:
 
 DESCRIPTION GOES HERE
 
-.. automodule:: pyradise.process.normalization
+.. automodule:: pyradise.process.intensity
     :members:
     :show-inheritance:
 
@@ -32,6 +38,9 @@ DESCRIPTION GOES HERE
 Orientation Module
 ------------------
 Module: :mod:`pyradise.process.orientation`
+
+.. module:: pyradise.process.orientation
+    :noindex:
 
 DESCRIPTION GOES HERE
 
@@ -44,6 +53,9 @@ Registration Module
 -------------------
 Module: :mod:`pyradise.process.registration`
 
+.. module:: pyradise.process.registration
+    :noindex:
+
 DESCRIPTION GOES HERE
 
 .. automodule:: pyradise.process.registration
@@ -55,6 +67,9 @@ Resampling Module
 -----------------
 Module: :mod:`pyradise.process.resampling`
 
+.. module:: pyradise.process.resampling
+    :noindex:
+
 DESCRIPTION GOES HERE
 
 .. automodule:: pyradise.process.resampling
@@ -64,6 +79,9 @@ DESCRIPTION GOES HERE
 Segmentation Combination Module
 -------------------------------
 Module: :mod:`pyradise.process.segmentation_combination`
+
+.. module:: pyradise.process.segmentation_combination
+    :noindex:
 
 DESCRIPTION GOES HERE
 

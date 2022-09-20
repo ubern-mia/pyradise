@@ -4,6 +4,7 @@ from typing import (Sequence, Tuple, Sized, Iterable)
 
 import numpy as np
 import SimpleITK as sitk
+import itk
 from pydicom import (dcmread, Dataset)
 from pydicom.tag import Tag
 
@@ -94,6 +95,46 @@ def assume_is_segmentation(path: str) -> bool:
 
     else:
         raise ValueError(f'The path {path} specifies a not supported file type!')
+
+
+def convert_to_sitk_image(image: itk.Image) -> sitk.Image:
+    """Convert an :class:`itk.Image` to a :class:`SimpleITK.Image`.
+
+    Args:
+        image (itk.Image): The :class:`itk.Image` to be converted.
+
+    Returns:
+        sitk.Image: The converted :class:`SimpleITK.Image`.
+    """
+    if image.GetImageDimension() > 3:
+        raise NotImplementedError(f'Conversion of {image.GetDimension()}D images is not supported!')
+
+    is_vector_image = image.GetNumberOfComponentsPerPixel() > 1
+    image_sitk = sitk.GetImageFromArray(itk.GetArrayFromImage(image), isVector=is_vector_image)
+    image_sitk.SetOrigin(tuple(image.GetOrigin()))
+    image_sitk.SetSpacing(tuple(image.GetSpacing()))
+    image_sitk.SetDirection(itk.GetArrayFromMatrix(image.GetDirection()).flatten())
+    return image_sitk
+
+
+def convert_to_itk_image(image: sitk.Image) -> itk.Image:
+    """Convert a :class:`SimpleITK.Image` to an :class:`itk.Image`.
+
+    Args:
+        image (sitk.Image): The :class:`SimpleITK.Image` to be converted.
+
+    Returns:
+        itk.Image: The converted :class:`itk.Image`.
+    """
+    if image.GetDimension() > 3:
+        raise NotImplementedError(f'Conversion of {image.GetDimension()}D images is not supported!')
+
+    is_vector_image = image.GetNumberOfComponentsPerPixel() > 1
+    image_itk = itk.GetImageFromArray(sitk.GetArrayFromImage(image), is_vector=is_vector_image)
+    image_itk.SetOrigin(image.GetOrigin())
+    image_itk.SetSpacing(image.GetSpacing())
+    image_itk.SetDirection(itk.GetMatrixFromArray(np.reshape(np.array(image.GetDirection()), [3] * 2)))
+    return image_itk
 
 
 def assume_is_intensity_image(path: str) -> bool:

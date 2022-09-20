@@ -1767,7 +1767,7 @@ class SubjectToRTSSConverter(Converter):
         sitk_images = []
         label_names = []
         for image in self.subject.segmentation_images:
-            sitk_images.append(image.get_image(as_sitk=True))
+            sitk_images.append(image.get_image_data(as_sitk=True))
             label_names.append(image.get_organ(as_str=True))
 
         # load the image datasets

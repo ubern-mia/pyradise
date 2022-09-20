@@ -15,11 +15,11 @@ from pyradise.data import (
     SegmentationImage)
 from .base import (
     Filter,
-    FilterParameters)
+    FilterParams)
 
 
 # pylint: disable = too-few-public-methods
-class SingleConnectedComponentFilterParameters(FilterParameters):
+class SingleConnectedComponentFilterParams(FilterParams):
     """A class representing the parameters of a SingleConnectedComponentFilter."""
 
     def __init__(self,
@@ -53,7 +53,7 @@ class SingleConnectedComponentFilter(Filter):
             bool: True if the image is binary otherwise False.
         """
         if isinstance(image, SegmentationImage):
-            itk_image = image.get_image()
+            itk_image = image.get_image_data()
         else:
             itk_image = image
 
@@ -76,7 +76,7 @@ class SingleConnectedComponentFilter(Filter):
             Tuple[Tuple[itk.Image, ...], Tuple[int, ...]]: Returns the binary images and the original label indexes.
         """
         if isinstance(image, SegmentationImage):
-            itk_image = image.get_image()
+            itk_image = image.get_image_data()
         else:
             itk_image = image
 
@@ -138,7 +138,7 @@ class SingleConnectedComponentFilter(Filter):
         """
 
         if isinstance(image, SegmentationImage):
-            itk_image = image.get_image()
+            itk_image = image.get_image_data()
             itk_image_type = image.get_image_itk_type()
         else:
             itk_image = image
@@ -178,13 +178,13 @@ class SingleConnectedComponentFilter(Filter):
 
     def execute(self,
                 subject: Subject,
-                params: SingleConnectedComponentFilterParameters
+                params: SingleConnectedComponentFilterParams
                 ) -> Subject:
         """Executes the single connected component keeping procedure.
 
         Args:
             subject (Subject): The subject to process.
-            params (SingleConnectedComponentFilterParameters): The filters parameters.
+            params (SingleConnectedComponentFilterParams): The filters parameters.
 
         Returns:
             Subject: The processed subject.
@@ -197,7 +197,7 @@ class SingleConnectedComponentFilter(Filter):
             if self._is_binary_image(image):
                 single_label_images = (image,)
 
-                image_np = sitk.GetArrayFromImage(image.get_image(as_sitk=True))
+                image_np = sitk.GetArrayFromImage(image.get_image_data(as_sitk=True))
                 unique_labels = list(np.unique(image_np))
 
                 if 0 in unique_labels:
@@ -218,7 +218,7 @@ class SingleConnectedComponentFilter(Filter):
 
             if cc_images:
                 cc_image = self._combine_images(tuple(cc_images))
-                image.set_image(cc_image)
+                image.set_image_data(cc_image)
 
         return subject
 
@@ -228,13 +228,13 @@ class AlphabeticOrganSortingFilter(Filter):
 
     def execute(self,
                 subject: Subject,
-                params: Optional[FilterParameters] = None
+                params: Optional[FilterParams] = None
                 ) -> Subject:
         """Execute the alphabetical sorting of the segmentation image organs.
 
         Args:
             subject (Subject): The subject to apply the filter on.
-            params (FilterParameters): Unused.
+            params (FilterParams): Unused.
 
         Returns:
             Subject: The subject with the alphabetically sorted segmentation images.

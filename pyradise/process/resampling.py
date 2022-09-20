@@ -1,6 +1,7 @@
 from typing import (
     Tuple,
     Optional)
+from copy import deepcopy
 
 import numpy as np
 import SimpleITK as sitk
@@ -9,16 +10,17 @@ import itk
 from pyradise.data import (
     Subject,
     Modality,
-    TransformationInformation,
+    TransformInfo,
+    ImageProperties,
     SegmentationImage,
     IntensityImage)
 from .base import (
     Filter,
-    FilterParameters)
+    FilterParams)
 
 
 # pylint: disable = too-few-public-methods
-class ResamplingFilterParameters(FilterParameters):
+class ResamplingFilterParams(FilterParams):
     """A class representing the parameters of the ResamplingFilter."""
 
     def __init__(self,
@@ -67,7 +69,7 @@ class ResamplingFilter(Filter):
         bounding_boxes = []
         for image in images:
             origin = image.get_origin()
-            distant_point = tuple(image.get_image().TransformIndexToPhysicalPoint(image.get_size()))
+            distant_point = tuple(image.get_image_data().TransformIndexToPhysicalPoint(image.get_size()))
             bounding_boxes.append((*origin, *distant_point))
 
         n_dims = images[0].get_dimensions()
@@ -85,21 +87,21 @@ class ResamplingFilter(Filter):
 
     @staticmethod
     def compute_label_moment_origin(image: IntensityImage,
-                                    params: ResamplingFilterParameters,
+                                    params: ResamplingFilterParams,
                                     label_center: np.ndarray
                                     ) -> np.ndarray:
         """Computes the label moment
 
         Args:
             image (IntensityImage): The intensity image used for the moment calculation.
-            params (ResamplingFilterParameters): The resampling filter parameters.
+            params (ResamplingFilterParams): The resampling filter parameters.
             label_center (np.ndarray): The label center.
 
         Returns:
             np.ndarray: The moment around the center.
         """
         moment_calc = itk.ImageMomentsCalculator[itk.Image[itk.template(image)[1]]].New()
-        moment_calc.SetImage(image.get_image())
+        moment_calc.SetImage(image.get_image_data())
         moment_calc.Compute()
         image_moment_center = np.array(moment_calc.GetCenterOfGravity())
 
@@ -114,7 +116,7 @@ class ResamplingFilter(Filter):
     def resample_intensity_image(self,
                                  image: IntensityImage,
                                  reference_image: IntensityImage,
-                                 params: ResamplingFilterParameters,
+                                 params: ResamplingFilterParams,
                                  segmentation_images: Optional[Tuple[SegmentationImage, ...]] = None
                                  ) -> IntensityImage:
         """Resamples an intensity image according to the provided parameters.
@@ -122,15 +124,15 @@ class ResamplingFilter(Filter):
         Args:
             image (IntensityImage): The intensity image to resample.
             reference_image (IntensityImage): The reference image.
-            params (ResamplingFilterParameters): The parameters for the resampling.
+            params (ResamplingFilterParams): The parameters for the resampling.
             segmentation_images (Optional[Tuple[SegmentationImage, ...]]): Segmentation images used for the moment
              calculation (default: None).
 
         Returns:
             IntensityImage: The resampled intensity image.
         """
-        image_sitk = image.get_image(as_sitk=True)
-        reference_image_sitk = reference_image.get_image(as_sitk=True)
+        image_sitk = image.get_image_data(as_sitk=True)
+        reference_image_sitk = reference_image.get_image_data(as_sitk=True)
 
         image_np = sitk.GetArrayFromImage(image_sitk)
         min_intensity = np.min(image_np)
@@ -185,10 +187,12 @@ class ResamplingFilter(Filter):
             rescale_filter.SetOutputMaximum(np.max(image_np))
             resampled_image_sitk = rescale_filter.Execute(resampled_image_sitk)
 
-        image.set_image(resampled_image_sitk)
+        image.set_image_data(resampled_image_sitk)
 
-        transform_info = TransformationInformation.from_images(self.__class__.__name__, params.transform, image_sitk,
-                                                               resampled_image_sitk)
+        pre_image_properties = ImageProperties(image_sitk)
+        post_image_properties = ImageProperties(resampled_image_sitk)
+        transform_info = TransformInfo(self.__class__.__name__, params, pre_image_properties, post_image_properties,
+                                       deepcopy(self.filter_args), deepcopy(self.tracking_data))
         image.get_transform_tape().record(transform_info)
 
         return image
@@ -197,21 +201,21 @@ class ResamplingFilter(Filter):
     def resample_segmentation_image(self,
                                     image: SegmentationImage,
                                     reference_image: IntensityImage,
-                                    params: ResamplingFilterParameters,
+                                    params: ResamplingFilterParams,
                                     ) -> SegmentationImage:
         """Resamples a segmentation image according to the provided parameters.
 
         Args:
             image (SegmentationImage): The image to resample.
             reference_image (IntensityImage): The reference image.
-            params (ResamplingFilterParameters): The parameters for the resampling.
+            params (ResamplingFilterParams): The parameters for the resampling.
 
         Returns:
             SegmentationImage: The resampled segmentation image.
         """
 
-        image_sitk = image.get_image(as_sitk=True)
-        reference_image_sitk = reference_image.get_image(as_sitk=True)
+        image_sitk = image.get_image_data(as_sitk=True)
+        reference_image_sitk = reference_image.get_image_data(as_sitk=True)
 
         resample_filter = sitk.ResampleImageFilter()
         resample_filter.SetInterpolator(sitk.sitkNearestNeighbor)
@@ -237,23 +241,26 @@ class ResamplingFilter(Filter):
 
         resampled_image_sitk = resample_filter.Execute(image_sitk)
 
-        image.set_image(resampled_image_sitk)
+        image.set_image_data(resampled_image_sitk)
 
-        transform_info = TransformationInformation.from_images(self.__class__.__name__, params.transform, image_sitk,
-                                                               resampled_image_sitk)
+        pre_image_properties = ImageProperties(image_sitk)
+        post_image_properties = ImageProperties(resampled_image_sitk)
+        transform_info = TransformInfo(self.__class__.__name__, params, pre_image_properties, post_image_properties,
+                                       deepcopy(self.filter_args), deepcopy(self.tracking_data))
+
         image.get_transform_tape().record(transform_info)
 
         return image
 
     def execute(self,
                 subject: Subject,
-                params: ResamplingFilterParameters
+                params: ResamplingFilterParams
                 ) -> Subject:
         """Executes the resampling filter procedure.
 
         Args:
             subject (Subject): The subject to be processed.
-            params (ResamplingFilterParameters): The parameters used for the resampling.
+            params (ResamplingFilterParams): The parameters used for the resampling.
 
         Returns:
             Subject: The processed subject.

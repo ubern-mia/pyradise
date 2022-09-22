@@ -8,6 +8,9 @@ from typing import (
     Tuple,
     Optional)
 
+import SimpleITK as sitk
+import numpy as np
+
 
 __all__ = ['Tape', 'TransformTape', 'TransformInfo']
 
@@ -81,7 +84,7 @@ class Tape(ABC):
         """
         self.recordings = []
 
-#
+
 # class TransformationInformation:
 #     """A class for holding information about the transformation of an image.
 #
@@ -426,6 +429,8 @@ class TransformInfo:
           (default: None).
          additional_data (Optional[Dict[str, Any]]): Additional data which is required the data transformation or to
           inverse it (default: None).
+         transform (Optional[sitk.Transform]): A SimpleITK transform which may be used for the data transformation
+          (default: None).
     """
 
     def __init__(self,
@@ -434,18 +439,18 @@ class TransformInfo:
                  pre_transform_image_properties: ImageProperties,
                  post_transform_image_properties: ImageProperties,
                  filter_args: Optional[Dict[str, Any]] = None,
-                 additional_data: Optional[Dict[str, Any]] = None
+                 additional_data: Optional[Dict[str, Any]] = None,
+                 transform: Optional[sitk.Transform] = None
                  ) -> None:
         super().__init__()
 
-        if filter_args is None:
-            filter_args = dict()
         self.name = name
         self.params = params
         self.pre_transform_image_properties: ImageProperties = pre_transform_image_properties
         self.post_transform_image_properties: ImageProperties = post_transform_image_properties
-        self.filter_args: Optional[Dict[str, Any]] = filter_args if filter_args is not None else dict()
-        self.additional_data: Optional[Dict[str, Any]] = additional_data if additional_data is not None else dict()
+        self.filter_args: Dict[str, Any] = filter_args if filter_args is not None else dict()
+        self.additional_data: Dict[str, Any] = additional_data if additional_data is not None else dict()
+        self.transform: Optional[sitk.Transform] = transform
 
     def _get_subclasses(self, cls: type) -> Dict[str, type]:
         """Get all subclasses of the provided class.
@@ -482,6 +487,20 @@ class TransformInfo:
         """
         return self.params
 
+    def get_image_properties(self, pre_transform: bool) -> ImageProperties:
+        """Get the pre-transform or post-transform :class:`~pyradise.data.image.ImageProperties` instance.
+
+        Args:
+            pre_transform (bool): If True returns the pre-transform image properties, otherwise the post-transform
+             image properties.
+
+        Returns:
+            ImageProperties: The pre-transform or post-transform image properties.
+        """
+        if pre_transform:
+            return self.pre_transform_image_properties
+        return self.post_transform_image_properties
+
     def add_data(self, key: str, value: Any) -> None:
         """Add additional data to the :class:`TransformInfo` instance.
 
@@ -507,6 +526,51 @@ class TransformInfo:
             Any: The value of the additional data entry. If the key is not existing ``None`` is returned.
         """
         return self.additional_data.get(key, None)
+
+    def get_transform(self, inverse: bool = False) -> sitk.Transform:
+        """Get the :class:`sitk.Transform` instance which was used to perform the data transformation.
+
+        Args:
+            inverse (bool): Indicates if the inverse transform should be returned (default: False).
+
+        Returns:
+            sitk.Transform: The transform used for the data transformation or the identity transform if origin and
+            direction did not change during data transformation.
+        """
+        if self.transform is not None:
+            if inverse:
+                return self.transform.GetInverse()
+            return self.transform
+
+        # check if the image origin and direction have changed
+        num_dims = len(self.pre_transform_image_properties.size)
+        if self.pre_transform_image_properties.has_equal_origin_direction(self.post_transform_image_properties):
+            transform = sitk.AffineTransform(num_dims)
+            transform.SetIdentity()
+            return transform
+
+        else:
+            transform = sitk.AffineTransform(num_dims)
+            transform.SetIdentity()
+
+            # compute the translation
+            post_origin = self.post_transform_image_properties.origin
+            pre_origin = self.pre_transform_image_properties.origin
+            translation = list(np.array(post_origin) - np.array(pre_origin))
+
+            # compute the rotation
+            post_direction = np.array(self.post_transform_image_properties.direction).reshape(num_dims, num_dims)
+            pre_direction = np.array(self.pre_transform_image_properties.direction).reshape(num_dims, num_dims)
+            rotation = np.matmul(np.linalg.inv(pre_direction), post_direction)
+            rotation = list(rotation.reshape(-1))
+
+            # set the transform parameters
+            transform.SetParameters(rotation + translation)
+
+            # return the inverted or the original transform
+            if inverse:
+                transform = transform.GetInverse()
+            return transform
 
 
 class TransformTape(Tape):

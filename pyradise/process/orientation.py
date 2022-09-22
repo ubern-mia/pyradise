@@ -5,16 +5,17 @@ import SimpleITK as sitk
 
 from pyradise.data import (
     Subject,
-    TransformInfo,
-    ImageProperties)
+    TransformInfo)
 from .base import (
     Filter,
     FilterParams)
 
-__all_ = ['SpatialOrientation', 'OrientationFilter', 'OrientationFilterParameters']
+
+__all_ = ['OrientationFilterParameters', 'OrientationFilter', 'SpatialOrientation']
 
 
-class Coord(Enum):
+
+class _Coord(Enum):
     """An enum class containing all available medical directions to build the :class:`SpatialOrientation` entries."""
 
     ITK_COORDINATE_UNKNOWN = 0
@@ -39,7 +40,7 @@ class Coord(Enum):
     """Coordinate direction superior."""
 
 
-class MajorTerms(Enum):
+class _MajorTerms(Enum):
     """An enum class for the possible axes within an image to describe the orientation. This enum is used to build
     the :class:`SpatialOrientation`"""
 
@@ -56,257 +57,275 @@ class MajorTerms(Enum):
 class SpatialOrientation(Enum):
     """An enum class for all possible medical image orientations an image can possess."""
 
-    INVALID = Coord.ITK_COORDINATE_UNKNOWN
+    INVALID = _Coord.ITK_COORDINATE_UNKNOWN
     """The default value for an unidentifiable image orientation."""
 
-    RIP = (Coord.RIGHT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    RIP = (_Coord.RIGHT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The right inferior posterior (RIP) orientation."""
 
-    LIP = (Coord.LEFT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    LIP = (_Coord.LEFT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The left inferior posterior (LIP) orientation."""
 
-
-    RSP = (Coord.RIGHT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    RSP = (_Coord.RIGHT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The right superior posterior (RSP) orientation."""
 
-    LSP = (Coord.LEFT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    LSP = (_Coord.LEFT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The left superior posterior (LSP) orientation."""
 
-    RIA = (Coord.RIGHT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    RIA = (_Coord.RIGHT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The right inferior anterior (RIA) orientation."""
 
-    LIA = (Coord.LEFT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    LIA = (_Coord.LEFT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The left inferior anterior (LIA) orientation."""
 
-    RSA = (Coord.RIGHT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    RSA = (_Coord.RIGHT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The right superior anterior (RSA) orientation."""
 
-    LSA = (Coord.LEFT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    LSA = (_Coord.LEFT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The left superior anterior (LSA) orientation."""
 
-    IRP = (Coord.INFERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    IRP = (_Coord.INFERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The inferior right posterior (IRP) orientation."""
 
-    ILP = (Coord.INFERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    ILP = (_Coord.INFERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The inferior left posterior (ILP) orientation."""
 
-    SRP = (Coord.SUPERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    SRP = (_Coord.SUPERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The superior right posterior (SRP) orientation."""
 
-    SLP = (Coord.SUPERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    SLP = (_Coord.SUPERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The superior left posterior (SLP) orientation."""
 
-    IRA = (Coord.INFERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    IRA = (_Coord.INFERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The inferior right anterior (IRA) orientation."""
 
-    ILA = (Coord.INFERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    ILA = (_Coord.INFERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The inferior left anterior (ILA) orientation."""
 
-    SRA = (Coord.SUPERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    SRA = (_Coord.SUPERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The superior right anterior (SRA) orientation."""
 
-    SLA = (Coord.SUPERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    SLA = (_Coord.SUPERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The superior left anterior (SLA) orientation."""
 
-    RPI = (Coord.RIGHT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    RPI = (_Coord.RIGHT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The right posterior inferior (RPI) orientation."""
 
-    LPI = (Coord.LEFT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    LPI = (_Coord.LEFT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The left posterior inferior (LPI) orientation."""
 
-    RAI = (Coord.RIGHT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    RAI = (_Coord.RIGHT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The right anterior inferior (RAI) orientation."""
 
-    LAI = (Coord.LEFT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    LAI = (_Coord.LEFT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The left anterior inferior (LAI) orientation."""
 
-    RPS = (Coord.RIGHT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    RPS = (_Coord.RIGHT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The right posterior superior (RPS) orientation."""
 
-    LPS = (Coord.LEFT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    LPS = (_Coord.LEFT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The left posterior superior (LPS) orientation."""
 
-    RAS = (Coord.RIGHT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    RAS = (_Coord.RIGHT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The right anterior superior (RAS) orientation."""
 
-    LAS = (Coord.LEFT.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    LAS = (_Coord.LEFT.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The left anterior superior (LAS) orientation."""
 
-    PRI = (Coord.POSTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    PRI = (_Coord.POSTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The posterior right inferior (PRI) orientation."""
 
-    PLI = (Coord.POSTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    PLI = (_Coord.POSTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The posterior left inferior (PLI) orientation."""
 
-    ARI = (Coord.ANTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    ARI = (_Coord.ANTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The anterior right inferior (ARI) orientation."""
 
-    ALI = (Coord.ANTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    ALI = (_Coord.ANTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The anterior left inferior (ALI) orientation."""
 
-    PRS = (Coord.POSTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    PRS = (_Coord.POSTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The posterior right superior (PRS) orientation."""
 
-    PLS = (Coord.POSTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    PLS = (_Coord.POSTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The posterior left superior (PLS) orientation."""
 
-    ARS = (Coord.ANTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    ARS = (_Coord.ANTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The anterior right superior (ARS) orientation."""
 
-    ALS = (Coord.ANTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.TERTIARY_MINOR.value)
+    ALS = (_Coord.ANTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.TERTIARY_MINOR.value)
     """The anterior left superior (ALS) orientation."""
 
-    IPR = (Coord.INFERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.TERTIARY_MINOR.value)
+    IPR = (_Coord.INFERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The inferior posterior right (IPR) orientation."""
 
-    SPR = (Coord.SUPERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.TERTIARY_MINOR.value)
+    SPR = (_Coord.SUPERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The superior posterior right (SPR) orientation."""
 
-    IAR = (Coord.INFERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.TERTIARY_MINOR.value)
+    IAR = (_Coord.INFERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The inferior anterior right (IAR) orientation."""
 
-    SAR = (Coord.SUPERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.TERTIARY_MINOR.value)
+    SAR = (_Coord.SUPERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The superior anterior right (SAR) orientation."""
 
-    IPL = (Coord.INFERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.TERTIARY_MINOR.value)
+    IPL = (_Coord.INFERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The inferior posterior left (IPL) orientation."""
 
-    SPL = (Coord.SUPERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.POSTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.TERTIARY_MINOR.value)
+    SPL = (_Coord.SUPERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.POSTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The superior posterior left (SPL) orientation."""
 
-    IAL = (Coord.INFERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.TERTIARY_MINOR.value)
+    IAL = (_Coord.INFERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The inferior anterior left (IAL) orientation."""
 
-    SAL = (Coord.SUPERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.ANTERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.TERTIARY_MINOR.value)
+    SAL = (_Coord.SUPERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.ANTERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The superior anterior left (SAL) orientation."""
 
-    PIR = (Coord.POSTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.TERTIARY_MINOR.value)
+    PIR = (_Coord.POSTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The posterior inferior right (PIR) orientation."""
 
-    PSR = (Coord.POSTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.TERTIARY_MINOR.value)
+    PSR = (_Coord.POSTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The posterior superior right (PSR) orientation."""
 
-    AIR = (Coord.ANTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.TERTIARY_MINOR.value)
+    AIR = (_Coord.ANTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The anterior inferior right (AIR) orientation."""
 
-    ASR = (Coord.ANTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.RIGHT.value << MajorTerms.TERTIARY_MINOR.value)
+    ASR = (_Coord.ANTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.RIGHT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The anterior superior right (ASR) orientation."""
 
-    PIL = (Coord.POSTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.TERTIARY_MINOR.value)
+    PIL = (_Coord.POSTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The posterior inferior left (PIL) orientation."""
 
-    PSL = (Coord.POSTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.TERTIARY_MINOR.value)
+    PSL = (_Coord.POSTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The posterior superior left (PSL) orientation."""
 
-    AIL = (Coord.ANTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.INFERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.TERTIARY_MINOR.value)
+    AIL = (_Coord.ANTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.INFERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The anterior inferior left (AIL) orientation."""
 
-    ASL = (Coord.ANTERIOR.value << MajorTerms.PRIMARY_MINOR.value) + \
-          (Coord.SUPERIOR.value << MajorTerms.SECONDARY_MINOR.value) + \
-          (Coord.LEFT.value << MajorTerms.TERTIARY_MINOR.value)
+    ASL = (_Coord.ANTERIOR.value << _MajorTerms.PRIMARY_MINOR.value) + \
+          (_Coord.SUPERIOR.value << _MajorTerms.SECONDARY_MINOR.value) + \
+          (_Coord.LEFT.value << _MajorTerms.TERTIARY_MINOR.value)
     """The anterior superior left (ASL) orientation."""
 
 
 # pylint: disable = too-few-public-methods
 class OrientationFilterParams(FilterParams):
-    """A filter parameter class for an :class:`OrientationFilter`.
+    """A filter parameter class for the :class:`~pyradise.process.orientation.OrientationFilter`.
+
+    The orientation is a string or :class:`~pyradise.process.orientation.SpatialOrientation` value consisting of three
+    characters. These three characters describe the orientation of the image with the following values:
+
+    * ``I``: Inferior
+    * ``S``: Superior
+    * ``A``: Anterior
+    * ``P``: Posterior
+    * ``R``: Right
+    * ``L``: Left
+
+    The orientation of the image is described by the order of the characters. The first character describes the primary
+    orientation of patient in the positive x-axis direction. The second character describes the secondary orientation of
+    patient in the positive y-axis direction. The third character describes the tertiary orientation of patient in the
+    positive z-axis direction. For example, the orientation ``RAS`` means that the patient is facing right in the
+    positive x-axis direction, facing anterior in the positive y-axis direction, and facing superior in the positive
+    z-axis direction. For more details we refer to appropriate literature (e.g.
+    `website <http://www.grahamwideman.com/gw/brain/orientation/orientterms.htm>`_).
+
 
     Args:
-        output_orientation: The desired output orientation of all images.
+        output_orientation (Union[SpatialOrientation, str]): The desired output orientation of all provided images.
     """
 
     def __init__(self,
@@ -314,16 +333,27 @@ class OrientationFilterParams(FilterParams):
                  ) -> None:
         super().__init__()
         if isinstance(output_orientation, str):
-            self.output_orientation = SpatialOrientation[output_orientation]
+            try:
+                self.output_orientation: SpatialOrientation = SpatialOrientation[output_orientation]
+            except KeyError:
+                raise ValueError(f'Invalid output orientation: {output_orientation}')
         else:
-            self.output_orientation = output_orientation
+            self.output_orientation: SpatialOrientation = output_orientation
 
 
 class OrientationFilter(Filter):
-    """A filter class for reorienting image data of a :class:`Subject`."""
+    """A filter class for reorienting all :class:`~pyradise.data.image.Image` instances of a
+    :class:`~pyradise.data.subject.Subject` instance to a specified
+    :class:`~pyradise.process.orientation.SpatialOrientation`.
+    """
 
     @staticmethod
     def is_invertible() -> bool:
+        """Returns whether the filter is invertible or not.
+
+        Returns:
+            bool: True because the reorientation of images is invertible.
+        """
         return True
 
     def execute(self,
@@ -333,29 +363,29 @@ class OrientationFilter(Filter):
         """Execute the image reorientation procedure.
 
         Args:
-            subject (Subject): The :class:`Subject` instance to be processed.
+            subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
             params (OrientationFilterParams): The filters parameters.
 
         Returns:
-            Subject: The :class:`Subject` instance with oriented :class:`IntensityImage` and
-             :class:`SegmentationImage` entries.
+            Subject: The :class:`~pyradise.data.subject.Subject` instance with oriented
+            :class:`~pyradise.data.image.IntensityImage` and :class:`~pyradise.data.image.SegmentationImage` instances.
         """
         for image in subject.get_images():
+            # get the image data as SimpleITK image
             sitk_image = image.get_image_data(True)
 
+            # reorient the image
             orient_filter = sitk.DICOMOrientImageFilter()
             orient_filter.SetDesiredCoordinateOrientation(params.output_orientation.name)
             oriented_sitk_image = orient_filter.Execute(sitk_image)
 
+            # set the oriented image data to the image
             image.set_image_data(oriented_sitk_image)
 
-            # record the transform on the tape
+            # track the necessary information
             pre_orientation = orient_filter.GetOrientationFromDirectionCosines(sitk_image.GetDirection())
-            image_properties_pre = ImageProperties(sitk_image, orientation=pre_orientation)
-            image_properties_post = ImageProperties(oriented_sitk_image, orientation=params.output_orientation.name)
-            transform_info = TransformInfo(self.__class__.__name__, params, image_properties_pre,
-                                           image_properties_post)
-            image.get_transform_tape().record(transform_info)
+            self.tracking_data['original_orientation'] = pre_orientation
+            self._register_tracked_data(image, sitk_image, oriented_sitk_image, params)
 
         return subject
 
@@ -367,22 +397,25 @@ class OrientationFilter(Filter):
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
-            transform_info (TransformInfo): The :class:`~pyradise.data.transform_info.TransformInfo` instance
+            transform_info (TransformInfo): The :class:`~pyradise.data.taping.TransformInfo` instance
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance with reoriented
             :class:`~pyradise.data.image.IntensityImage` and :class:`~pyradise.data.image.SegmentationImage` instances.
         """
         for image in subject.get_images():
+            # get the image data as SimpleITK image
             sitk_image = image.get_image_data(True)
 
-            original_orientation = transform_info.pre_transform_image_properties.get_entry('orientation')
+            # get the original orientation
+            original_orient = transform_info.get_data('original_orientation')
+
+            # reorient the image
             orient_filter = sitk.DICOMOrientImageFilter()
-            orient_filter.SetDesiredCoordinateOrientation(original_orientation)
+            orient_filter.SetDesiredCoordinateOrientation(original_orient)
             oriented_sitk_image = orient_filter.Execute(sitk_image)
 
+            # set the oriented image data to the image
             image.set_image_data(oriented_sitk_image)
 
         return subject
-
-

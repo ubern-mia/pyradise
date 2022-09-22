@@ -8,8 +8,9 @@ from .base import (
 from .intensity import (
     IntensityFilter,
     IntensityLoopFilter,
-    IntensityLoopFilterParams,
+    ZScoreNormFilterParams,
     ZScoreNormFilter,
+    ZeroOneNormFilterParams,
     ZeroOneNormFilter,
     RescaleIntensityFilter,
     RescaleIntensityFilterParams,
@@ -23,46 +24,41 @@ from .intensity import (
     LaplacianFilterParams)
 
 from .orientation import (
-    Coord,
-    MajorTerms,
-    SpatialOrientation,
+    OrientationFilterParams,
     OrientationFilter,
-    OrientationFilterParams)
+    _Coord,
+    _MajorTerms,
+    SpatialOrientation)
 
 from .registration import (
     RegistrationType,
-    InterSubjectRegistrationFilter,
     InterSubjectRegistrationFilterParams,
-    IntraSubjectRegistrationFilter,
-    IntraSubjectRegistrationFilterParams)
+    InterSubjectRegistrationFilter,
+    IntraSubjectRegistrationFilterParams,
+    IntraSubjectRegistrationFilter)
 
 from .resampling import (
-    ResamplingFilter,
-    ResamplingFilterParams)
+    ResampleFilter,
+    ResampleFilterParams)
 
-from .segmentation_combination import (
-    SegmentationCombinationFilter,
-    SegmentationCombinationFilterParams,
-    CombineEnumeratedLabelFilter,
-    CombineEnumeratedLabelFilterParams,
-    CombineSegmentationsFilter,
-    CombineSegmentationsFilterParams)
+from .inference import (
+    InferenceFilterParams,
+    InferenceFilter)
 
-from .segmentation_postprocessing import (
+from .modification import (
+    AddImageFilterParams,
+    AddImageFilter,
+    RemoveImageByOrganFilterParams,
+    RemoveImageByOrganFilter,
+    RemoveImageByRaterFilterParams,
+    RemoveImageByRaterFilter,
+    RemoveImageByModalityFilterParams,
+    RemoveImageByModalityFilter,
+    MergeSegmentationFilterParams,
+    MergeSegmentationFilter)
+
+from .postprocess import (
     SingleConnectedComponentFilter,
     SingleConnectedComponentFilterParams,
     AlphabeticOrganSortingFilter)
 
-from .transformation import (
-    ApplyTransformationTapeFilter,
-    ApplyTransformationTapeFilterParams,
-    BackTransformSegmentationFilter,
-    BackTransformSegmentationFilterParams,
-    BackTransformIntensityImageFilter,
-    BackTransformIntensityImageFilterParams,
-    CopyReferenceTransformTapeFilter,
-    CopyReferenceTransformTapeFilterParams)
-
-from .validation import (
-    SegmentationCheckingFilter,
-    SegmentationCheckingFilterParams)

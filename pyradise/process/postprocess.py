@@ -12,25 +12,27 @@ from pyradise.data import (
     Subject,
     Image,
     Organ,
-    SegmentationImage)
+    SegmentationImage, TransformInfo)
 from .base import (
     Filter,
     FilterParams)
 
+__all__ = ['SingleConnectedComponentFilterParams', 'SingleConnectedComponentFilter', 'AlphabeticOrganSortingFilter']
+
 
 # pylint: disable = too-few-public-methods
 class SingleConnectedComponentFilterParams(FilterParams):
-    """A class representing the parameters of a SingleConnectedComponentFilter."""
+    """A filter parameter class for the :class:`~pyradise.process.postprocess.SingleConnectedComponentFilter` class.
+
+    Args:
+        excluded_organs (Optional[Union[Organ, Tuple[Organ, ...]]]): The organs to be excluded from the connected
+         component filtering. If ``None`` all :class:`~pyradise.data.image.SegmentationImage` instances will be
+         filtered.
+    """
 
     def __init__(self,
                  excluded_organs: Optional[Union[Organ, Tuple[Organ, ...]]] = None
                  ) -> None:
-        """Constructs the filter parameters for a SingleConnectedComponentFilter.
-
-        Args:
-            excluded_organs (Optional[Union[Organ, Tuple[Organ, ...]]]): The organs to be excluded from the computation.
-        """
-        super().__init__()
         if isinstance(excluded_organs, Organ):
             self.excluded_organs = (excluded_organs,)
         elif excluded_organs is None:
@@ -40,7 +42,20 @@ class SingleConnectedComponentFilterParams(FilterParams):
 
 
 class SingleConnectedComponentFilter(Filter):
-    """A class for keeping only one connected component per label."""
+    """A filter class for removing all but the largest connected component from the specified
+    :class:`~pyradise.data.image.SegmentationImage` instances in the provided :class:`~pyradise.data.subject.Subject`
+    instance.
+    """
+
+    @staticmethod
+    def is_invertible() -> bool:
+        """Return whether the filter is invertible or not.
+
+        Returns:
+            bool: False because the :class:`~pyradise.process.postprocess.SingleConnectedComponentFilter` is
+            not invertible.
+        """
+        return False
 
     @staticmethod
     def _is_binary_image(image: Union[itk.Image, SegmentationImage]) -> bool:
@@ -180,24 +195,26 @@ class SingleConnectedComponentFilter(Filter):
                 subject: Subject,
                 params: SingleConnectedComponentFilterParams
                 ) -> Subject:
-        """Executes the single connected component keeping procedure.
+        """Execute the single connected component filter procedure.
 
         Args:
-            subject (Subject): The subject to process.
+            subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
             params (SingleConnectedComponentFilterParams): The filters parameters.
 
         Returns:
-            Subject: The processed subject.
+            Subject: The :class:`~pyradise.data.subject.Subject` instance with filtered
+            :class:`~pyradise.data.image.SegmentationImage` instances.
         """
         for image in subject.segmentation_images:
 
             if image.get_organ() in params.excluded_organs:
                 continue
 
+            image_sitk = image.get_image_data(as_sitk=True)
             if self._is_binary_image(image):
                 single_label_images = (image,)
 
-                image_np = sitk.GetArrayFromImage(image.get_image_data(as_sitk=True))
+                image_np = sitk.GetArrayFromImage(image_sitk)
                 unique_labels = list(np.unique(image_np))
 
                 if 0 in unique_labels:
@@ -218,26 +235,81 @@ class SingleConnectedComponentFilter(Filter):
 
             if cc_images:
                 cc_image = self._combine_images(tuple(cc_images))
+
                 image.set_image_data(cc_image)
 
+                self._register_tracked_data(image, image_sitk, image.get_image_data(True), params)
+
+        return subject
+
+    def execute_inverse(self,
+                        subject: Subject,
+                        transform_info: TransformInfo
+                        ) -> Subject:
+        """Return the provided :class:`~pyradise.data.subject.Subject` instance without any processing because
+        the single connected component filtering procedure is not invertible.
+
+        Args:
+            subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be returned.
+            transform_info (TransformInfo): The transform information.
+
+        Returns:
+            Subject: The provided :class:`~pyradise.data.subject.Subject` instance.
+        """
         return subject
 
 
 class AlphabeticOrganSortingFilter(Filter):
-    """A class sorting a subject's segmentations alphabetical by their organ name."""
+    """A filter class performing an alphabetic sorting of the :class:`~pyradise.data.image.SegmentationImage` instances
+    according to their assigned :class:`~pyradise.data.organ.Organ` names.
+
+    Note:
+        This filter does not need any parameters.
+
+        This filter is helpful when ordering of the output matters such as for example if constructing a DICOM-RTSS
+        :class:`~pydicom.dataset.Dataset` instance.
+    """
+
+    @staticmethod
+    def is_invertible() -> bool:
+        """Return whether the filter is invertible or not.
+
+        Returns:
+            bool: False because the :class:`~pyradise.process.postprocess.AlphabeticOrganSortingFilter` is
+            not invertible.
+        """
+        return False
 
     def execute(self,
                 subject: Subject,
                 params: Optional[FilterParams] = None
                 ) -> Subject:
-        """Execute the alphabetical sorting of the segmentation image organs.
+        """Execute the alphabetical sorting of the :class:`~pyradise.data.image.SegmentationImage` instances according
+        to their associated :class:`~pyradise.data.organ.Organ` instances.
 
         Args:
-            subject (Subject): The subject to apply the filter on.
+            subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be sorted.
             params (FilterParams): Unused.
 
         Returns:
-            Subject: The subject with the alphabetically sorted segmentation images.
+            Subject: The :class:`~pyradise.data.subject.Subject` instance with the alphabetically sorted
+            :class:`~pyradise.data.image.SegmentationImage` instances.
         """
         subject.segmentation_images = sorted(subject.segmentation_images, key=lambda x: x.get_organ(as_str=True))
+        return subject
+
+    def execute_inverse(self,
+                        subject: Subject,
+                        transform_info: TransformInfo
+                        ) -> Subject:
+        """Return the provided image without any processing because the alphabetical sorting procedure is not
+        invertible.
+
+        Args:
+            subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be returned.
+            transform_info (TransformInfo): The transform information.
+
+        Returns:
+            Subject: The provided :class:`~pyradise.data.subject.Subject` instance.
+        """
         return subject

@@ -232,12 +232,13 @@ class SubjectWriter:
 
             if write_transforms:
                 for i, transform_info in enumerate(image.get_transform_tape().get_recorded_elements()):
+                    transform = transform_info.get_transform()
                     transform_file_name = self._generate_transform_file_name(subject, image, i)
                     transform_file_path = os.path.join(path, transform_file_name)
 
                     self._check_file_path(transform_file_path)
 
-                    sitk.WriteTransform(transform_info.get_transform(False), transform_file_path)
+                    sitk.WriteTransform(transform, transform_file_path)
 
     def write_to_subject_folder(self,
                                 base_dir_path: str,

@@ -16,9 +16,9 @@ import numpy as np
 import SimpleITK as sitk
 import itk
 
-from pyradise.data import Subject, TransformInfo, ImageProperties
+from pyradise.data import Subject, TransformInfo, ImageProperties, Image
 
-__all__ = ['Filter', 'FilterParams', 'LoopEntryFilter', 'LoopEntryFilterParams', 'FilterPipeline']
+__all__ = ['FilterParams', 'Filter', 'LoopEntryFilterParams', 'LoopEntryFilter', 'FilterPipeline']
 
 
 # pylint: disable=too-few-public-methods
@@ -34,6 +34,27 @@ class FilterParams(ABC):
     of a certain :class:`~pyradise.process.base.Filter` such that invertibility can be guaranteed for
     :class:`~pyradise.process.base.Filter` s feasible to be inverted. However, for the reason of reproducibility the
     :class:`~pyradise.process.base.FilterParams` instances should be tracked always.
+
+    Example:
+
+        An example of a :class:`~pyradise.process.base.FilterParams` implementation for an intensity rescaling filter:
+
+        >>> from pyradise.process import FilterParams
+        >>>
+        >>>
+        >>> class ExampleRescaleFilterParams(FilterParams):
+        >>>
+        >>>     def __init__(self, min_out: float, max_out: float) -> None:
+        >>>         super().__init__()
+        >>>
+        >>>         # reverse the values if min_out > max_out
+        >>>         if min_out > max_out:
+        >>>             min_out, max_out = max_out, min_out
+        >>>
+        >>>         # the minimum and maximum output intensity values
+        >>>         self.min_out = min_out
+        >>>         self.max_out = max_out
+
     """
 
     @abstractmethod
@@ -68,15 +89,109 @@ class Filter(ABC):
        which are used to process the :class:`~pyradise.data.subject.Subject`.
 
     3. Make sure that your implementation tracks the changes and assign it to the
-       :class:`~pyradise.data.taping.TransformTapeV2` instance of the corresponding :class:`~pyradise.data.image.Image`
+       :class:`~pyradise.data.taping.TransformTape` instance of the corresponding :class:`~pyradise.data.image.Image`
        instance.
 
     4. Implement the :meth:`~pyradise.process.base.Filter.execute_inverse` and
        :meth:`~pyradise.process.base.Filter.is_invertible` methods if the filter is invertible. Please note that
        the implementation can access all information which was previously recorded on the corresponding
-       :class:`~pyradise.data.taping.TransformTapeV2` instance.
+       :class:`~pyradise.data.taping.TransformTape` instance.
 
     5. Test the new :class:`~pyradise.process.base.Filter` implementation and make sure that it works as expected.
+
+
+    Example:
+
+        Example implementation of an intensity rescaling filter:
+
+        >>> import SimpleITK as sitk
+        >>> import numpy as np
+        >>>
+        >>> from pyradise.process import Filter, FilterParams
+        >>> from pyradise.data import Subject, IntensityImage, TransformInfo
+        >>>
+        >>>
+        >>> class ExampleRescaleFilterParams(FilterParams):
+        >>>
+        >>>     def __init__(self, min_out: float, max_out: float) -> None:
+        >>>         super().__init__()
+        >>>
+        >>>         # reverse the values if min_out > max_out
+        >>>         if min_out > max_out:
+        >>>             min_out, max_out = max_out, min_out
+        >>>
+        >>>         # the minimum and maximum output intensity values
+        >>>         self.min_out = min_out
+        >>>         self.max_out = max_out
+        >>>
+        >>>
+        >>> class ExampleRescaleFilter(Filter):
+        >>>
+        >>>     @staticmethod
+        >>>     def is_invertible() -> bool:
+        >>>         # return True because the filter is invertible
+        >>>         return True
+        >>>
+        >>>     def execute(self,
+        >>>                 subject: Subject,
+        >>>                 params: ExampleRescaleFilterParams
+        >>>                 ) -> Subject:
+        >>>         # loop through the images
+        >>>         for image in subject.get_images():
+        >>>
+        >>>             # exclude segmentation images
+        >>>             if not isinstance(image, IntensityImage):
+        >>>                 continue
+        >>>
+        >>>             # retrieve the image data
+        >>>             original_image_sitk = image.get_image_data(True)
+        >>>
+        >>>             # rescale the intensity
+        >>>             new_image_sitk = sitk.RescaleIntensity(original_image_sitk,
+        >>>                                                    params.min_out,
+        >>>                                                    params.max_out)
+        >>>
+        >>>             # update the image data
+        >>>             image.set_image_data(new_image_sitk)
+        >>>
+        >>>             # track the necessary information
+        >>>             original_image_np = sitk.GetArrayFromImage(original_image_sitk)
+        >>>             self.tracking_data['min_'] = float(np.min(original_image_np))
+        >>>             self.tracking_data['max_'] = float(np.max(original_image_np))
+        >>>             self._register_tracked_data(image, original_image_sitk,
+        >>>                                         new_image_sitk, params)
+        >>>
+        >>>         return subject
+        >>>
+        >>>     def execute_inverse(self,
+        >>>                         subject: Subject,
+        >>>                         transform_info: TransformInfo
+        >>>                         ) -> Subject:
+        >>>         # loop through the images
+        >>>         for image in subject.get_images():
+        >>>
+        >>>             # exclude segmentation images
+        >>>             if not isinstance(image, IntensityImage):
+        >>>                 continue
+        >>>
+        >>>             # retrieve the tracked data
+        >>>             min_intensity = transform_info.get_data('min_')
+        >>>             max_intensity = transform_info.get_data('max_')
+        >>>
+        >>>             # undo the intensity rescaling
+        >>>             original_image_sitk = image.get_image_data(True)
+        >>>             new_image_sitk = sitk.RescaleIntensity(original_image_sitk,
+        >>>                                                    min_intensity,
+        >>>                                                    max_intensity)
+        >>>
+        >>>             # update the image data
+        >>>             image.set_image_data(new_image_sitk)
+        >>>
+        >>>             # there is no need to track information because
+        >>>             # the operation is inverted
+        >>>
+        >>>         return subject
+
 
     """
 
@@ -111,13 +226,13 @@ class Filter(ABC):
         """
         self.verbose = verbose
 
-    def _create_transform_info(self,
+    def _register_tracked_data(self,
+                               image: Image,
                                pre_transform_image: Union[sitk.Image, itk.Image],
                                post_transform_image: Union[sitk.Image, itk.Image],
                                params: Optional[FilterParams],
-                               filter_args: Optional[Dict[str, Any]],
-                               additional_data: Optional[Dict[str, Any]]
-                               ) -> TransformInfo:
+                               transform: Optional[sitk.Transform] = None
+                               ) -> None:
         """Create the :class:`~pyradise.data.taping.TransformInfo` instance which is used to store the information
         about the performed transformation.
 
@@ -125,118 +240,19 @@ class Filter(ABC):
             pre_transform_image (Union[sitk.Image, itk.Image]): The image before the transformation.
             post_transform_image (Union[sitk.Image, itk.Image]): The image after the transformation.
             params (Optional[FilterParams]): The filter parameters used for the transformation.
-            filter_args (Optional[Dict[str, Any]]): The filter arguments used for the transformation.
-            additional_data (Optional[Dict[str, Any]]): Additional data which needs to be stored.
+            transform (Optional[sitk.Transform]): The transformation which was applied to the image (default: None).
         """
-        filter_args_ = filter_args if filter_args is not None else {}
-        additional_data_ = deepcopy(additional_data) if additional_data is not None else {}
+        filter_args_ = self.filter_args if self.filter_args is not None else {}
+        additional_data_ = self.tracking_data if self.tracking_data is not None else {}
 
         pre_image_props = ImageProperties(pre_transform_image)
         post_image_props = ImageProperties(post_transform_image)
 
         transform_info = TransformInfo(self.__class__.__name__, params, pre_image_props, post_image_props,
-                                       filter_args_, additional_data_)
-        return transform_info
+                                       deepcopy(filter_args_), deepcopy(additional_data_), deepcopy(transform))
+        image.add_transform_info(transform_info)
 
-    @abstractmethod
-    def execute(self,
-                subject: Subject,
-                params: Optional[FilterParams]
-                ) -> Subject:
-        """Execute the filter on the provided :class:`~pyradise.data.subject.Subject` instance.
-
-        Note:
-            For the ease of use, the filter provides a private :meth:`_create_transform_info` method which can be used
-            to create the :class:`~pyradise.data.taping.TransformInfo` instances.
-
-        Important:
-            The filter is responsible to record the transformations applied to each image such that the invertibility
-            is ensured. Even if the filter is not invertible, the transformations should be recorded such that the
-            order of filter applications can be reconstructed from the transform tapes of the images. In case the
-            filter is not invertible, the :meth:`~pyradise.process.base.Filter.is_invertible` must return ``False``.
-
-        Args:
-            subject (Subject): The subject to be processed.
-            params (Optional[FilterParams]): The filter parameters, if required.
-
-        Returns:
-            Subject: The processed subject.
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo
-                        ) -> Subject:
-        """Execute the filter inversely if possible. Typically, this method gets a temporary subject which contains
-        a single image because the recording of the transformations is image dependent and inappropriate inverse
-        transformations would be applied to the other images. However, this method can also be applied to a whole
-        subject to apply the inverse transformations to all images. This approach provides a more flexible way to
-        handle invertibility of transformations.
-
-        Important:
-            If the filter is not invertible, the subject must be returned unchanged and the
-            :meth:`~pyradise.process.base.Filter.is_invertible` must return ``False``.
-
-        Args:
-            subject (Subject): The subject to be processed.
-            transform_info (TransformInfo): The :class:`~pyradise.data.taping.TransformInfo` instance.
-
-        Returns:
-            Subject: The processed subject.
-        """
-        raise NotImplementedError()
-
-
-class LoopEntryFilter(Filter):
-    """An abstract filter base class which is feasible to process images slice-wise in a loop over a defined
-    ``loop_axis``. The ``loop_axis`` must be specified in the appropriate
-    :class:`~pyradise.process.base.FilterParams` instance and if it takes a value of ``None``, the filter is
-    executed on the whole image extent at once.
-    """
-
-    @staticmethod
-    @abstractmethod
-    def is_invertible() -> bool:
-        """Check if the filter is invertible.
-
-        Returns:
-            bool: True if the filter is invertible, otherwise False.
-        """
-        raise NotImplementedError()
-
-    @staticmethod
-    def loop_entries(data: np.ndarray,
-                     params: Any,
-                     filter_fn: Callable[[np.ndarray, Any], np.ndarray],
-                     loop_axis: Optional[int]
-                     ) -> np.ndarray:
-        """Apply the function :meth:`filter_fn` by looping over the image using the provided parameters
-        (i.e. ``params``).
-
-        Args:
-            data (np.ndarray): The data to be processed.
-            params (Any): The parameters for the filter function.
-            filter_fn (Callable[[np.ndarray, Any], np.ndarray]): The filter function.
-            loop_axis (Optional[int]): The axis to loop over. If ``None`` the whole image is taken, otherwise the
-             respective dimension.
-
-        Returns:
-            np.ndarray: The processed data.
-        """
-        if loop_axis is None:
-            new_data = filter_fn(data, params)
-
-        else:
-            new_data = np.zeros_like(data)
-
-            slicing: List[Union[slice, int]] = [slice(None) for _ in range(data.ndim)]
-            for i in range(data.shape[loop_axis]):
-                slicing[loop_axis] = i
-                new_data[tuple(slicing)] = filter_fn(data[tuple(slicing)], params)
-
-        return new_data
+        self.tracking_data.clear()
 
     @abstractmethod
     def execute(self,
@@ -300,9 +316,7 @@ class LoopEntryFilterParams(FilterParams):
          by looping over the corresponding image dimension.
     """
 
-    def __init__(self,
-                 loop_axis: Optional[int]
-                 ) -> None:
+    def __init__(self, loop_axis: Optional[int]) -> None:
         super().__init__()
 
         if loop_axis is not None:
@@ -311,6 +325,110 @@ class LoopEntryFilterParams(FilterParams):
                                   '3D images.'
 
         self.loop_axis: Optional[int] = loop_axis
+
+
+class LoopEntryFilter(Filter):
+    """An abstract filter base class which is feasible to process images slice-wise in a loop over a defined
+    ``loop_axis``. The ``loop_axis`` must be specified in the appropriate
+    :class:`~pyradise.process.base.FilterParams` instance and if it takes a value of ``None``, the filter is
+    executed on the whole image extent at once.
+
+    Reference:
+        The implementation of this class is inspired by an earlier version of the `pymia package
+        <https://pymia.readthedocs.io/en/latest>`_.
+    """
+
+    @staticmethod
+    @abstractmethod
+    def is_invertible() -> bool:
+        """Check if the filter is invertible.
+
+        Returns:
+            bool: True if the filter is invertible, otherwise False.
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def loop_entries(data: np.ndarray,
+                     params: Any,
+                     filter_fn: Callable[[np.ndarray, Any], np.ndarray],
+                     loop_axis: Optional[int]
+                     ) -> np.ndarray:
+        """Apply the function :meth:`filter_fn` by looping over the image using the provided parameters
+        (i.e. ``params``).
+
+        Args:
+            data (np.ndarray): The data to be processed.
+            params (Any): The parameters for the filter function.
+            filter_fn (Callable[[np.ndarray, Any], np.ndarray]): The filter function.
+            loop_axis (Optional[int]): The axis to loop over. If ``None`` the whole image is taken, otherwise the
+             respective dimension.
+
+        Returns:
+            np.ndarray: The processed data.
+        """
+        if loop_axis is None:
+            new_data = filter_fn(data, params)
+
+        else:
+            new_data = np.zeros_like(data)
+
+            slicing: List[Union[slice, int]] = [slice(None) for _ in range(data.ndim)]
+            for i in range(data.shape[loop_axis]):
+                slicing[loop_axis] = i
+                new_data[tuple(slicing)] = filter_fn(data[tuple(slicing)], params)
+
+        return new_data
+
+    @abstractmethod
+    def execute(self,
+                subject: Subject,
+                params: Optional[LoopEntryFilterParams]
+                ) -> Subject:
+        """Execute the filter on the provided :class:`~pyradise.data.subject.Subject` instance.
+
+        Note:
+            For the ease of use, the filter provides a private :meth:`_create_transform_info` method which can be used
+            to create the :class:`~pyradise.data.taping.TransformInfo` instances.
+
+        Important:
+            The filter is responsible to record the transformations applied to each image such that the invertibility
+            is ensured. Even if the filter is not invertible, the transformations should be recorded such that the
+            order of filter applications can be reconstructed from the transform tapes of the images. In case the
+            filter is not invertible, the :meth:`~pyradise.process.base.Filter.is_invertible` must return ``False``.
+
+        Args:
+            subject (Subject): The subject to be processed.
+            params (Optional[LoopEntryFilterParams]): The filter parameters, if required.
+
+        Returns:
+            Subject: The processed subject.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def execute_inverse(self,
+                        subject: Subject,
+                        transform_info: TransformInfo
+                        ) -> Subject:
+        """Execute the filter inversely if possible. Typically, this method gets a temporary subject which contains
+        a single image because the recording of the transformations is image dependent and inappropriate inverse
+        transformations would be applied to the other images. However, this method can also be applied to a whole
+        subject to apply the inverse transformations to all images. This approach provides a more flexible way to
+        handle invertibility of transformations.
+
+        Important:
+            If the filter is not invertible, the subject must be returned unchanged and the
+            :meth:`~pyradise.process.base.Filter.is_invertible` must return ``False``.
+
+        Args:
+            subject (Subject): The subject to be processed.
+            transform_info (TransformInfo): The :class:`~pyradise.data.taping.TransformInfo` instance.
+
+        Returns:
+            Subject: The processed subject.
+        """
+        raise NotImplementedError()
 
 
 class FilterPipeline:

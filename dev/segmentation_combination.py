@@ -14,7 +14,7 @@ from pyradise.data import (
     Rater,
     Organ,
     SegmentationImage)
-from .base import (
+from pyradise.process.base import (
     Filter,
     FilterParams)
 

@@ -85,7 +85,7 @@ class SubjectLoader(ExplicitLoader):
         >>> from pyradise.fileio import (SubjectFileCrawler, SubjectLoader,
         >>>                              SubjectWriter, ImageFileFormat)
         >>> from pyradise.process import (ZScoreNormFilter,
-        >>>                               IntensityLoopFilterParams)
+        >>>                               ZScoreNormFilterParams)
         >>>
         >>>
         >>> def main(input_path: str, output_path: str, subject_name: str) -> None:
@@ -96,7 +96,7 @@ class SubjectLoader(ExplicitLoader):
         >>>   subject = SubjectLoader().load(info)
         >>>
         >>>   # Perform the normalization
-        >>>   normalization_params = IntensityLoopFilterParams(loop_axis=1)
+        >>>   normalization_params = ZScoreNormFilterParams(loop_axis=1)
         >>>   normalization_filter = ZScoreNormFilter(normalization_params)
         >>>   subject = normalization_filter.execute(subject)
         >>>
@@ -396,7 +396,7 @@ class IterableSubjectLoader(Loader):
         >>> from pyradise.fileio import (DatasetFileCrawler, IterableSubjectLoader,
         >>>                              SubjectWriter)
         >>> from pyradise.process import (ZScoreNormFilter,
-        >>>                               IntensityLoopFilterParams)
+        >>>                               ZScoreNormFilterParams)
         >>>
         >>>
         >>> def main(input_path: str, output_path: str) -> None:
@@ -407,7 +407,7 @@ class IterableSubjectLoader(Loader):
         >>>     loader = IterableSubjectLoader(info)
         >>>
         >>>     # Construct the normalization filter
-        >>>     normalization_params = IntensityLoopFilterParams(loop_axis=1)
+        >>>     normalization_params = ZScoreNormFilterParams(loop_axis=1)
         >>>     normalization_filter = ZScoreNormFilter(normalization_params)
         >>>
         >>>     # Construct the writer

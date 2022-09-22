@@ -16,7 +16,7 @@ from pyradise.data import (
     ImageProperties,
     TransformInfo,
     OrganRaterCombination)
-from .base import (
+from pyradise.process.base import (
     Filter,
     FilterParams)
 

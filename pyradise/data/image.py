@@ -114,6 +114,26 @@ class ImageProperties:
         """
         return self._size
 
+    def has_equal_origin_direction(self, other: 'ImageProperties') -> bool:
+        """Check if the origin and direction of another :class:`ImageProperties` instance is equal.
+
+        Args:
+            other (ImageProperties): The other image properties.
+
+        Returns:
+            bool: True if the origin and direction are equal, False otherwise.
+        """
+        return (self._origin == other._origin and
+                self._direction == other._direction)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ImageProperties):
+            return False
+        return (self._origin == other._origin and
+                self._spacing == other._spacing and
+                self._direction == other._direction and
+                self._size == other._size)
+
 
 class Image(ABC):
     """An abstract class to store images with additional attributes compared to :class:`SimpleITK.Image` and

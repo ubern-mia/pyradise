@@ -417,7 +417,7 @@ class Tape(ABC):
 
 class TransformInfo:
     """A class to store information about a data transformation performed via a :class:`~pyradise.process.base.Filter`.
-     This class is used in combination with a :class:`~pyradise.data.taping.TransformTapeV2` instance to keep track
+     This class is used in combination with a :class:`~pyradise.data.taping.TransformTape` instance to keep track
      of data transformations and to render invertibility feasible for invertible filters operations.
 
      Args:
@@ -479,7 +479,7 @@ class TransformInfo:
         return subclasses.get(self.name)(**self.filter_args)
 
     def get_params(self) -> FilterParameters:
-        """Get the :class:`~pyradise.process.base.FilterParameters` instance which was used to parameterize the
+        """Get the :class:`~pyradise.process.base.FilterParams` instance which was used to parameterize the
         data transformation.
 
         Returns:
@@ -523,12 +523,12 @@ class TransformInfo:
             key (str): The key of the additional data entry to get.
 
         Returns:
-            Any: The value of the additional data entry. If the key is not existing ``None`` is returned.
+            Any: The value of the additional data entry. If the key is not existing :data:`None` is returned.
         """
         return self.additional_data.get(key, None)
 
     def get_transform(self, inverse: bool = False) -> sitk.Transform:
-        """Get the :class:`sitk.Transform` instance which was used to perform the data transformation.
+        """Get the :class:`SimpleITK.Transform` instance which was used to perform the data transformation.
 
         Args:
             inverse (bool): Indicates if the inverse transform should be returned (default: False).

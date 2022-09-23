@@ -22,7 +22,7 @@ __all__ = ['ResampleFilterParams', 'ResampleFilter']
 
 # pylint: disable = too-few-public-methods
 class ResampleFilterParams(FilterParams):
-    """A filter parameter class for the :class:`~pyradise.process.resampling.ResamplingFilter` class.
+    """A filter parameter class for the :class:`~pyradise.process.resampling.ResampleFilter` class.
 
     The associated filter provides the following three ``centering_methods`` for resampling images:
 

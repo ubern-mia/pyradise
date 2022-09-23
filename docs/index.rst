@@ -1,3 +1,14 @@
+.. toctree::
+   :maxdepth: 3
+   :caption: Contents:
+   :hidden:
+
+   installation
+   examples
+   api
+   change_history
+   acknowledgment
+
 Welcome to PyRaDiSe's Documentation
 ===================================
 
@@ -9,35 +20,19 @@ filters for fast prototyping and development of clinically deployable auto-segme
 is a highly flexible and extensible toolbox, allowing for narrowing the gap between data science and clinical
 radiotherapy research and speeding up development cycles.
 
-
-
 Main Features
-=============
+-------------
 The main features of PyRaDiSe are data handling, conversion from and to DICOM-RTSS, and data processing,
 including deep learning model inference. The intended use of PyRaDiSe in the radiotherapy environment is depicted in
-blablabla :numref:`fig-overview`.
-
-iuhasiudhuiahsd aiduh ahsiu dha
-
-.. _fig-overview:
+:numref:`Fig. %s <fig-overview>`.
 
 .. figure:: ./_static/architecture_overview_v2.png
-   :figwidth: 100 %
-   :align: center
-   :alt: Schematic illustration of PyRaDiSe in the radiotherapy environment
+    :name: fig-overview
+    :figwidth: 80 %
+    :align: center
+    :alt: Schematic illustration of PyRaDiSe in the radiotherapy environment
 
-This is the caption!
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Contents:
-
-   installation
-   examples
-   api
-   change_history
-   acknowledgment
+    Schematic illustration of PyRaDiSe in the radiotherapy environment
 
 
 Indices and tables
@@ -46,3 +41,12 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+
+.. toctree::
+    :maxdepth: 3
+    :caption: API Reference:
+    :hidden:
+
+    pyradise.data
+    pyradise.fileio

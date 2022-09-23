@@ -12,9 +12,9 @@ class Organ:
     """A class for identifying an organ.
 
     Notes:
-        The :class:`Organ` is used to identify the organ segmented on a :class:`SegmentationImage`. If multiple organs
-        are segmented on a single :class:`SegmentationImage`, the :class:`Organ` may be assigned an artificial
-        name describing the set of organs.
+        The :class:`Organ` is used to identify the organ segmented on a :class:`~pyradise.data.image.SegmentationImage`.
+        If multiple organs are segmented on a single :class:`~pyradise.data.image.SegmentationImage`, the
+        :class:`Organ` may be assigned an artificial name describing the set of organs.
 
 
     Args:
@@ -45,11 +45,11 @@ class Organ:
 
 
 class OrganRaterCombination:
-    """A class combining an :class:`Organ` with a :class:`Rater`.
+    """A class combining an :class:`Organ` with a :class:`~pyradise.data.rater.Rater`.
 
     Args:
         organ (Union[Organ, str]): The :class:`Organ` or its name.
-        rater (Union[Rater, str]): The :class:`Rater` or its name.
+        rater (Union[Rater, str]): The :class:`~pyradise.data.rater.Rater` or its name.
     """
 
     def __init__(self,

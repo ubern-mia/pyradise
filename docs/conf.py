@@ -25,6 +25,10 @@ shutil.copyfile(os.path.join(basedir, 'examples', 'inference', 'container.ipynb'
 shutil.copyfile(os.path.join(basedir, 'examples', 'conversion', 'modality_config_generation.ipynb'),
                 os.path.join(basedir, 'docs', 'examples.conversion.modality_config_generation.ipynb'))
 
+# Generate a temporary directory
+_temporary_directory = './_temp'
+if not os.path.exists(_temporary_directory):
+    os.makedirs(_temporary_directory)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -45,7 +49,6 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.githubpages',
               'sphinx.ext.imgmath',
               'sphinx.ext.todo',
-              'sphinx.ext.viewcode',
               'sphinx.ext.napoleon',
               'sphinx.ext.intersphinx',
               'nbsphinx',
@@ -79,7 +82,7 @@ keep_warnings = False
 suppress_warnings = []
 
 # Needs Sphinx version
-needs_sphinx = '4.4'
+needs_sphinx = '5.1'
 
 # Enable figure numbering
 numfig = True
@@ -109,6 +112,12 @@ html_logo = None
 
 # The static path for HTML output
 html_static_path = ['_static']
+
+# Theme options
+html_theme_options = {"collapse_navigation": True,
+                      "show_toc_level": 2,
+                      "page_sidebar_items": ["page-toc",]
+                      }
 
 
 # -- Options for autodoc -----------------------------------------------------
@@ -154,38 +163,63 @@ nbsphinx_allow_errors = True
 # https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
 
 # External library mapping
-intersphinx_mapping = {'SimpleITK': {'https://simpleitk.org/doxygen', './_static/simpleitk_inv.txt'},
-                       'ITK': ('https://itkpythonpackage.readthedocs.io/en/master/', None),
-                       'pydicom': ('https://pydicom.github.io/pydicom/stable/', None)}
+intersphinx_mapping = {'itk': ('https://itk.org/Doxygen/html/',
+                               os.path.join(_temporary_directory, 'itk.inv')),
+                       'SimpleITK': ('https://simpleitk.org/doxygen/latest/html/',
+                                     os.path.join(_temporary_directory, 'sitk.inv')),
+                       'pydicom': ('https://pydicom.github.io/pydicom/stable/',
+                                   None)}
 
 
-intersphinx_aliases = {
-    ("py:class", "click.core.Group"):
-        ("py:class", "click.Group"),
-    ("py:class", "click.core.Command"):
-        ("py:class", "click.Command"),
-}
+# -- Generating the inventory files for the external libraries ---------------
+
+# Utility function for inventory generation
+def create_inventory_header(project_: str, version_: str) -> str:
+    return f'# Sphinx inventory version 2\n' \
+           f'# Project: {str(project_)}\n' \
+           f'# Version: {str(version_)}\n' \
+           '# The remainder of this file is compressed using zlib.\n'
 
 
-def add_intersphinx_aliases_to_inv(app):
-    from sphinx.ext.intersphinx import InventoryAdapter
-    inventories = InventoryAdapter(app.builder.env)
+# create the SimpleITK inventory file
+def create_sitk_inventory(output_dir: str) -> None:
+    import SimpleITK as sitk
+    from zlib import compress
 
-    for alias, target in app.config.intersphinx_aliases.items():
-        alias_domain, alias_name = alias
-        target_domain, target_name = target
-        try:
-            found = inventories.main_inventory[target_domain][target_name]
-            try:
-                inventories.main_inventory[alias_domain][alias_name] = found
-            except KeyError:
-                print("could not add to inv")
-                continue
-        except KeyError:
-            print("missed :(")
-            continue
+    # Create the file header
+    header = create_inventory_header(sitk.__name__, sitk.__version__)
+
+    # Create the inventory objects
+    objects = 'SimpleITK.Image py:class 0 classitk_1_1simple_1_1Image.html -\n' \
+              'SimpleITK.Transform py:class 0 classitk_1_1simple_1_1Transform.html -\n'
+
+    # Compress the inventory objects
+    compressed_objects = compress(objects.encode('utf-8'), 9)
+
+    # Write the inventory file
+    with open(os.path.join(output_dir, 'sitk.inv'), 'wb') as f:
+        f.write(bytes(header, 'utf-8') + compressed_objects)
 
 
-def setup(app):
-    app.add_config_value("intersphinx_aliases", {}, "env")
-    app.connect("builder-inited", add_intersphinx_aliases_to_inv)
+# create the ITK inventory file
+def create_itk_inventory(output_dir: str) -> None:
+    import itk
+    from zlib import compress
+
+    # Create the file header
+    header = create_inventory_header(itk.__name__, itk.__version__)
+
+    # Create the inventory objects
+    objects = 'itk.Image py:class 0 classitk_1_1Image.html -\n'
+
+    # Compress the inventory objects
+    compressed_objects = compress(objects.encode('utf-8'), 9)
+
+    # Write the inventory file
+    with open(os.path.join(output_dir, 'itk.inv'), 'wb') as f:
+        f.write(bytes(header, 'utf-8') + compressed_objects)
+
+
+# create the inventory files in the temporary directory
+create_sitk_inventory(_temporary_directory)
+create_itk_inventory(_temporary_directory)

@@ -56,7 +56,7 @@ class ModalityExtractor(Extractor):
     file paths. It must be implemented by the user and is intended to be used with the
     :class:`~pyradise.fileio.crawling.Crawler` types for DICOM and discrete image files. Thus, both abstract methods
     (i.e. :meth:`extract_from_dicom` and :meth:`extract_from_path`) need to be implemented. In case of working
-    exclusively on DICOM or discrete image files, one extraction method may contain just a :data:`return None`.
+    exclusively on DICOM or discrete image files, one extraction method may contain just a ``return None``.
 
     Important:
         If the file path does not specify an intensity image the extractor must return :data:`None`.
@@ -212,7 +212,7 @@ class ModalityExtractor(Extractor):
 
         Notes:
             For your implementation you can load the DICOM file or specific DICOM attributes using the
-            :meth:`load_dataset` or :meth:`load_dataset_tag` functions from the :mod:`pyradise.fileio.dicom` module.
+            :meth:`load_dataset` or :meth:`load_dataset_tag` functions from the :mod:`pyradise.utils` module.
             For a detailed description of the DICOM attributes we refer to the `DICOM Standard
             <https://www.dicomstandard.org/>`_ and the `DICOM Standard Browser <https://dicom.innolitics.com/>`_.
 
@@ -259,7 +259,7 @@ class ModalityExtractor(Extractor):
 
 class SimpleModalityExtractor(ModalityExtractor):
     """A simple :class:`ModalityExtractor` implementation that uses the 'Modality' attribute in the provided DICOM
-    image or searches for a provided set of modality names (:data:`modalities`) in the file name in case of a
+    image or searches for a provided set of modality names (``modalities``) in the file name in case of a
     discrete image file to generate a :class:`~pyradise.data.modality.Modality` with the same name. If no match is
     found :data:`None` is returned.
 
@@ -283,7 +283,7 @@ class SimpleModalityExtractor(ModalityExtractor):
 
     def extract_from_path(self, path: str) -> Optional[Modality]:
         """Extract the :class:`~pyradise.data.modality.Modality` from the file name using the provided
-        :data:`modalities`. If there is no match :data:`None` is returned.
+        ``modalities``. If there is no match :data:`None` is returned.
 
         Args:
             path (str): The path to the file to extract the :class:`~pyradise.data.modality.Modality` for.
@@ -383,7 +383,7 @@ class OrganExtractor(Extractor):
 
 class SimpleOrganExtractor(OrganExtractor):
     """A simple :class:`OrganExtractor` implementation that searches for a provided set of organ names
-    (:data:`organs`) in the file name and generates an :class:`~pyradise.data.organ.Organ` with the same name. If no
+    (``organs``) in the file name and generates an :class:`~pyradise.data.organ.Organ` with the same name. If no
     match is found :data:`None` is returned.
 
     Args:
@@ -397,7 +397,7 @@ class SimpleOrganExtractor(OrganExtractor):
         self.organs = organs
 
     def extract(self, path: str) -> Optional[Organ]:
-        """Extract the :class:`~pyradise.data.organ.Organ` from the file name using the provided :data:`organs`. If
+        """Extract the :class:`~pyradise.data.organ.Organ` from the file name using the provided ``organs``. If
         no :class:`~pyradise.data.organ.Organ` can be extracted or the file does not contain a segmentation image
         :data:`None` is returned.
 
@@ -474,7 +474,7 @@ class RaterExtractor(Extractor):
 
 class SimpleRaterExtractor(OrganExtractor):
     """A simple :class:`OrganExtractor` implementation that searches for a provided set of rater names
-    (:data:`raters`) in the file name and generates a :class:`~pyradise.data.rater.Rater` with the same name. If no
+    (``raters``) in the file name and generates a :class:`~pyradise.data.rater.Rater` with the same name. If no
     match is found :data:`None` is returned.
 
     Args:
@@ -488,7 +488,7 @@ class SimpleRaterExtractor(OrganExtractor):
         self.raters = raters
 
     def extract(self, path: str) -> Optional[Rater]:
-        """Extract the :class:`~pyradise.data.rater.Rater` from the file name using the provided :data:`raters`. If no
+        """Extract the :class:`~pyradise.data.rater.Rater` from the file name using the provided ``raters``. If no
         :class:`~pyradise.data.rater.Rater` can be extracted or the file does not contain a segmentation image
         :data:`None` is returned.
 

@@ -1,7 +1,4 @@
-.. role:: any
-
 .. automodule:: pyradise.fileio
-
 
 FileIO Package
 ==============

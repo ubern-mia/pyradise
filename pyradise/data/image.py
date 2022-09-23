@@ -164,6 +164,16 @@ class Image(ABC):
     def _return_image_as(image: Union[sitk.Image, itk.Image],
                          as_sitk: bool
                          ) -> Union[sitk.Image, itk.Image]:
+        """Return the image as either a :class:`SimpleITK.Image` or :class:`itk.Image`.
+
+        Args:
+            image (Union[sitk.Image, itk.Image]): The image to be returned.
+            as_sitk (bool): If True, the image is returned as a :class:`SimpleITK.Image`, otherwise as a
+             :class:`itk.Image`.
+
+        Returns:
+            Union[sitk.Image, itk.Image]: The image as either a :class:`SimpleITK.Image` or :class:`itk.Image`.
+        """
         if isinstance(image, sitk.Image) and as_sitk:
             return image
 

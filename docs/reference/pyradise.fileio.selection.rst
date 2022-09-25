@@ -7,6 +7,9 @@ Module: :mod:`pyradise.fileio.selection`
 .. module:: pyradise.fileio.selection
     :noindex:
 
+General
+-------
+
 The :mod:`~pyradise.fileio.selection` module provides extensible functionality to select appropriate
 :class:`~pyradise.fileio.series_info.SeriesInfo` instances from a list such that unused data does not need to be
 loaded. This is especially useful if more data is provided to your pipeline than there is actually needed.
@@ -20,6 +23,9 @@ exclude all :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` en
 the data during loading and that no DICOM-RTSS is loaded, respectively.
 
 In order to extend the provided functionality, the :class:`SeriesInfoSelector` base class can be subclassed.
+
+Class Overview
+--------------
 
 The following :class:`SeriesInfoSelector` classes are provided:
 
@@ -39,7 +45,8 @@ The following :class:`SeriesInfoSelector` classes are provided:
 | :class:`NoRTSSInfoSelector`            | A :class:`SeriesInfoSelector` to exclude all :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` entries.                                           |
 +----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-|
+Details
+-------
 
 .. automodule:: pyradise.fileio.selection
     :members:

@@ -311,7 +311,7 @@ class LoopEntryFilterParams(FilterParams):
     :class:`~pyradise.process.base.LoopEntryFilter`.
 
     Args:
-        loop_axis (Optional[int]): The axis along which the data transformation is performed. If None, the
+        loop_axis (Optional[int]): The axis along which the data transformation is performed. If ``None``, the
          transformation is performed on the whole image at once. If a value is given, the transformation is performed
          by looping over the corresponding image dimension.
     """
@@ -433,8 +433,8 @@ class LoopEntryFilter(Filter):
 
 class FilterPipeline:
     """A filter pipeline class which can combine multiple :class:`~pyradise.process.base.Filter` instances into one
-     pipeline of sequential filter. This reduces the amount of boilerplate code for the user and provides a nice way to
-     chain multiple filters together.
+    pipeline of sequential filter. This reduces the amount of boilerplate code for the user and provides a nice way to
+    chain multiple filters together.
 
     Args:
         filters (Optional[Tuple[Filter, ...]]): The filters of the pipeline (default: None).

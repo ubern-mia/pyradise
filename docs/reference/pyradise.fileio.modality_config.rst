@@ -7,6 +7,9 @@ Module: :mod:`pyradise.fileio.modality_config`
 .. module:: pyradise.fileio.modality_config
     :noindex:
 
+General
+-------
+
 One drawback of the DICOM standard is that it does only provide the imaging modality in a minimal way (i.e. MR, CT,
 etc.) and little extra information about the acquisition parameters. If working with multiple images from the
 same modality, this information may not sufficient to distinguish between the different images. Therefore,
@@ -29,6 +32,20 @@ modality configuration files are stored in the same directory as the DICOM files
 modality configuration files manually or via an appropriate script, the data can be loaded using the appropriate
 :class:`~pyradise.fileio.loading.Loader`.
 
+Class Overview
+--------------
+
+The following class is provided by the :mod:`~pyradise.fileio.modality_config` module:
+
++------------------------------------+-------------------------------------------------------------------------+
+| Class                              | Description                                                             |
++====================================+=========================================================================+
+| :class:`ModalityConfiguration`     | Class handling all information to identify a modality and its details.  |
++------------------------------------+-------------------------------------------------------------------------+
+
+
+Details
+-------
 
 .. automodule:: pyradise.fileio.modality_config
     :members:

@@ -14,7 +14,7 @@ def get_segmentation_file_paths(path: str,
     file_paths = []
 
     for file in os.listdir(path):
-        if any(organ.name in file for organ in valid_organs) and file.endswith('.nii.gz'):
+        if any(organ.get_name() in file for organ in valid_organs) and file.endswith('.nii.gz'):
             file_paths.append(os.path.join(path, file))
 
     return tuple(sorted(file_paths))

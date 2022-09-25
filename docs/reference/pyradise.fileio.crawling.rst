@@ -7,6 +7,9 @@ Module: :mod:`pyradise.fileio.crawling`
 .. module:: pyradise.fileio.crawling
     :noindex:
 
+General
+-------
+
 The :mod:`~pyradise.fileio.crawling` module provides functionality to search for loadable data in a filesystem
 hierarchy and to construct intermediate information (i.e. :class:`~pyradise.fileio.series_info.SeriesInfo` and
 subclasses) for enabling the subject construction in the data loading process. The advantage of this intermediate
@@ -51,21 +54,8 @@ better suited for building deployable solutions for which the modality details c
 selection of the appropriate approach is up to the user.
 
 
-The following :class:`Crawler` classes are provided by the :mod:`~pyradise.fileio.crawling` module:
-
-+-----------------------------------------+---------------------------------------------------------------------------+
-| Class                                   | Description                                                               |
-+=========================================+===========================================================================+
-| :class:`Crawler`                        | Base class for all :class:`Crawler` subclasses                            |
-+-----------------------------------------+---------------------------------------------------------------------------+
-| :class:`SubjectFileCrawler`             | Crawler class for discrete image files in a single subject directory      |
-+-----------------------------------------+---------------------------------------------------------------------------+
-| :class:`DatasetFileCrawler`             | Crawler class for discrete image files in a dataset directory             |
-+-----------------------------------------+---------------------------------------------------------------------------+
-| :class:`SubjectDicomCrawler`            | Crawler class for DICOM files in a single subject directory               |
-+-----------------------------------------+---------------------------------------------------------------------------+
-| :class:`DatasetDicomCrawler`            | Crawler class for DICOM files in a dataset directory                      |
-+-----------------------------------------+---------------------------------------------------------------------------+
+Data Structure & Hierarchy
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. _crawling_ds_subject:
 
@@ -95,7 +85,27 @@ The following :class:`Crawler` classes are provided by the :mod:`~pyradise.filei
         │   └── ...
         └── ...
 
-|
+Class Overview
+--------------
+
+The following :class:`Crawler` classes are provided by the :mod:`~pyradise.fileio.crawling` module:
+
++-----------------------------------------+---------------------------------------------------------------------------+
+| Class                                   | Description                                                               |
++=========================================+===========================================================================+
+| :class:`Crawler`                        | Base class for all :class:`Crawler` subclasses                            |
++-----------------------------------------+---------------------------------------------------------------------------+
+| :class:`SubjectFileCrawler`             | Crawler class for discrete image files in a single subject directory      |
++-----------------------------------------+---------------------------------------------------------------------------+
+| :class:`DatasetFileCrawler`             | Crawler class for discrete image files in a dataset directory             |
++-----------------------------------------+---------------------------------------------------------------------------+
+| :class:`SubjectDicomCrawler`            | Crawler class for DICOM files in a single subject directory               |
++-----------------------------------------+---------------------------------------------------------------------------+
+| :class:`DatasetDicomCrawler`            | Crawler class for DICOM files in a dataset directory                      |
++-----------------------------------------+---------------------------------------------------------------------------+
+
+Details
+-------
 
 .. automodule:: pyradise.fileio.crawling
     :members:

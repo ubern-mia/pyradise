@@ -7,9 +7,15 @@ Module: :mod:`pyradise.fileio.dicom_conversion`
 .. module:: pyradise.fileio.dicom_conversion
     :noindex:
 
+General
+-------
+
 The :mod:`~pyradise.fileio.dicom_conversion` module provides functionality to convert from and to DICOM data. This
 functionality is especially useful if working in the clinical context where the input and / or output data is provided
 in the DICOM format.
+
+Class Overview
+--------------
 
 The following :class:`Converter` classes are provided:
 
@@ -29,7 +35,8 @@ The following :class:`Converter` classes are provided:
 | :class:`SegmentToRTSSConverter`        | A low level :class:`Converter` to convert :class:`~pyradise.data.image.SegmentationImage` s to a DICOM-RTSS :class:`~pydicom.dataset.Dataset`.            |
 +----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-|
+Details
+-------
 
 .. automodule:: pyradise.fileio.dicom_conversion
     :members:

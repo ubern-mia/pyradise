@@ -1,6 +1,8 @@
 from abc import abstractmethod
 from typing import (
     Any,
+    Tuple,
+    List,
     Union,
     Optional)
 from warnings import warn
@@ -10,6 +12,7 @@ import SimpleITK as sitk
 
 from pyradise.data import (
     Subject,
+    Modality,
     IntensityImage,
     TransformInfo)
 from .base import (
@@ -19,10 +22,38 @@ from .base import (
     LoopEntryFilterParams)
 
 
-__all__ = ['IntensityFilter', 'IntensityLoopFilter', 'ZScoreNormFilterParams', 'ZScoreNormFilter',
-           'ZeroOneNormFilterParams', 'ZeroOneNormFilter', 'RescaleIntensityFilterParams', 'RescaleIntensityFilter',
-           'ClipIntensityFilterParams', 'ClipIntensityFilter', 'GaussianFilterParams', 'GaussianFilter',
-           'MedianFilterParams', 'MedianFilter', 'LaplacianFilterParams', 'LaplacianFilter']
+__all__ = ['IntensityFilterParams', 'IntensityFilter', 'IntensityLoopFilterParams', 'IntensityLoopFilter',
+           'ZScoreNormFilterParams', 'ZScoreNormFilter', 'ZeroOneNormFilterParams', 'ZeroOneNormFilter',
+           'RescaleIntensityFilterParams', 'RescaleIntensityFilter', 'ClipIntensityFilterParams', 'ClipIntensityFilter',
+           'GaussianFilterParams', 'GaussianFilter', 'MedianFilterParams', 'MedianFilter',
+           'LaplacianFilterParams', 'LaplacianFilter']
+
+
+class IntensityFilterParams(FilterParams):
+    """A filter parameter class for the :class:`~pyradise.process.intensity.IntensityFilter` base class. In addition to
+    the :class:`~pyradise.process.base.FilterParams` class, this class also provides a ``modalities`` parameter to
+    specify the images to be processed by the filters.
+
+    Args:
+        modalities (Optional[Tuple[Union[Modality, str], ...]]): The modalities associated with the corresponding
+         :class:`~pyradise.data.image.IntensityImage` instances that should be processed. If ``None`` is provided,
+         all :class:`~pyradise.data.image.IntensityImage` instances will be processed (default: None).
+    """
+
+    def __init__(self, modalities: Optional[Tuple[Union[Modality, str], ...]] = None) -> None:
+        # check and cast modalities
+        self.modalities: Optional[List[Modality, ...]] = []
+
+        if modalities is not None:
+            for modality in modalities:
+                if isinstance(modality, Modality):
+                    self.modalities.append(modality)
+                elif isinstance(modality, str):
+                    self.modalities.append(Modality(modality))
+                else:
+                    raise TypeError('The provided modalities must be of type Modality or str.')
+        else:
+            self.modalities: Optional[List[Modality, ...]] = None
 
 
 class IntensityFilter(Filter):
@@ -33,9 +64,19 @@ class IntensityFilter(Filter):
     whole. Thus, this base class is intended to be used for intensity modifying filters which process the whole image
     content at once.
 
+    Note:
+        The selection of the :class:`~pyradise.data.image.IntensityImage` instances to be processed is specified by the
+        :class:`~pyradise.process.intensity.IntensityFilterParams` instance. If the ``modalities`` parameter is set to
+        ``None``, all :class:`~pyradise.data.image.IntensityImage` instances will be processed. Otherwise, only the
+        :class:`~pyradise.data.image.IntensityImage` instances with the specified modalities will be processed. If the
+        user wants to implement its own intensity modifying filter, the user do not need to implement the
+        selection of the images to be processed. The selection mechanism is already provided in the implemented
+        :meth:`~pyradise.process.intensity.IntensityFilter.execute` and
+        :meth:`~pyradise.process.intensity.IntensityFilter.execute_inverse` methods.
+
     Example:
 
-        An example implementation of an intensity clippling filter
+        An example implementation of an intensity clippling filter:
 
         >>> import SimpleITK as sitk
         >>>
@@ -43,12 +84,13 @@ class IntensityFilter(Filter):
         >>> from pyradise.data import Subject, IntensityImage, TransformInfo
         >>>
         >>>
-        >>> class ClipFilterParams(FilterParams):
+        >>> class ClipFilterParams(IntensityFilterParams):
         >>>     def __init__(self,
         >>>                  min_out: float,
-        >>>                  max_out: float
+        >>>                  max_out: float,
+        >>>                  modalities: Optional[Tuple[Union[Modality, str], ...]] = None
         >>>                  ) -> None:
-        >>>         super().__init__()
+        >>>         super().__init__(modalities)
         >>>
         >>>         if min_out == max_out:
         >>>             raise ValueError('The min and max output intensity '
@@ -104,28 +146,21 @@ class IntensityFilter(Filter):
         >>>                 subject: Subject,
         >>>                 params: ClipFilterParams
         >>>                 ) -> Subject:
-        >>>         # implement exclusively due to type adaptation
+        >>>         # implement exclusively due to type adaptation for params
         >>>         return super().execute(subject, params)
-        >>>
-        >>>     def execute_inverse(self,
-        >>>                         subject: Subject,
-        >>>                         transform_info: TransformInfo
-        >>>                         ) -> Subject:
-        >>>         # implement exclusively due to type adaptation
-        >>>         return super().execute_inverse(subject, transform_info)
 
     """
 
     @abstractmethod
     def _process_image(self,
                        image: IntensityImage,
-                       params: FilterParams
+                       params: IntensityFilterParams
                        ) -> IntensityImage:
         """Process the content of an image.
 
         Args:
             image (IntensityImage): The :class:`~pyradise.data.image.IntensityImage` instance to be processed.
-            params (FilterParams): The filter parameters.
+            params (IntensityFilterParams): The filter parameters.
 
         Returns:
             IntensityImage: The processed :class:`~pyradise.data.image.IntensityImage` instance.
@@ -150,13 +185,13 @@ class IntensityFilter(Filter):
 
     def execute(self,
                 subject: Subject,
-                params: FilterParams
+                params: IntensityFilterParams
                 ) -> Subject:
         """Execute the intensity modifying procedure.
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
-            params (FilterParams): The filter parameters.
+            params (IntensityFilterParams): The filter parameters.
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance with processed
@@ -164,7 +199,14 @@ class IntensityFilter(Filter):
         """
         for image in subject.get_images():
             if isinstance(image, IntensityImage):
-                self._process_image(image, params)
+
+                # check if the image is specified for processing
+                if params.modalities is not None and image.modality not in params.modalities:
+                    image_sitk = image.get_image_data(True)
+                    self._register_tracked_data(image, image_sitk, image_sitk, params)
+
+                else:
+                    self._process_image(image, params)
 
         return subject
 
@@ -184,9 +226,49 @@ class IntensityFilter(Filter):
         """
         for image in subject.get_images():
             if isinstance(image, IntensityImage):
+
+                if transform_info.params.modalities is not None and \
+                        image.get_modality() not in transform_info.params.modalities:
+                    continue
+
                 self._process_image_inverse(image, transform_info)
 
         return subject
+
+
+class IntensityLoopFilterParams(LoopEntryFilterParams):
+    """A filter parameter class for the :class:`~pyradise.process.intensity.IntensityLoopFilter` base class.
+    In addition to the :class:`~pyradise.process.base.LoopEntryFilterParams` class, this class also provides a
+    ``modalities`` parameter to specify the images to be processed by the filters.
+
+    Args:
+        loop_axis (Optional[int]): The axis along which the data transformation is performed. If ``None``, the
+         transformation is performed on the whole image at once. If a value is given, the transformation is performed
+         by looping over the corresponding image dimension.
+        modalities (Optional[Tuple[Union[Modality, str], ...]]): The modalities associated with the corresponding
+         :class:`~pyradise.data.image.IntensityImage` instances that should be processed. If ``None`` is provided,
+         all :class:`~pyradise.data.image.IntensityImage` instances will be processed (default: None).
+    """
+
+    def __init__(self,
+                 loop_axis: Optional[int],
+                 modalities: Optional[Tuple[Union[Modality, str], ...]] = None
+                 ) -> None:
+        super().__init__(loop_axis)
+
+        # check and cast modalities
+        self.modalities: Optional[List[Modality, ...]] = []
+
+        if modalities is not None:
+            for modality in modalities:
+                if isinstance(modality, Modality):
+                    self.modalities.append(modality)
+                elif isinstance(modality, str):
+                    self.modalities.append(Modality(modality))
+                else:
+                    raise TypeError('The provided modalities must be of type Modality or str.')
+        else:
+            self.modalities: Optional[List[Modality, ...]] = None
 
 
 class IntensityLoopFilter(LoopEntryFilter):
@@ -202,6 +284,16 @@ class IntensityLoopFilter(LoopEntryFilter):
     method is called for the forward processing and the
     :meth:`~pyradise.process.intensity.IntensityLoopFilter._modify_array_inverse` method is called for the inverse
     processing.
+
+    Note:
+        The selection of the :class:`~pyradise.data.image.IntensityImage` instances to be processed is specified by the
+        :class:`~pyradise.process.intensity.IntensityLoopFilterParams` instance. If the ``modalities`` parameter is set
+        to ``None``, all :class:`~pyradise.data.image.IntensityImage` instances will be processed. Otherwise, only the
+        :class:`~pyradise.data.image.IntensityImage` instances with the specified modalities will be processed. If the
+        user wants to implement its own intensity modifying filter, the user do not need to implement the
+        selection of the images to be processed. The selection mechanism is already provided in the implemented
+        :meth:`~pyradise.process.intensity.IntensityLoopFilter.execute` and
+        :meth:`~pyradise.process.intensity.IntensityLoopFilter.execute_inverse` methods.
     """
 
     def __init__(self):
@@ -213,7 +305,7 @@ class IntensityLoopFilter(LoopEntryFilter):
     @abstractmethod
     def _modify_array(self,
                       array: np.ndarray,
-                      params: LoopEntryFilterParams
+                      params: IntensityLoopFilterParams
                       ) -> np.ndarray:
         """The intensity modification function which is applied to the provided array. The provided array can be of
         n-dimensions whereby the dimensionality depend on the provided data and the ``loop_axis`` parameter as
@@ -221,7 +313,7 @@ class IntensityLoopFilter(LoopEntryFilter):
 
         Args:
             array (np.ndarray): The array to be processed.
-            params (LoopEntryFilterParams): The parameters used for the processing.
+            params (IntensityLoopFilterParams): The parameters used for the processing.
 
         Returns:
             np.ndarray: The processed array.
@@ -249,13 +341,13 @@ class IntensityLoopFilter(LoopEntryFilter):
 
     def _process_image(self,
                        image: IntensityImage,
-                       params: Union[LoopEntryFilterParams, Any]
+                       params: Union[IntensityLoopFilterParams, Any]
                        ) -> IntensityImage:
         """Execute the intensity modifying procedure on the provided image by looping over the image accordingly.
 
         Args:
             image (IntensityImage): The image to be processed.
-            params (Union[LoopEntryFilterParams, Any]): The filter parameters.
+            params (Union[IntensityLoopFilterParams, Any]): The filter parameters.
 
         Returns:
             IntensityImage: The processed image.
@@ -328,13 +420,13 @@ class IntensityLoopFilter(LoopEntryFilter):
 
     def execute(self,
                 subject: Subject,
-                params: LoopEntryFilterParams
+                params: IntensityLoopFilterParams
                 ) -> Subject:
         """Execute the intensity modifying procedure.
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
-            params (LoopEntryFilterParams): The filter parameters.
+            params (IntensityLoopFilterParams): The filter parameters.
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance with processed
@@ -342,7 +434,14 @@ class IntensityLoopFilter(LoopEntryFilter):
         """
         for image in subject.get_images():
             if isinstance(image, IntensityImage):
-                self._process_image(image, params)
+
+                # check if the image is specified for processing
+                if params.modalities is not None and image.get_modality() not in params.modalities:
+                    image_sitk = image.get_image_data(as_sitk=True)
+                    self._register_tracked_data(image, image_sitk, image_sitk, params)
+
+                else:
+                    self._process_image(image, params)
 
         return subject
 
@@ -362,25 +461,33 @@ class IntensityLoopFilter(LoopEntryFilter):
         """
         for image in subject.get_images():
             if isinstance(image, IntensityImage):
+
+                if transform_info.params.modalities is not None and \
+                        image.get_modality() not in transform_info.params.modalities:
+                    continue
+
                 self._process_image_inverse(image, transform_info)
 
         return subject
 
 
 # pylint: disable=too-few-public-methods
-class ZScoreNormFilterParams(LoopEntryFilterParams):
+class ZScoreNormFilterParams(IntensityLoopFilterParams):
     """A filter parameter class for the :class:`~pyradise.process.intensity.ZScoreNormFilter` class.
 
     Args:
         loop_axis (Optional[int]): The axis along which the intensity normalization is performed. If None, the
          intensity normalization is performed on the whole image extent at once. If a value is given, the intensity
          normalization is performed by looping over the corresponding image dimension (default: None).
+        modalities (Optional[Tuple[Union[Modality, str], ...]]): The modalities of the images to be rescaled. If
+         ``None`` is provided all images of the provided subject are rescaled (default: None).
     """
 
     def __init__(self,
-                 loop_axis: Optional[int] = None
+                 loop_axis: Optional[int] = None,
+                 modalities: Optional[Tuple[Union[Modality, str], ...]] = None
                  ) -> None:
-        super().__init__(loop_axis)
+        super().__init__(loop_axis, modalities)
 
 
 class ZScoreNormFilter(IntensityLoopFilter):
@@ -499,19 +606,22 @@ class ZScoreNormFilter(IntensityLoopFilter):
 
 
 # pylint: disable=too-few-public-methods
-class ZeroOneNormFilterParams(LoopEntryFilterParams):
+class ZeroOneNormFilterParams(IntensityLoopFilterParams):
     """A filter parameter class for the :class:`~pyradise.process.intensity.ZeroOneNormFilter` class.
 
     Args:
         loop_axis (Optional[int]): The axis along which the intensity normalization is performed. If None, the
          intensity normalization is performed on the whole image extent at once. If a value is given, the intensity
          normalization is performed by looping over the corresponding image dimension (default: None).
+        modalities (Optional[Tuple[Union[Modality, str], ...]]): The modalities of the images to be rescaled. If
+         ``None`` is provided all images of the provided subject are rescaled (default: None).
     """
 
     def __init__(self,
-                 loop_axis: Optional[int] = None
+                 loop_axis: Optional[int] = None,
+                 modalities: Optional[Tuple[Union[Modality, str], ...]] = None
                  ) -> None:
-        super().__init__(loop_axis)
+        super().__init__(loop_axis, modalities)
 
 
 class ZeroOneNormFilter(IntensityLoopFilter):
@@ -626,7 +736,7 @@ class ZeroOneNormFilter(IntensityLoopFilter):
 
 
 # pylint: disable=too-few-public-methods
-class RescaleIntensityFilterParams(FilterParams):
+class RescaleIntensityFilterParams(IntensityFilterParams):
     """A filter parameter class for the :class:`~pyradise.process.intensity.RescaleIntensityFilter` class.
 
     Args:
@@ -634,14 +744,18 @@ class RescaleIntensityFilterParams(FilterParams):
          the minimum intensity value of the image.
         max_out (Optional[float]): The maximum value of the rescaled image. If ``None`` is provided the filter takes
          the maximum intensity value of the image.
+        modalities (Optional[Tuple[Union[Modality, str], ...]]): The modalities of the images to be rescaled. If
+         ``None`` is provided all images of the provided subject are rescaled (default: None).
     """
 
     def __init__(self,
                  min_out: Optional[float],
-                 max_out: Optional[float]
+                 max_out: Optional[float],
+                 modalities: Optional[Tuple[Union[Modality, str], ...]] = None
                  ) -> None:
-        super().__init__()
+        super().__init__(modalities)
 
+        # check the provided min and max values
         if min_out == max_out:
             raise ValueError('The specified min and max output values are equal. The resulting image would have '
                              'constant intensity.')
@@ -654,8 +768,9 @@ class RescaleIntensityFilterParams(FilterParams):
 
 
 class RescaleIntensityFilter(IntensityFilter):
-    """A filter class performing an invertible intensity rescaling on all :class:`~pyradise.data.image.IntensityImage`
-    instances of the provided :class:`~pyradise.data.subject.Subject` instance.
+    """A filter class performing an invertible intensity rescaling on all selected
+    :class:`~pyradise.data.image.IntensityImage` instances of the provided :class:`~pyradise.data.subject.Subject`
+    instance.
 
     For the rescaling the following formula is applied to the image extent or its subsets:
 
@@ -703,7 +818,7 @@ class RescaleIntensityFilter(IntensityFilter):
         Returns:
             IntensityImage: The processed image with rescaled intensity values.
         """
-        # get the iamge data as numpy array
+        # get the image data as numpy array
         image_sitk = image.get_image_data(True)
         if 'integer' in image_sitk.GetPixelIDTypeAsString():
             image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
@@ -714,6 +829,10 @@ class RescaleIntensityFilter(IntensityFilter):
         min_i_o = np.min(image_np)
         max_i_o = np.max(image_np)
         range_i_o = max_i_o - min_i_o
+
+        # track the min and max intensity
+        self.tracking_data['min'] = min_i_o
+        self.tracking_data['max'] = max_i_o
 
         # get the range of the output values
         param_range = params.max_out - params.min_out
@@ -735,8 +854,6 @@ class RescaleIntensityFilter(IntensityFilter):
         image.set_image_data(new_image_sitk)
 
         # track the necessary data for invertibility
-        self.tracking_data['min'] = min_i_o
-        self.tracking_data['max'] = max_i_o
         self._register_tracked_data(image, image_sitk, new_image_sitk, params)
 
         return image
@@ -821,20 +938,24 @@ class RescaleIntensityFilter(IntensityFilter):
         return super().execute_inverse(subject, transform_info)
 
 
-class ClipIntensityFilterParams(FilterParams):
+class ClipIntensityFilterParams(IntensityFilterParams):
     """A filter parameter class for the :class:`~pyradise.process.intensity.ClipIntensityFilter` class.
 
     Args:
         min_out (float): The minimum intensity value of the processed image.
         max_out (float): The maximum intensity value of the processed image.
+        modalities (Optional[Tuple[Union[Modality, str], ...]]): The modalities of the images to be clipped. If
+         ``None`` is provided all images of the provided subject are clipped (default: None).
     """
 
     def __init__(self,
                  min_out: float,
-                 max_out: float
+                 max_out: float,
+                 modalities: Optional[Tuple[Union[Modality, str], ...]] = None
                  ) -> None:
-        super().__init__()
+        super().__init__(modalities)
 
+        # check the provided min and max values
         if min_out == max_out:
             raise ValueError('The min and max output intensity values must not be equal because the resulting image '
                              'will have constant intensity.')
@@ -847,9 +968,10 @@ class ClipIntensityFilterParams(FilterParams):
 
 
 class ClipIntensityFilter(IntensityFilter):
-    """A filter class performing a clipping of intensity values on all :class:`~pyradise.data.image.IntensityImage`
-    instances of the provided :class:`~pyradise.data.subject.Subject` instance. The clipping procedure sets the
-    intensity values outside the specified range to the specified minimum and maximum values.
+    """A filter class performing a clipping of intensity values on all selected
+    :class:`~pyradise.data.image.IntensityImage` instances of the provided :class:`~pyradise.data.subject.Subject`
+    instance. The clipping procedure sets the intensity values outside the specified range to the specified minimum
+    and maximum values.
 
     For the clipping procedure the following formula is applied to the image data:
 
@@ -948,20 +1070,24 @@ class ClipIntensityFilter(IntensityFilter):
         return super().execute_inverse(subject, transform_info)
 
 
-class GaussianFilterParams(FilterParams):
+class GaussianFilterParams(IntensityFilterParams):
     """A filter parameter class for the :class:`~pyradise.process.intensity.GaussianFilter` class.
 
     Args:
         variance (float): The variance of the Gaussian kernel.
         kernel_size (int): The kernel size of the Gaussian kernel.
+        modalities (Optional[Tuple[Union[Modality, str], ...]]): The modalities of the images to be filtered. If
+         ``None`` is provided all images of the provided subject are filtered (default: None).
     """
 
     def __init__(self,
                  variance: float,
-                 kernel_size: int
+                 kernel_size: int,
+                 modalities: Optional[Tuple[Union[Modality, str], ...]] = None
                  ) -> None:
-        super().__init__()
+        super().__init__(modalities)
 
+        # check the statistical values
         if variance <= 0:
             raise ValueError('The variance must be greater than zero.')
 
@@ -1007,6 +1133,8 @@ class GaussianFilter(IntensityFilter):
         """
         # get the image data as sitk image
         image_sitk = image.get_image_data(True)
+
+        # cast the image if necessary
         if 'integer' in image_sitk.GetPixelIDTypeAsString():
             image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
 
@@ -1077,15 +1205,20 @@ class GaussianFilter(IntensityFilter):
         return super().execute_inverse(subject, transform_info)
 
 
-class MedianFilterParams(FilterParams):
+class MedianFilterParams(IntensityFilterParams):
     """A filter parameter class for the :class:`~pyradise.process.intensity.MedianFilter` class.
 
     Args:
         radius (int): The radius of the median filter.
+        modalities (Optional[Tuple[Union[Modality, str], ...]]): The modalities of the images to be filtered. If
+         ``None`` is provided all images of the provided subject are filtered (default: None).
     """
 
-    def __init__(self, radius: int) -> None:
-        super().__init__()
+    def __init__(self,
+                 radius: int,
+                 modalities: Optional[Tuple[Union[Modality, str], ...]] = None
+                 ) -> None:
+        super().__init__(modalities)
 
         self.radius = radius
 
@@ -1126,6 +1259,8 @@ class MedianFilter(IntensityFilter):
         """
         # get the image data as sitk image
         image_sitk = image.get_image_data(True)
+
+        # cast the image if necessary
         if 'integer' in image_sitk.GetPixelIDTypeAsString():
             image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
 
@@ -1190,14 +1325,15 @@ class MedianFilter(IntensityFilter):
         return super().execute_inverse(subject, transform_info)
 
 
-class LaplacianFilterParams(FilterParams):
+class LaplacianFilterParams(IntensityFilterParams):
     """A filter parameter class for the :class:`~pyradise.process.intensity.LaplacianFilter` class.
 
-    Note:
-        The Laplacian filter does not need any parameters.
+    Args:
+        modalities (Optional[Tuple[Union[Modality, str], ...]]): The modalities of the images to be filtered. If
+         ``None`` is provided all images of the provided subject are filtered (default: None).
     """
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, modalities: Optional[Tuple[Union[Modality, str], ...]] = None) -> None:
+        super().__init__(modalities)
 
 
 class LaplacianFilter(IntensityFilter):
@@ -1236,6 +1372,8 @@ class LaplacianFilter(IntensityFilter):
         """
         # get the image data as sitk image
         image_sitk = image.get_image_data(True)
+
+        # cast the image if necessary
         if 'integer' in image_sitk.GetPixelIDTypeAsString():
             image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
 

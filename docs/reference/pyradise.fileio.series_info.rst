@@ -7,6 +7,9 @@ Module: :mod:`pyradise.fileio.series_info`
 .. module:: pyradise.fileio.series_info
     :noindex:
 
+General
+-------
+
 The :mod:`~pyradise.fileio.series_info` module provides functionality to hold and retrieve information about data
 entities which are required during the loading procedure for :class:`~pyradise.data.subject.Subject` and
 :class:`~pyradise.data.image.Image` creation. The base class of this module is the :class:`SeriesInfo` which is named
@@ -21,6 +24,8 @@ especially useful if the user wants to process specific data exclusively and wan
 the memory footprint low. Afterwards, the :class:`SeriesInfo` instances are used to load the data (see
 :ref:`Loading Module <loading_module>`) and to create the :class:`~pyradise.data.subject.Subject` instance.
 
+Class Overview
+--------------
 
 The following :class:`SeriesInfo` classes are provided:
 
@@ -44,7 +49,8 @@ The following :class:`SeriesInfo` classes are provided:
 | :class:`DicomSeriesRTSSInfo`         | :class:`SeriesInfo` class for DICOM-RTSS files.                           |
 +--------------------------------------+---------------------------------------------------------------------------+
 
-|
+Details
+-------
 
 .. automodule:: pyradise.fileio.series_info
     :members:

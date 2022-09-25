@@ -7,9 +7,15 @@ Module: :mod:`pyradise.fileio.writing`
 .. module:: pyradise.fileio.writing
     :noindex:
 
+General
+-------
+
 The :mod:`~pyradise.fileio.writing` module provides functionality to write :class:`~pyradise.data.subject.Subject`
 instances in a structured way to disk. Furthermore, the module provides also writers for writing DICOM-RTSS
 :class:`~pydicom.dataset.Dataset` s (see `pydicom Dataset <https://pydicom.github.io/pydicom/dev/reference/generated/pydicom.dataset.Dataset.html>`_).
+
+Class Overview
+--------------
 
 The following writer classes are provided:
 
@@ -23,7 +29,8 @@ The following writer classes are provided:
 | :class:`DicomSeriesSubjectWriter`      | A writer class for the serialization of :class:`~pydicom.dataset.Dataset` s and copy functionality based on :class:`~pyradise.fileio.series_info.DicomSeriesInfo` instances.|
 +----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-|
+Details
+-------
 
 .. automodule:: pyradise.fileio.writing
     :members:

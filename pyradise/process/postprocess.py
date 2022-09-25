@@ -17,7 +17,8 @@ from .base import (
     Filter,
     FilterParams)
 
-__all__ = ['SingleConnectedComponentFilterParams', 'SingleConnectedComponentFilter', 'AlphabeticOrganSortingFilter']
+__all__ = ['SingleConnectedComponentFilterParams', 'SingleConnectedComponentFilter',
+           'AlphabeticOrganSortingFilterParams', 'AlphabeticOrganSortingFilter']
 
 
 # pylint: disable = too-few-public-methods
@@ -259,13 +260,22 @@ class SingleConnectedComponentFilter(Filter):
         return subject
 
 
+class AlphabeticOrganSortingFilterParams(FilterParams):
+    """A filter parameter class for the :class:`~pyradise.process.postprocess.AlphabeticOrganSortingFilter` class.
+
+    Args:
+        ascending (bool): If the organs should be sorted in ascending order or not (default: True).
+    """
+
+    def __init__(self, ascending: bool = True) -> None:
+        self.ascending = ascending
+
+
 class AlphabeticOrganSortingFilter(Filter):
     """A filter class performing an alphabetic sorting of the :class:`~pyradise.data.image.SegmentationImage` instances
     according to their assigned :class:`~pyradise.data.organ.Organ` names.
 
     Note:
-        This filter does not need any parameters.
-
         This filter is helpful when ordering of the output matters such as for example if constructing a DICOM-RTSS
         :class:`~pydicom.dataset.Dataset` instance.
     """
@@ -282,20 +292,24 @@ class AlphabeticOrganSortingFilter(Filter):
 
     def execute(self,
                 subject: Subject,
-                params: Optional[FilterParams] = None
+                params: AlphabeticOrganSortingFilterParams
                 ) -> Subject:
         """Execute the alphabetical sorting of the :class:`~pyradise.data.image.SegmentationImage` instances according
         to their associated :class:`~pyradise.data.organ.Organ` instances.
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be sorted.
-            params (FilterParams): Unused.
+            params (AlphabeticOrganSortingFilterParams): The filter parameters
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance with the alphabetically sorted
             :class:`~pyradise.data.image.SegmentationImage` instances.
         """
         subject.segmentation_images = sorted(subject.segmentation_images, key=lambda x: x.get_organ(as_str=True))
+
+        if not params.ascending:
+            subject.segmentation_images = subject.segmentation_images[::-1]
+
         return subject
 
     def execute_inverse(self,

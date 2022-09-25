@@ -7,6 +7,9 @@ Module: :mod:`pyradise.fileio.extraction`
 .. module:: pyradise.fileio.extraction
     :noindex:
 
+General
+-------
+
 The :mod:`~pyradise.fileio.extraction` module provides class prototypes, simple implementations, and examples
 of extractors which are intended to be used to retrieve information from file paths or DICOM files to construct
 :class:`~pyradise.data.modality.Modality`, :class:`~pyradise.data.organ.Organ`, and :class:`~pyradise.data.rater.Rater`
@@ -18,6 +21,9 @@ If working with DICOM data, extractors provide an alternative to generating and 
 files. This alternative is especially useful if the data is well organized and the necessary information can be
 retrieved easily from the data. If the data varies and contains ambiguous content we recommend to use modality
 configuration files instead because they are more flexible.
+
+Class Overview
+--------------
 
 The following abstract :class:`Extractor` classes are provided by the :mod:`~pyradise.fileio.extraction` module:
 
@@ -33,8 +39,6 @@ The following abstract :class:`Extractor` classes are provided by the :mod:`~pyr
 | :class:`RaterExtractor`                 | Prototype :class:`Extractor` for :class:`~pyradise.data.rater.Rater` extraction from discrete images.                      |
 +-----------------------------------------+----------------------------------------------------------------------------------------------------------------------------+
 
-|
-
 The following concrete :class:`Extractor` classes are provided by the :mod:`~pyradise.fileio.extraction` module:
 
 +-----------------------------------------+---------------------------------------+
@@ -47,7 +51,8 @@ The following concrete :class:`Extractor` classes are provided by the :mod:`~pyr
 | :class:`SimpleRaterExtractor`           | A simple :class:`RaterExtractor`.     |
 +-----------------------------------------+---------------------------------------+
 
-|
+Details
+-------
 
 .. automodule:: pyradise.fileio.extraction
     :members:

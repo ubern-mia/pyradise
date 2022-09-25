@@ -27,7 +27,8 @@ physical properties by playback the recorded changes. Each :class:`~pyradise.dat
 distinctive content-related information which are enlisted below:
 
 
-.. figure:: _static/data_image_0.png
+.. figure:: ../_static/data_image_0.png
+    :name: fig_data_subject
     :width: 600
     :align: center
     :alt: main concept data model
@@ -55,7 +56,6 @@ information about the :class:`~pyradise.data.organ.Organ` segmented on the image
 :class:`~pyradise.data.image.SegmentationImage` instance should contain a single organ / label to allow for simple
 processing. As explained earlier this is not a hard constraint and can be circumvented in appropriate cases such as
 for example if one needs to output multi-label segmentations.
-
 
 
 

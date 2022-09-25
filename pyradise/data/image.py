@@ -635,6 +635,6 @@ class SegmentationImage(Image):
 
     def __str__(self) -> str:
         if not self.rater:
-            return f'SegmentationImage: {self.organ.name}'
+            return f'SegmentationImage: {self.organ.get_name()}'
 
-        return f'SegmentationImage: {self.organ.name} / {self.rater.name}'
+        return f'SegmentationImage: {self.organ.get_name()} / {self.rater.get_name()}'

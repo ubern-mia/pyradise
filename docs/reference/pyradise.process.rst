@@ -23,4 +23,3 @@ for implementing new filters is documented in the documentation of the :class:`~
 
 
 
-

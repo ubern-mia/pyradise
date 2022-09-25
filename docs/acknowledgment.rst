@@ -17,5 +17,6 @@ Open source code
 ----------------
 Parts of PyRaDiSe base on open source code, which we acknowledge hereby:
 
- - Some functionality for generating HDF5 dataset files is taken from `pymia <https://pymia.readthedocs.io/en/latest/>`_
  - Some conversion functionality is used from `RT-utils <https://github.com/qurit/rt-utils>`_
+
+..  - Some functionality for generating HDF5 dataset files is taken from `pymia <https://pymia.readthedocs.io/en/latest/>`_

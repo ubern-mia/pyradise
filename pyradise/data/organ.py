@@ -31,6 +31,23 @@ class Organ:
         self.name: str = name
         self.index: Optional[int] = index
 
+    def get_name(self) -> str:
+        """Get the name of the :class:`Organ`.
+
+        Returns:
+            str: The name of the :class:`Organ`.
+        """
+        return self.name
+
+    def set_name(self,
+                 name: str) -> None:
+        """Set the name of the :class:`Organ`.
+
+        Args:
+            name (str): The name of the :class:`Organ`.
+        """
+        self.name = name
+
     def __str__(self) -> str:
         return self.name
 

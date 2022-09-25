@@ -6,7 +6,9 @@ from .base import (
     FilterPipeline)
 
 from .intensity import (
+    IntensityFilterParams,
     IntensityFilter,
+    IntensityLoopFilterParams,
     IntensityLoopFilter,
     ZScoreNormFilterParams,
     ZScoreNormFilter,
@@ -60,5 +62,6 @@ from .modification import (
 from .postprocess import (
     SingleConnectedComponentFilter,
     SingleConnectedComponentFilterParams,
+    AlphabeticOrganSortingFilterParams,
     AlphabeticOrganSortingFilter)
 

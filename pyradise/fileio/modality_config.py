@@ -20,7 +20,7 @@ ModalityConfigurationEntry = NamedTuple('ModalityConfigurationEntry',
                                         StudyInstanceUID=str,
                                         SeriesInstanceUID=str,
                                         SeriesDescription=str,
-                                        SeriesNumber=int,
+                                        SeriesNumber=str,
                                         DICOM_Modality=str,
                                         Modality=Modality)
 
@@ -65,7 +65,7 @@ class ModalityConfiguration:
         >>>        "StudyInstanceUID": "1.3.6.1.4.1.5962.99.1.1556635153761.6.0",
         >>>        "SeriesInstanceUID": "1.3.6.1.4.1.5962.99.1.1556635153761.239.0",
         >>>        "SeriesDescription": "t1_mpr_sag_we_p2_iso",
-        >>>        "SeriesNumber": 7,
+        >>>        "SeriesNumber": "7",
         >>>        "DICOM_Modality": "MR",
         >>>        "Modality": "MR"
         >>>   },
@@ -74,7 +74,7 @@ class ModalityConfiguration:
         >>>        "StudyInstanceUID": "1.3.6.1.4.1.5962.99.1.1557406273346.1015.0",
         >>>        "SeriesInstanceUID": "1.3.6.1.4.1.5962.99.1.1557406273346.1016.0",
         >>>        "SeriesDescription": "t2_fl_sag_p2_iso",
-        >>>        "SeriesNumber": 2,
+        >>>        "SeriesNumber": "2",
         >>>        "DICOM_Modality": "MR",
         >>>        "Modality": "MR"
         >>>    }
@@ -88,7 +88,7 @@ class ModalityConfiguration:
         >>>        "StudyInstanceUID": "1.3.6.1.4.1.5962.99.1.1556635153761.6.0",
         >>>        "SeriesInstanceUID": "1.3.6.1.4.1.5962.99.1.1556635153761.239.0",
         >>>        "SeriesDescription": "t1_mpr_sag_we_p2_iso",
-        >>>        "SeriesNumber": 7,
+        >>>        "SeriesNumber": "7",
         >>>        "DICOM_Modality": "MR",
         >>>        "Modality": "T1c"
         >>>   },
@@ -97,7 +97,7 @@ class ModalityConfiguration:
         >>>        "StudyInstanceUID": "1.3.6.1.4.1.5962.99.1.1557406273346.1015.0",
         >>>        "SeriesInstanceUID": "1.3.6.1.4.1.5962.99.1.1557406273346.1016.0",
         >>>        "SeriesDescription": "t2_fl_sag_p2_iso",
-        >>>        "SeriesNumber": 2,
+        >>>        "SeriesNumber": "2",
         >>>        "DICOM_Modality": "MR",
         >>>        "Modality": "FLAIR"
         >>>    }
@@ -261,7 +261,7 @@ class ModalityConfiguration:
             if override:
                 os.remove(path)
             else:
-                raise FileExistsError(f'The path {path} exists and overriding is forbidden!')
+                raise FileExistsError(f'A modality configuration file already exists ({path}).')
 
         if not path.endswith('.json'):
             path += '.json'

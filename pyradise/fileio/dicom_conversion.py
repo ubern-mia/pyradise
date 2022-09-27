@@ -847,6 +847,9 @@ class SegmentToRTSSConverter(Converter):
          :class:`~pydicom.dataset.Dataset` instances.
         roi_names (Union[Tuple[str, ...], Dict[int, str], None]): The label names which will be assigned to the ROIs.
         colors (Optional[Tuple[Tuple[int, int, int], ...]]): The colors which will be assigned to the ROIs.
+        smoothing (Union[bool, Tuple[bool, ...]]): Whether to smooth the contours or not (default: True).
+        smoothing_sigma (Union[float, Tuple[float, ...]]): The sigma value for the smoothing (default: 2.).
+        smoothing_kernel_size (Union[int, Tuple[int, ...]]): The kernel size for the Gaussian smoothing (default: 32).
     """
 
     def __init__(self,
@@ -854,14 +857,18 @@ class SegmentToRTSSConverter(Converter):
                  ref_image_datasets: Union[Tuple[str, ...], Tuple[Dataset, ...]],
                  roi_names: Union[Tuple[str, ...], Dict[int, str], None],
                  colors: Optional[Tuple[Tuple[int, int, int], ...]],
+                 smoothing: Union[bool, Tuple[bool, ...]] = True,
+                 smoothing_sigma: Union[float, Tuple[float, ...]] = 2.0,
+                 smoothing_kernel_size: Union[int, Tuple[int, ...]] = 32,
                  ) -> None:
         # pylint: disable=consider-using-generator
         super().__init__()
 
         if isinstance(label_images[0], str):
-            self.label_images = tuple([sitk.ReadImage(path, sitk.sitkUInt8) for path in label_images])
+            self.label_images: Tuple[sitk.Image, ...] = tuple([sitk.ReadImage(path, sitk.sitkUInt8)
+                                                               for path in label_images])
         else:
-            self.label_images = label_images
+            self.label_images: Tuple[sitk.Image, ...] = label_images
 
         if isinstance(ref_image_datasets[0], str):
             self.image_datasets: Tuple[Dataset, ...] = load_datasets(ref_image_datasets)
@@ -885,6 +892,31 @@ class SegmentToRTSSConverter(Converter):
                                                               'than the number of label images!'
         assert len(self.colors) >= len(self.label_images), 'The number of colors must be equal or larger ' \
                                                            'than the number of label images!'
+
+        if isinstance(smoothing, bool):
+            self.smoothing = [smoothing] * len(self.label_images)
+        else:
+            assert len(smoothing) == len(self.label_images), 'The number of smoothing indicators must be equal ' \
+                                                             'to the number of label images!'
+            self.smoothing = smoothing
+
+        if isinstance(smoothing_sigma, float):
+            self.smoothing_sigma = [smoothing_sigma] * len(self.label_images)
+        else:
+            assert len(smoothing_sigma) == len(self.label_images), 'The number of smoothing sigmas must be equal ' \
+                                                                   'to the number of label images!'
+            self.smoothing_sigma = smoothing_sigma
+
+        assert all([sigma > 0 for sigma in self.smoothing_sigma]), 'All smoothing sigma must be larger than 0!'
+
+        if isinstance(smoothing_kernel_size, int):
+            self.smoothing_kernel_size = [smoothing_kernel_size] * len(self.label_images)
+        else:
+            assert len(smoothing_kernel_size) == len(self.label_images), 'The number of smoothing kernel sizes must ' \
+                                                                         'be equal to the number of label images!'
+            self.smoothing_kernel_size = smoothing_kernel_size
+
+        assert all([kernel > 0 for kernel in self.smoothing_kernel_size]), 'All smoothing kernel must be larger than 0!'
 
         self._validate_label_images()
 
@@ -1395,6 +1427,85 @@ class SegmentToRTSSConverter(Converter):
         # add the RTROIObservationsSequence entry to the RTSS
         rtss.RTROIObservationsSequence.append(rt_roi_observation)
 
+    @staticmethod
+    def _adjust_label_image_to_dicom(label_image: sitk.Image,
+                                     image_datasets: Tuple[Dataset, ...]
+                                     ) -> sitk.Image:
+        """Adjust the given label image to the DICOM image.
+
+        Args:
+            label_image (sitk.Image): The label image to be adjusted.
+            image_datasets (Tuple[Dataset, ...]): The DICOM image datasets.
+
+        Returns:
+            sitk.Image: The adjusted label image.
+        """
+        # construct a reference image from the DICOM datasets
+
+        # compute the direction from the DICOM datasets
+        vec_0 = image_datasets[0].ImageOrientationPatient[:3]
+        vec_1 = image_datasets[0].ImageOrientationPatient[3:]
+        vec_2 = np.cross(np.array(vec_0), np.array(vec_1))
+        dicom_direction = np.stack((vec_0, vec_1, vec_2)).T.reshape(-1).tolist()
+
+        # compute the origin from the DICOM datasets
+        dicom_origin = image_datasets[0].ImagePositionPatient
+
+        # compute the spacing from the DICOM datasets
+        dicom_spacing = [float(image_datasets[0].PixelSpacing[0]),
+                         float(image_datasets[0].PixelSpacing[1]),
+                         get_spacing_between_slices(image_datasets)]
+
+        # compute the size from the DICOM datasets
+        # note: sizes must be in z, x, y order because numpy reverses axes
+        dicom_size = (len(image_datasets),
+                      image_datasets[0].Rows,
+                      image_datasets[0].Columns)
+
+        # construct the reference image via numpy
+        reference_image_np = np.zeros(dicom_size)
+        reference_image_sitk = sitk.GetImageFromArray(reference_image_np)
+        reference_image_sitk.SetDirection(dicom_direction)
+        reference_image_sitk.SetOrigin(dicom_origin)
+        reference_image_sitk.SetSpacing(dicom_spacing)
+
+        # orient the label image to LPS (DICOM standard)
+        label_image_0 = sitk.DICOMOrient(label_image, 'LPS')
+
+        # resample the oriented label image to the reference image
+        label_image_1 = sitk.Resample(label_image_0,
+                                      reference_image_sitk,
+                                      sitk.Transform(),
+                                      sitk.sitkNearestNeighbor, 0.0, sitk.sitkUInt8)
+
+        return label_image_1
+
+
+    @staticmethod
+    def _smooth_label_image(label_image: sitk.Image,
+                            kernel_size: int,
+                            sigma: float
+                            ) -> sitk.Image:
+        """Apply Gaussian smoothing to a label image.
+
+        Args:
+            label_image (sitk.Image): The image to be smoothened.
+            kernel_size (int): The maximum kernel size for the Gaussian kernel.
+            sigma (float): The sigma for the Gaussian Kernel.
+
+        Returns:
+             sitk.Image: The smoothened image.
+        """
+        label_image_0 = sitk.Cast(label_image, sitk.sitkFloat32)
+
+        num_dims = label_image.GetDimension()
+        label_image_1 = sitk.DiscreteGaussian(label_image_0,
+                                              variance=[sigma] * num_dims,
+                                              maximumKernelWidth=kernel_size)
+        label_image_2 = sitk.BinaryThreshold(label_image_1, 0.5, 1.0, 1, 0)
+
+        return label_image_2
+
     def convert(self) -> Dataset:
         """Convert the provided :class:`SimpleITK.Image` instances to a DICOM-RTSS :class:`~pydicom.dataset.Dataset`
         instance.
@@ -1407,8 +1518,22 @@ class SegmentToRTSSConverter(Converter):
 
         # convert and add the ROIs to the RTSS
         frame_of_reference_uid = self.image_datasets[0].get('FrameOfReferenceUID')
-        for idx, (label_image, label_name, color) in enumerate(zip(self.label_images, self.roi_names, self.colors)):
-            mask = sitk.GetArrayFromImage(label_image)
+        for idx, (label_image, label_name, color, smooth, sigma, kernel) in enumerate(zip(self.label_images,
+                                                                                          self.roi_names,
+                                                                                          self.colors,
+                                                                                          self.smoothing,
+                                                                                          self.smoothing_sigma,
+                                                                                          self.smoothing_kernel_size)):
+
+            # adjust the label image to have the same properties as the DICOM datasets
+            label_image_processed = self._adjust_label_image_to_dicom(label_image, self.image_datasets)
+
+            # smooth the label image
+            if smooth:
+                label_image_processed = self._smooth_label_image(label_image_processed, kernel, sigma)
+
+            # get the binary image data from the label image
+            mask = sitk.GetArrayFromImage(label_image_processed)
 
             if not issubclass(mask.dtype.type, np.integer):
                 raise TypeError('The label image must be of an integer type!')
@@ -1732,12 +1857,21 @@ class SubjectToRTSSConverter(Converter):
          the conversion (only :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` will be considered).
         reference_modality (Modality): The reference :class:`~pyradise.data.modality.Modality` of the images to be
          used for the conversion to DICOM-RTSS.
+        size_dependent_smoothing (bool): Indicates if size-dependent smoothing should be used (default: True).
+        smoothing_volume_threshold (int): The lower volume threshold in voxels for using smoothing (if size-dependent
+         smoothing is used) (default: 500).
+        smoothing_sigma (float): The sigma used for Gaussian smoothing (default: 2.)
+        smoothing_kernel_size (int): The kernel size used for Gaussian smoothing (default: 32)
     """
 
     def __init__(self,
                  subject: Subject,
                  infos: Tuple[DicomSeriesInfo],
-                 reference_modality: Modality
+                 reference_modality: Modality,
+                 size_dependent_smoothing: bool = True,
+                 smoothing_volume_threshold: int = 500,
+                 smoothing_sigma: float = 2.,
+                 smoothing_kernel_size: int = 32
                  ) -> None:
         super().__init__()
 
@@ -1755,6 +1889,25 @@ class SubjectToRTSSConverter(Converter):
         self.image_info = image_infos[0]
         self.ref_modality = reference_modality
 
+        self.size_dependent_smoothing = size_dependent_smoothing
+
+        if smoothing_volume_threshold <= 0:
+            self.size_dependent_smoothing = False
+
+        self.smoothing_volume_threshold = smoothing_volume_threshold
+
+        assert smoothing_sigma > 0, 'The smoothing sigma must be larger than 0!'
+        self.smoothing_sigma = smoothing_sigma
+
+        assert smoothing_kernel_size > 0, 'The smoothing kernel size must be larger than 0!'
+        self.smoothing_kernel_size = smoothing_kernel_size
+
+        # check if all segmentation images are binary
+        for image in subject.segmentation_images:
+            if not image.is_binary():
+                raise ValueError(f'The segmentation image of organ {image.get_organ(True)} and '
+                                 f'rater {image.get_rater(True)} is not binary!')
+
     def convert(self) -> Dataset:
         """Convert a :class:`~pyradise.data.subject.Subject` instance to a DICOM-RTSS :class:`~pydicom.dataset.Dataset`
         instance.
@@ -1766,14 +1919,27 @@ class SubjectToRTSSConverter(Converter):
         # get the image data and the label names
         sitk_images = []
         label_names = []
+        smoothing_indicators = []
         for image in self.subject.segmentation_images:
-            sitk_images.append(image.get_image_data(as_sitk=True))
+            sitk_image = image.get_image_data(True)
+            sitk_images.append(sitk_image)
             label_names.append(image.get_organ(as_str=True))
+
+            if self.size_dependent_smoothing:
+                image_np = sitk.GetArrayFromImage(sitk_image)
+                sum_foreground = np.sum(image_np)
+
+                if sum_foreground > self.smoothing_volume_threshold:
+                    smoothing_indicators.append(True)
+                else:
+                    smoothing_indicators.append(False)
 
         # load the image datasets
         image_datasets = load_datasets(self.image_info.path)
 
         # convert the images to a rtss
-        rtss = SegmentToRTSSConverter(tuple(sitk_images), image_datasets, tuple(label_names), None).convert()
+        rtss = SegmentToRTSSConverter(tuple(sitk_images), image_datasets, tuple(label_names), None,
+                                      tuple(smoothing_indicators), self.smoothing_sigma,
+                                      self.smoothing_kernel_size).convert()
 
         return rtss

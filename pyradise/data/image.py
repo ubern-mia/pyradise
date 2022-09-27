@@ -496,9 +496,7 @@ class SegmentationImage(Image):
         self.organ: Organ = organ
         self.rater: Rater = rater
 
-    def get_organ(self,
-                  as_str: bool = False
-                  ) -> Union[Organ, str]:
+    def get_organ(self, as_str: bool = False) -> Union[Organ, str]:
         """Get the :class:`~pyradise.data.organ.Organ`.
 
         Args:
@@ -506,10 +504,10 @@ class SegmentationImage(Image):
              otherwise as an :class:`~pyradise.data.organ.Organ`.
 
         Returns:
-            Union[Organ, str]: The :class:`~pyradise.data.organ.Organ`.
+            Union[Organ, str]: The :class:`~pyradise.data.organ.Organ` or its name as a string.
         """
         if as_str:
-            return self.organ.name
+            return self.organ.get_name()
 
         return self.organ
 
@@ -524,12 +522,19 @@ class SegmentationImage(Image):
         """
         self.organ = organ
 
-    def get_rater(self) -> Rater:
+    def get_rater(self, as_str: bool = False) -> Union[Rater, str]:
         """Get the :class:`~pyradise.data.rater.Rater`.
 
+        Args:
+            as_str (bool): If True the name of the :class:`~pyradise.data.rater.Rater` gets returned as a :class:`str`,
+             otherwise as an :class:`~pyradise.data.rater.Rater` (default: False).
+
         Returns:
-            Rater: The :class:`~pyradise.data.rater.Rater`.
+            Union[Rater, str]: The :class:`~pyradise.data.rater.Rater` or its name as string.
         """
+        if as_str:
+            return self.rater.get_name()
+
         return self.rater
 
     def set_rater(self, rater: Rater) -> None:

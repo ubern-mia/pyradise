@@ -87,12 +87,13 @@ class ModalityInfoSelector(SeriesInfoSelector):
          :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entry is also removed because a
          registration always requires both referenced registration images.
 
+
      Args:
-         keep (Tuple[Modality]): The :class:`~pyradise.data.modality.Modality` entries of the
-          :class:`~pyradise.fileio.series_info.SeriesInfo` entries to keep.
+         keep (Tuple[Modality, ...]): The :class:`~pyradise.data.modality.Modality` entries of
+          the :class:`~pyradise.fileio.series_info.SeriesInfo` entries to keep.
      """
 
-    def __init__(self, keep: Tuple[Modality]) -> None:
+    def __init__(self, keep: Tuple[Modality, ...]) -> None:
         super().__init__()
 
         assert keep, 'The modalities to keep must not be empty!'
@@ -166,12 +167,12 @@ class OrganInfoSelector(SeriesInfoSelector):
         loading.
 
     Args:
-        keep (Tuple[Organ]): The :class:`~pyradise.data.organ.Organ` entries of the
+        keep (Tuple[Organ, ...]): The :class:`~pyradise.data.organ.Organ` entries of the
          :class:`~pyradise.fileio.series_info.SeriesInfo` entries to keep.
 
     """
 
-    def __init__(self, keep: Tuple[Organ]) -> None:
+    def __init__(self, keep: Tuple[Organ, ...]) -> None:
         super().__init__()
 
         assert keep, 'The organs to keep must not be empty!'
@@ -206,11 +207,11 @@ class RaterInfoSelector(SeriesInfoSelector):
     :class:`~pyradise.data.rater.Rater`.
 
     Args:
-        keep (Tuple[Rater]): The :class:`~pyradise.data.rater.Rater` entries of the
+        keep (Tuple[Rater, ...]): The :class:`~pyradise.data.rater.Rater` entries of the
          :class:`~pyradise.fileio.series_info.SeriesInfo` entries to keep.
     """
 
-    def __init__(self, keep: Tuple[Rater]) -> None:
+    def __init__(self, keep: Tuple[Rater, ...]) -> None:
         super().__init__()
 
         assert keep, 'The raters to keep must not be empty!'

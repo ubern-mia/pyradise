@@ -21,18 +21,18 @@ class InferenceFilterParams(LoopEntryFilterParams):
 
     Args:
         model (object): The model to apply.
-        model_path (str): The path to the model parameters.
+        model_path (Optional[str]): The path to the model parameters.
         modalities (Tuple[Modality, ...]): The :class:`~pyradise.data.modality.Modality` s of the
          :class:`~pyradise.data.image.IntensityImage` instances to use for inference.
-        loop_axis (Optional[str]): The axis to loop over. If None, the filter will be applied to the whole image at
+        loop_axis (Optional[int]): The axis to loop over. If None, the filter will be applied to the whole image at
          once (default: None).
     """
 
     def __init__(self,
                  model: object,
-                 model_path: str,
+                 model_path: Optional[str],
                  modalities: Tuple[Modality, ...],
-                 loop_axis: Optional[str] = None,
+                 loop_axis: Optional[int] = None,
                  ) -> None:
         super().__init__(loop_axis)
 
@@ -40,9 +40,12 @@ class InferenceFilterParams(LoopEntryFilterParams):
         self.model = model
 
         # the path to the model parameters
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model path '{model_path}' is invalid.")
-        self.model_path = model_path
+        if model_path is not None:
+            if not os.path.exists(model_path):
+                raise FileNotFoundError(f"Model path '{model_path}' is invalid.")
+            self.model_path: Optional[str] = model_path
+        else:
+            self.model_path: Optional[str] = None
 
         # the modalities to use for inference
         # -> the modalities must be in the correct order to construct the model input
@@ -178,7 +181,10 @@ class InferenceFilter(LoopEntryFilter):
         input_array = self.get_input_array(subject, params)
 
         # load the model parameters
-        model = self.load_model_parameters(params.model, params.model_path)
+        if params.model_path is not None:
+            model = self.load_model_parameters(params.model, params.model_path)
+        else:
+            model = params.model
 
         # apply the model
         output_array = self.apply_model(model, input_array, params)

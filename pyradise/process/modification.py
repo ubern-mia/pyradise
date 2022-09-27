@@ -364,7 +364,7 @@ class MergeSegmentationFilterParams(FilterParams):
          segmentation.
         output_rater (Union[Rater, str]): The :class:`~pyradise.data.rater.Rater` instance of the resulting
          segmentation.
-        output_orientation (Union[SpatialOrientation, str]): The orientation of the output segmentation.
+        output_orientation (Union[SpatialOrientation, str]): The orientation of the output segmentation (default: LPS).
     """
 
     def __init__(self,
@@ -372,7 +372,7 @@ class MergeSegmentationFilterParams(FilterParams):
                  output_organ_indexes: Optional[Sequence[int]],
                  output_organ: Union[Organ, str],
                  output_rater: Union[Rater, str],
-                 output_orientation: Union[SpatialOrientation, str] = SpatialOrientation.RAS
+                 output_orientation: Union[SpatialOrientation, str] = SpatialOrientation.LPS
                  ) -> None:
 
         organs_ = list()
@@ -512,7 +512,8 @@ class MergeSegmentationFilter(Filter):
         # generate the empty numpy image
         min_spacing = np.min(spacings, axis=0)
         shape = np.ceil((max_physical_coord - min_physical_coord) / min_spacing).astype(np.int)
-        empty_image_np = np.zeros(shape, dtype=np.uint8)
+        shape_np = shape[2], shape[0], shape[1]
+        empty_image_np = np.zeros(shape_np, dtype=np.uint8)
 
         # generate the empty sitk image
         empty_image_sitk = sitk.GetImageFromArray(empty_image_np)

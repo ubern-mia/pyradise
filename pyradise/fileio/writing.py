@@ -17,7 +17,8 @@ from pydicom import Dataset
 from pyradise.data import (
     Subject,
     IntensityImage,
-    SegmentationImage)
+    SegmentationImage,
+    Rater)
 from pyradise.utils import remove_illegal_folder_chars
 from .series_info import DicomSeriesInfo
 
@@ -40,7 +41,9 @@ def default_intensity_file_name_fn(subject: Subject,
     Returns:
         str: The file name.
     """
-    return f'img_{subject.name}_{image.get_modality(as_str=True)}'
+    subject_name = remove_illegal_folder_chars(subject.name)
+    modality = remove_illegal_folder_chars(image.get_modality(as_str=True))
+    return f'img_{subject_name}_{modality}'
 
 
 def default_segmentation_file_name_fn(subject: Subject,
@@ -58,8 +61,11 @@ def default_segmentation_file_name_fn(subject: Subject,
     Returns:
         str: The file name.
     """
-    rater_name = image.get_rater().name if image.get_rater() else 'NA'
-    return f'seg_{subject.name}_{rater_name}_{image.get_organ(as_str=True)}'
+    subject_name = remove_illegal_folder_chars(subject.name)
+    rater_name = remove_illegal_folder_chars(image.get_rater(as_str=True)) if isinstance(image.get_rater(), Rater) \
+        else 'NA'
+    organ_name = remove_illegal_folder_chars(image.get_organ(as_str=True))
+    return f'seg_{subject_name}_{rater_name}_{organ_name}'
 
 
 class ImageFileFormat(Enum):

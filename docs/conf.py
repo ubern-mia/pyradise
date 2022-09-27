@@ -22,8 +22,8 @@ shutil.copyfile(os.path.join(basedir, 'examples', 'inference', 'basic.ipynb'),
 shutil.copyfile(os.path.join(basedir, 'examples', 'inference', 'container.ipynb'),
                 os.path.join(basedir, 'docs', 'examples.inference.container.ipynb'))
 
-shutil.copyfile(os.path.join(basedir, 'examples', 'conversion', 'modality_config_generation.ipynb'),
-                os.path.join(basedir, 'docs', 'examples.conversion.modality_config_generation.ipynb'))
+shutil.copyfile(os.path.join(basedir, 'examples', 'processing', 'basic_processing.ipynb'),
+                os.path.join(basedir, 'docs', 'examples.processing.basic_processing.ipynb'))
 
 # Generate a temporary directory
 _temporary_directory = './_temp'
@@ -158,6 +158,9 @@ napoleon_use_admonition_for_references = True
 
 # Do not block the building process if error occurs during building
 nbsphinx_allow_errors = True
+
+# Do not execute notebooks
+nbsphinx_execute = 'never'
 
 
 # -- Options for intersphinx extension ---------------------------------------

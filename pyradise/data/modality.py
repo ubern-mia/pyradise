@@ -14,11 +14,11 @@ class Modality:
         name (str): The name of the modality.
 
     """
-    default_name: str = 'UNKNOWN'
 
     def __init__(self, name: str) -> None:
         super().__init__()
         self.name = name
+        self.default_name = 'UNKNOWN'
 
     @classmethod
     def get_default(cls) -> "Modality":

@@ -28,7 +28,7 @@ distinctive content-related information which are enlisted below:
 
 
 .. figure:: ../_static/data_image_0.png
-    :name: fig_data_subject
+    :name: fig_data_subject_1
     :width: 600
     :align: center
     :alt: main concept data model

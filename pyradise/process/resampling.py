@@ -60,7 +60,7 @@ class ResampleFilterParams(FilterParams):
         if centering_method not in ('none', 'reference', 'label_moment'):
             raise ValueError(f'The centering method ({centering_method}) is invalid!')
 
-        if centering_method in ('reference', 'label_moment') and reference_modality not in Modality:
+        if centering_method in ('reference', 'label_moment') and reference_modality is None:
             raise ValueError(f'A reference modality must be provided!')
 
         self.output_size = output_size
@@ -204,6 +204,8 @@ class ResampleFilter(Filter):
         if params.centering_method == 'none':
             output_origin = image_sitk.GetOrigin()
             output_direction = image_sitk.GetDirection()
+            output_size = image_sitk.GetSize()
+            output_spacing = image_sitk.GetSpacing()
 
         elif params.centering_method == 'reference':
             if reference_image is None:
@@ -212,12 +214,16 @@ class ResampleFilter(Filter):
             reference_image_sitk = reference_image.get_image_data(as_sitk=True)
             output_origin = reference_image_sitk.GetOrigin()
             output_direction = reference_image_sitk.GetDirection()
+            output_size = reference_image_sitk.GetSize()
+            output_spacing = reference_image_sitk.GetSpacing()
 
         elif params.centering_method == 'label_moment':
             if reference_image is None:
                 raise ValueError('The reference image must be provided for the centering method "reference" and '
                                  '"label_moment"!')
             reference_image_sitk = reference_image.get_image_data(as_sitk=True)
+            output_size = reference_image_sitk.GetSize()
+            output_spacing = reference_image_sitk.GetSpacing()
 
             if reference_image == image:
                 label_center = self._get_label_center(segmentation_images)
@@ -242,9 +248,13 @@ class ResampleFilter(Filter):
 
         if params.output_spacing:
             resample_filter.SetOutputSpacing(params.output_spacing)
+        else:
+            resample_filter.SetOutputSpacing(output_spacing)
 
         if params.output_size:
             resample_filter.SetSize(params.output_size)
+        else:
+            resample_filter.SetSize(output_size)
 
         new_image_sitk = resample_filter.Execute(image_sitk)
 
@@ -330,6 +340,8 @@ class ResampleFilter(Filter):
         if params.centering_method == 'none':
             output_origin = image_sitk.GetOrigin()
             output_direction = image_sitk.GetDirection()
+            output_size = image_sitk.GetSize()
+            output_spacing = image_sitk.GetSpacing()
 
         elif params.centering_method in ('reference', 'label_moment'):
             if reference_image is None:
@@ -338,6 +350,8 @@ class ResampleFilter(Filter):
             reference_image_sitk = reference_image.get_image_data(as_sitk=True)
             output_origin = reference_image_sitk.GetOrigin()
             output_direction = reference_image_sitk.GetDirection()
+            output_size = reference_image_sitk.GetSize()
+            output_spacing = reference_image_sitk.GetSpacing()
 
         else:
             raise NotImplementedError(f'The centering method ({params.centering_method}) is invalid!')
@@ -352,9 +366,13 @@ class ResampleFilter(Filter):
 
         if params.output_spacing:
             resample_filter.SetOutputSpacing(params.output_spacing)
+        else:
+            resample_filter.SetOutputSpacing(output_spacing)
 
         if params.output_size:
             resample_filter.SetSize(params.output_size)
+        else:
+            resample_filter.SetSize(output_size)
 
         new_image_sitk = resample_filter.Execute(image_sitk)
 

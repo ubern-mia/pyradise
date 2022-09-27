@@ -359,7 +359,7 @@ class DicomSeriesInfo(SeriesInfo):
         self.study_description = str(dataset.get('StudyDescription', ''))
         self.series_instance_uid = str(dataset.get('SeriesInstanceUID', ''))
         self.series_description = str(dataset.get('SeriesDescription', 'Unnamed_Series'))
-        self.series_number = int(dataset.get('SeriesNumber', 111))
+        self.series_number = str(dataset.get('SeriesNumber', 0) if dataset.get('SeriesNumber', 0) is not None else "")
         self.sop_class_uid = str(dataset.get('SOPClassUID', ''))
         self.dicom_modality = str(dataset.get('Modality', ''))
         self.frame_of_reference_uid = str(dataset.get('FrameOfReferenceUID', ''))
@@ -501,6 +501,8 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
                  image_infos: Tuple[DicomSeriesImageInfo, ...],
                  persistent_image_infos: bool = False
                  ) -> None:
+        self.dataset = None
+
         super().__init__(path)
 
         self.image_infos = image_infos
@@ -510,7 +512,6 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
         self.transform_parameters = tuple()
         self.referenced_series_instance_uid_transform = ''
         self.referenced_series_instance_uid_identity = ''
-        self.dataset = None
 
         # since the update is lightweight let's update this class upon instantiation
         self.update()
@@ -745,6 +746,9 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
 
         if not self.image_infos:
             raise ValueError('No image infos are provided and thus no registration is possible!')
+
+        if not self.dataset:
+            self.dataset = load_dataset(self.path[0])
 
         combined_info = self.get_registration_infos(self.dataset, self.image_infos)
 

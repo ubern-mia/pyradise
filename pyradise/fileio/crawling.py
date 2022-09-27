@@ -355,7 +355,7 @@ class SubjectDicomCrawler(Crawler):
 
     def __init__(self,
                  path: str,
-                 modality_extractor: Optional[ModalityExtractor],
+                 modality_extractor: Optional[ModalityExtractor] = None,
                  modality_config_file_name: str = 'modality_config.json',
                  write_modality_config: bool = False
                  ) -> None:
@@ -557,6 +557,9 @@ class SubjectDicomCrawler(Crawler):
                 raise ValueError('The modalities from the modality configuration file contain at least one duplicate '
                                  'modality. This will cause ambiguity when loading the DICOM series.')
 
+            if self.write_config:
+                warnings.warn('The modality configuration file already exists and will not be overwritten.')
+
             return
 
         # if no modality configuration file exists, try to apply the default configuration
@@ -589,12 +592,12 @@ class SubjectDicomCrawler(Crawler):
             else:
                 config = ModalityConfiguration.from_dicom_series_info(infos)
 
-                if config.has_duplicate_modalities():
+                if config.has_duplicate_modalities() and self.write_config is False:
                     raise ValueError('The extracted modalities contain at least one duplicate modality. '
                                      'This will cause ambiguity when loading the DICOM series. Use either a modality '
                                      'configuration file or a modality extractor to resolve this issue.')
 
-                if config.has_default_modalities():
+                if config.has_default_modalities() and self.write_config is False:
                     raise ValueError('The extracted modalities contain at least one default modality. '
                                      'This will cause ambiguity when loading the DICOM series. Use either a modality '
                                      'configuration file or a modality extractor to resolve this issue.')
@@ -703,7 +706,7 @@ class DatasetDicomCrawler(Crawler):
 
     def __init__(self,
                  path: str,
-                 modality_extractor: Optional[ModalityExtractor],
+                 modality_extractor: Optional[ModalityExtractor] = None,
                  modality_config_file_name: str = 'modality_config.json',
                  write_modality_config: bool = False) -> None:
         super().__init__(path)
@@ -737,7 +740,7 @@ class DatasetDicomCrawler(Crawler):
                         subject_dir_paths.append(os.path.normpath(candidate_dir_path))
                         break
 
-        return tuple(subject_dir_paths)
+        return tuple(sorted(set(subject_dir_paths)))
 
     def execute(self) -> Tuple[Tuple[DicomSeriesInfo, ...], ...]:
         """Execute the crawling process to retrieve the :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries.

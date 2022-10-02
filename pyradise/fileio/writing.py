@@ -20,7 +20,10 @@ from pyradise.data import (
     SegmentationImage,
     Rater)
 from pyradise.utils import remove_illegal_folder_chars
-from .series_info import DicomSeriesInfo
+from .series_info import (
+    SeriesInfo,
+    DicomSeriesInfo)
+
 
 __all__ = ['SubjectWriter', 'DirectorySubjectWriter', 'DicomSeriesSubjectWriter', 'ImageFileFormat',
            'default_intensity_file_name_fn', 'default_segmentation_file_name_fn']
@@ -234,7 +237,7 @@ class SubjectWriter:
 
             self._check_file_path(image_file_path)
 
-            itk.imwrite(image.get_image_data(), image_file_path)
+            itk.imwrite(image.get_image_data(as_sitk=False), image_file_path)
 
             if write_transforms:
                 for i, transform_info in enumerate(image.get_transform_tape().get_recorded_elements()):
@@ -406,7 +409,7 @@ class DicomSeriesSubjectWriter:
               datasets: Tuple[Tuple[str, Dataset], ...],
               output_path: str,
               folder_name: Optional[str],
-              series_infos: Optional[Tuple[DicomSeriesInfo, ...]] = None
+              series_infos: Optional[Tuple[SeriesInfo, ...]] = None
               ) -> None:
         """Write the provided data to a directory or a zip file.
 
@@ -415,7 +418,7 @@ class DicomSeriesSubjectWriter:
              its file names.
             output_path (str): The output path.
             folder_name (str): The name of the output folder or the zip file.
-            series_infos (Optional[Tuple[DicomSeriesInfo]]): The :class:`~pyradise.fileio.series_info.DicomSeriesInfo`
+            series_infos (Optional[Tuple[SeriesInfo, ...]]): The :class:`~pyradise.fileio.series_info.DicomSeriesInfo`
              instances containing the path for DICOM files to copy (default: None).
 
         Returns:
@@ -431,13 +434,14 @@ class DicomSeriesSubjectWriter:
 
         if not series_infos:
             series_infos = []
+        series_infos_ = tuple([info for info in series_infos if isinstance(info, DicomSeriesInfo)])
 
         if self.as_zip:
             if not folder_name:
                 raise ValueError('For zipping an folder name must be provided!')
-            self._write_to_zip(series_infos, datasets, output_path, folder_name)
+            self._write_to_zip(series_infos_, datasets, output_path, folder_name)
         else:
-            self._write_to_folder(series_infos, datasets, output_path, folder_name)
+            self._write_to_folder(series_infos_, datasets, output_path, folder_name)
 
 
 class DirectorySubjectWriter:

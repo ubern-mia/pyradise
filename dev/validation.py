@@ -67,7 +67,7 @@ class SegmentationCheckingFilter(Filter):
         Returns:
             None
         """
-        reference_img_itk = params.reference_image.get_image_data()
+        reference_img_itk = params.reference_image.get_image_data(as_sitk=False)
 
         pixel_type = itk.ctype('unsigned char')
         dimensions = reference_img_itk.GetImageDimension()

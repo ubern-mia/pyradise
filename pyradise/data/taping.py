@@ -593,6 +593,17 @@ class TransformTape(Tape):
         """
         self.recordings.append(value)
 
+    def get_recorded_elements(self, reverse: bool = False) -> Tuple[TransformInfo, ...]:
+        """Get the recorded :class:`~pyradise.data.taping.TransformInfo` instances.
+
+        Args:
+            reverse (bool): Indicates if the recorded elements should be returned in reverse order (default: False).
+
+        Returns:
+            Tuple[TransformInfo, ...]: The recorded :class:`~pyradise.data.taping.TransformInfo` instances.
+        """
+        return super().get_recorded_elements(reverse)
+
     @staticmethod
     def playback(data: Image, **kwargs) -> Image:
         """Play back the recorded :class:`~pyradise.data.taping.TransformInfo` instances on the provided data.

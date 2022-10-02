@@ -163,7 +163,7 @@ class ApplyTransformationTapeFilter(Filter):
 
         transform_infos = transform_tape_.get_recorded_elements(params.backward_playback)
 
-        image_sitk = image.get_image_data(as_sitk=True)
+        image_sitk = image.get_image_data()
 
         for transform_info in transform_infos:
 

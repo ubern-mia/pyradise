@@ -372,7 +372,7 @@ class OrientationFilter(Filter):
         """
         for image in subject.get_images():
             # get the image data as SimpleITK image
-            sitk_image = image.get_image_data(True)
+            sitk_image = image.get_image_data()
 
             # reorient the image
             orient_filter = sitk.DICOMOrientImageFilter()
@@ -404,8 +404,6 @@ class OrientationFilter(Filter):
             :class:`~pyradise.data.image.IntensityImage` and :class:`~pyradise.data.image.SegmentationImage` instances.
         """
         for image in subject.get_images():
-            # get the image data as SimpleITK image
-            sitk_image = image.get_image_data(True)
 
             # get the original orientation
             original_orient = transform_info.get_data('original_orientation')
@@ -413,7 +411,7 @@ class OrientationFilter(Filter):
             # reorient the image
             orient_filter = sitk.DICOMOrientImageFilter()
             orient_filter.SetDesiredCoordinateOrientation(original_orient)
-            oriented_sitk_image = orient_filter.Execute(sitk_image)
+            oriented_sitk_image = orient_filter.Execute(image.get_image_data())
 
             # set the oriented image data to the image
             image.set_image_data(oriented_sitk_image)

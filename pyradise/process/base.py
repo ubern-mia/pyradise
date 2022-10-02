@@ -144,7 +144,7 @@ class Filter(ABC):
         >>>                 continue
         >>>
         >>>             # retrieve the image data
-        >>>             original_image_sitk = image.get_image_data(True)
+        >>>             original_image_sitk = image.get_image_data()
         >>>
         >>>             # rescale the intensity
         >>>             new_image_sitk = sitk.RescaleIntensity(original_image_sitk,
@@ -179,7 +179,7 @@ class Filter(ABC):
         >>>             max_intensity = transform_info.get_data('max_')
         >>>
         >>>             # undo the intensity rescaling
-        >>>             original_image_sitk = image.get_image_data(True)
+        >>>             original_image_sitk = image.get_image_data()
         >>>             new_image_sitk = sitk.RescaleIntensity(original_image_sitk,
         >>>                                                    min_intensity,
         >>>                                                    max_intensity)

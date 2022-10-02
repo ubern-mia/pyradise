@@ -44,6 +44,9 @@ from .resampling import (
     ResampleFilterParams)
 
 from .inference import (
+    IndexingStrategy,
+    SliceIndexingStrategy,
+    PatchIndexingStrategy,
     InferenceFilterParams,
     InferenceFilter)
 
@@ -64,4 +67,9 @@ from .postprocess import (
     SingleConnectedComponentFilterParams,
     AlphabeticOrganSortingFilterParams,
     AlphabeticOrganSortingFilter)
+
+from .invertibility import (
+    PlaybackTransformTapeFilterParams,
+    PlaybackTransformTapeFilter
+)
 

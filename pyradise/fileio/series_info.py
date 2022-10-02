@@ -18,7 +18,10 @@ from pydicom.tag import Tag
 from pyradise.data import (
     Modality,
     Organ,
-    Rater)
+    Rater,
+    str_to_modality,
+    str_to_organ,
+    str_to_rater)
 from pyradise.utils import (
     is_file_and_exists,
     is_dir_and_exists,
@@ -173,18 +176,19 @@ class IntensityFileSeriesInfo(FileSeriesInfo):
     Args:
         path (str): The path to the discrete intensity image file to load.
         subject_name (str): The name of the subject.
+        modality (Union[str, Modality]): The modality of the intensity image.
     """
 
     def __init__(self,
                  path: str,
                  subject_name: str,
-                 modality: Modality
+                 modality: Union[Modality, str]
                  ) -> None:
         if not isinstance(path, str):
             raise TypeError(f'Expected a string for the path but got {type(path)} instead.')
         super().__init__(path, subject_name)
 
-        self.modality = modality
+        self.modality: Modality = str_to_modality(modality)
 
         self.update()
 
@@ -205,7 +209,7 @@ class IntensityFileSeriesInfo(FileSeriesInfo):
         Returns:
             None
         """
-        self.modality = modality
+        self.modality: Modality = modality
 
     def update(self) -> None:
         """Update the :class:`IntensityFileSeriesInfo`.
@@ -229,22 +233,22 @@ class SegmentationFileSeriesInfo(FileSeriesInfo):
     Args:
         path (str): The path to the discrete segmentation image file to load.
         subject_name (str): The name of the subject.
-        organ (Organ): The organ the segmentation is representing.
-        rater (Rater): The rater who created the segmentation.
+        organ (Union[Organ, str]): The organ the segmentation is representing.
+        rater (Union[Rater, str]): The rater who created the segmentation.
     """
 
     def __init__(self,
                  path: str,
                  subject_name: str,
-                 organ: Organ,
-                 rater: Rater
+                 organ: Union[Organ, str],
+                 rater: Union[Rater, str]
                  ) -> None:
         if not isinstance(path, str):
             raise TypeError(f'Expected a single path as a string but got {type(path)}.')
         super().__init__(path, subject_name)
 
-        self.organ = organ
-        self.rater = rater
+        self.organ: Organ = str_to_organ(organ)
+        self.rater: Rater = str_to_rater(rater)
 
         self.update()
 
@@ -265,7 +269,7 @@ class SegmentationFileSeriesInfo(FileSeriesInfo):
         Returns:
             None
         """
-        self.organ = organ
+        self.organ: Organ = organ
 
     def get_rater(self) -> Rater:
         """Get the :class:`~pyradise.data.rater.Rater`.
@@ -284,7 +288,7 @@ class SegmentationFileSeriesInfo(FileSeriesInfo):
         Returns:
             None
         """
-        self.rater = rater
+        self.rater: Rater = rater
 
     def update(self) -> None:
         """Update the :class:`SegmentationFileSeriesInfo` instance.
@@ -346,7 +350,8 @@ class DicomSeriesInfo(SeriesInfo):
                 Tag(0x0020, 0x0011),        # SeriesNumber
                 Tag(0x0008, 0x0016),        # SOPClassUID
                 Tag(0x0008, 0x0060),        # Modality
-                Tag(0x0020, 0x0052)]        # FrameOfReferenceUID
+                Tag(0x0020, 0x0052),        # FrameOfReferenceUID
+                Tag(0x3006, 0x0002)]        # StructureSetLabel
 
         if additional_tags:
             tags.extend(additional_tags)
@@ -363,6 +368,7 @@ class DicomSeriesInfo(SeriesInfo):
         self.sop_class_uid = str(dataset.get('SOPClassUID', ''))
         self.dicom_modality = str(dataset.get('Modality', ''))
         self.frame_of_reference_uid = str(dataset.get('FrameOfReferenceUID', ''))
+        self.structure_set_label = str(dataset.get('StructureSetLabel', ''))
 
         minimum_criterion = (self.patient_id != '',
                              self.patient_name != '',

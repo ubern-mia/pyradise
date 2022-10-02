@@ -13,7 +13,12 @@ from pyradise.data import (
     TransformInfo,
     Modality,
     Organ,
-    Rater)
+    Rater,
+    seq_to_modalities,
+    seq_to_organs,
+    seq_to_raters,
+    str_to_organ,
+    str_to_rater)
 from .orientation import SpatialOrientation
 from .base import (
     Filter,
@@ -26,8 +31,7 @@ __all__ = ['AddImageFilterParams', 'AddImageFilter',
            'RemoveImageByOrganFilterParams', 'RemoveImageByOrganFilter',
            'RemoveImageByRaterFilterParams', 'RemoveImageByRaterFilter',
            'RemoveImageByModalityFilterParams', 'RemoveImageByModalityFilter',
-           'MergeSegmentationFilterParams', 'MergeSegmentationFilter',
-           'RenameSegmentationFilterParams', 'RenameSegmentationFilter']
+           'MergeSegmentationFilterParams', 'MergeSegmentationFilter']
 
 
 class AddImageFilterParams(FilterParams):
@@ -91,7 +95,7 @@ class AddImageFilter(Filter):
             subject.add_image(image)
 
             # track the necessary information
-            image_sitk = image.get_image_data(True)
+            image_sitk = image.get_image_data()
             self.tracking_data['organ'] = deepcopy(image.get_organ())
             self.tracking_data['rater'] = deepcopy(image.get_rater())
             self._register_tracked_data(image, image_sitk, image_sitk, params)
@@ -124,14 +128,7 @@ class RemoveImageByOrganFilterParams(FilterParams):
     """
 
     def __init__(self, organs: Sequence[Union[Organ, str]]) -> None:
-        organs_ = list()
-        for organ in organs:
-            if isinstance(organ, str):
-                organs_.append(Organ(organ))
-            if isinstance(organ, Organ):
-                organs_.append(organ)
-
-        self.organs: Tuple[Organ, ...] = tuple(organs_)
+        self.organs: Tuple[Organ, ...] = seq_to_organs(organs)
 
 
 class RemoveImageByOrganFilter(Filter):
@@ -202,14 +199,7 @@ class RemoveImageByRaterFilterParams(FilterParams):
     """
 
     def __init__(self, raters: Sequence[Union[Rater, str]]) -> None:
-        raters_ = list()
-        for rater in raters:
-            if isinstance(rater, str):
-                raters_.append(Rater(rater))
-            if isinstance(rater, Rater):
-                raters_.append(rater)
-
-        self.raters: Tuple[Rater, ...] = tuple(raters_)
+        self.raters: Tuple[Rater, ...] = seq_to_raters(raters)
 
 
 class RemoveImageByRaterFilter(Filter):
@@ -280,14 +270,7 @@ class RemoveImageByModalityFilterParams(FilterParams):
     """
 
     def __init__(self, modalities: Sequence[Union[Modality, str]]) -> None:
-        modalities_ = list()
-        for modality in modalities:
-            if isinstance(modality, str):
-                modalities_.append(Modality(modality))
-            if isinstance(modality, Modality):
-                modalities_.append(modality)
-
-        self.modalities: Tuple[Modality, ...] = tuple(modalities_)
+        self.modalities: Tuple[Modality, ...] = seq_to_modalities(modalities)
 
 
 class RemoveImageByModalityFilter(Filter):
@@ -375,14 +358,7 @@ class MergeSegmentationFilterParams(FilterParams):
                  output_orientation: Union[SpatialOrientation, str] = SpatialOrientation.LPS
                  ) -> None:
 
-        organs_ = list()
-        for organ in organs:
-            if isinstance(organ, str):
-                organs_.append(Organ(organ))
-            if isinstance(organ, Organ):
-                organs_.append(organ)
-
-        self.organs: Tuple[Organ, ...] = tuple(organs_)
+        self.organs: Tuple[Organ, ...] = seq_to_organs(organs)
 
         if output_organ_indexes is None:
             self.organ_indexes: Tuple[int, ...] = tuple(range(1, len(self.organs) + 1))
@@ -403,15 +379,8 @@ class MergeSegmentationFilterParams(FilterParams):
         else:
             self.output_orientation: SpatialOrientation = output_orientation
 
-        if isinstance(output_organ, str):
-            self.output_organ: Organ = Organ(output_organ)
-        else:
-            self.output_organ: Organ = output_organ
-
-        if isinstance(output_rater, str):
-            self.output_rater: Rater = Rater(output_rater)
-        else:
-            self.output_rater: Rater = output_rater
+        self.output_organ: Organ = str_to_organ(output_organ)
+        self.output_rater: Rater = str_to_rater(output_rater)
 
 
 class MergeSegmentationFilter(Filter):
@@ -545,7 +514,7 @@ class MergeSegmentationFilter(Filter):
             if image.get_organ() not in params.organs:
                 continue
 
-            image_sitk = deepcopy(image.get_image_data(True))
+            image_sitk = deepcopy(image.get_image_data())
             image_sitk = sitk.DICOMOrient(image_sitk, str(params.output_orientation.name))
 
             # make sure that the image is binary

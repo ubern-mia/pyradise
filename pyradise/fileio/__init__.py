@@ -50,7 +50,8 @@ from .dicom_conversion import (
     DicomRTSSSeriesConverter,
     SubjectToRTSSConverter,
     RTSSToSegmentConverter,
-    SegmentToRTSSConverter)
+    SegmentToRTSSConverter,
+    RTSSMetaData)
 
 from .writing import (
     ImageFileFormat,

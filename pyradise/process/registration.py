@@ -1,7 +1,8 @@
 from enum import Enum
 from typing import (
     Tuple,
-    Optional)
+    Optional,
+    Union)
 
 import numpy as np
 import SimpleITK as sitk
@@ -12,7 +13,8 @@ from pyradise.data import (
     Image,
     IntensityImage,
     SegmentationImage,
-    TransformInfo)
+    TransformInfo,
+    str_to_modality)
 from .base import (
     Filter,
     FilterParams)
@@ -170,7 +172,7 @@ class IntraSubjectRegistrationFilterParams(FilterParams):
     """A filter parameter class for the :class:`~pyradise.process.registration.IntraSubjectRegistrationFilter` class.
 
     Args:
-        reference_modality (Modality): The reference modality.
+        reference_modality (Union[Modality, str]): The reference modality.
         registration_type (RegistrationType): The type of registration (default: RegistrationType.RIGID).
         number_of_histogram_bins (int): The number of histogram bins for registration (default: 200).
         learning_rate (float): The learning rate of the optimizer (default: 1.0).
@@ -185,7 +187,7 @@ class IntraSubjectRegistrationFilterParams(FilterParams):
     """
 
     def __init__(self,
-                 reference_modality: Modality,
+                 reference_modality: Union[Modality, str],
                  registration_type: RegistrationType = RegistrationType.RIGID,
                  number_of_histogram_bins: int = 200,
                  learning_rate: float = 1.0,
@@ -202,7 +204,7 @@ class IntraSubjectRegistrationFilterParams(FilterParams):
         if len(shrink_factors) != len(smoothing_sigmas):
             raise ValueError("The shrink_factors and smoothing_sigmas need to have the same length!")
 
-        self.reference_modality = reference_modality
+        self.reference_modality: Modality = str_to_modality(reference_modality)
         self.registration_type = registration_type
         self.number_of_histogram_bins = number_of_histogram_bins
         self.learning_rate = learning_rate
@@ -213,10 +215,6 @@ class IntraSubjectRegistrationFilterParams(FilterParams):
         self.smoothing_sigmas: Tuple[float, ...] = smoothing_sigmas
         self.sampling_percentage = sampling_percentage
         self.resampling_interpolator = resampling_interpolator
-
-        self.registration = get_registration_method(registration_type, number_of_histogram_bins, learning_rate,
-                                                    step_size, number_of_iterations, relaxation_factor, shrink_factors,
-                                                    smoothing_sigmas, sampling_percentage)
 
 
 class IntraSubjectRegistrationFilter(Filter):
@@ -265,7 +263,7 @@ class IntraSubjectRegistrationFilter(Filter):
             Image: The registered image.
         """
         # get the moving image as SimpleITK image
-        moving_image_sitk = moving_image.get_image_data(as_sitk=True)
+        moving_image_sitk = moving_image.get_image_data()
 
         # cast the image if its pixels are not of type float32
         if isinstance(moving_image, IntensityImage):
@@ -274,8 +272,19 @@ class IntraSubjectRegistrationFilter(Filter):
 
         # register the moving image to the fixed image if no transform is given
         if transform is None:
+            # get the registration method
+            registration_method = get_registration_method(params.registration_type,
+                                                          params.number_of_histogram_bins,
+                                                          params.learning_rate,
+                                                          params.step_size,
+                                                          params.number_of_iterations,
+                                                          params.relaxation_factor,
+                                                          params.shrink_factors,
+                                                          params.smoothing_sigmas,
+                                                          params.sampling_percentage)
+
             transform = register_images(moving_image_sitk, fixed_image, params.registration_type,
-                                        params.registration)
+                                        registration_method)
 
         # get the interpolator according to the image type
         interpolator = get_interpolator(moving_image)
@@ -316,7 +325,7 @@ class IntraSubjectRegistrationFilter(Filter):
         """
         # get the reference image
         reference_image = subject.get_image_by_modality(params.reference_modality)
-        reference_image_sitk = reference_image.get_image_data(as_sitk=True)
+        reference_image_sitk = reference_image.get_image_data()
 
         # perform the registration
         for image in subject.get_images():
@@ -343,12 +352,14 @@ class IntraSubjectRegistrationFilter(Filter):
             Subject: The :class:`~pyradise.data.subject.Subject` instance with unregistered
             :class:`~pyradise.data.image.IntensityImage` instances.
         """
-        # construct an empty SimpleITK image with properties of the original image as a reference
-        image_np = np.zeros(transform_info.get_data('original_size')).astype(np.float)
-        reference_image = sitk.GetImageFromArray(image_np)
-        reference_image.SetOrigin(transform_info.get_data('original_origin'))
-        reference_image.SetSpacing(transform_info.get_data('original_spacing'))
-        reference_image.SetDirection(transform_info.get_data('original_direction'))
+        # construct the original image as a reference
+        original_image_props = transform_info.get_image_properties(pre_transform=True)
+
+        reference_image_np = np.zeros(original_image_props.size[::-1], dtype=np.float32)
+        reference_image_sitk = sitk.GetImageFromArray(reference_image_np)
+        reference_image_sitk.SetOrigin(original_image_props.origin)
+        reference_image_sitk.SetSpacing(original_image_props.spacing)
+        reference_image_sitk.SetDirection(original_image_props.direction)
 
         # get the inverse transform
         transform = transform_info.get_transform(True)
@@ -359,7 +370,8 @@ class IntraSubjectRegistrationFilter(Filter):
                 if image.get_modality() == transform_info.params.reference_modality:
                     continue
 
-                self._process_image(image, reference_image, transform_info.get_params(), transform, track_infos=False)
+                self._process_image(image, reference_image_sitk, transform_info.get_params(), transform,
+                                    track_infos=False)
 
         return subject
 
@@ -370,9 +382,10 @@ class InterSubjectRegistrationFilterParams(FilterParams):
 
     Args:
         reference_subject (Subject): The reference subject to which the subject will be registered.
-        reference_modality (Modality): The modality of the reference image (fixed image) to be used for registration.
-        subject_modality (Optional[Modality]): The modality of the subject image (moving image) to be used for
-         registration. If ``None``, the same modality as the reference image will be used (default: None).
+        reference_modality (Union[Modality, str]): The modality of the reference image (fixed image) to be used for
+         registration.
+        subject_modality (Optional[Union[Modality, str]]): The modality of the subject image (moving image) to be used
+         for registration. If ``None``, the same modality as the reference image will be used (default: None).
         registration_type (RegistrationType): The type of registration (default: RegistrationType.RIGID).
         number_of_histogram_bins (int): The number of histogram bins for registration (default: 200).
         learning_rate (float): The learning rate of the optimizer (default: 1.0).
@@ -389,8 +402,8 @@ class InterSubjectRegistrationFilterParams(FilterParams):
     # pylint: disable=too-many-instance-attributes, too-many-arguments
     def __init__(self,
                  reference_subject: Subject,
-                 reference_modality: Modality,
-                 subject_modality: Optional[Modality] = None,
+                 reference_modality: Union[Modality, str],
+                 subject_modality: Optional[Union[Modality, str]] = None,
                  registration_type: RegistrationType = RegistrationType.RIGID,
                  number_of_histogram_bins: int = 200,
                  learning_rate: float = 1.0,
@@ -408,8 +421,9 @@ class InterSubjectRegistrationFilterParams(FilterParams):
             raise ValueError("The shrink_factors and smoothing_sigmas need to have the same length!")
 
         self.reference_subject = reference_subject
-        self.reference_modality = reference_modality
-        self.subject_modality: Modality = subject_modality if subject_modality is not None else reference_modality
+        self.reference_modality: Modality = str_to_modality(reference_modality)
+        self.subject_modality: Modality = str_to_modality(subject_modality) if subject_modality is not None \
+            else reference_modality
         self.registration_type = registration_type
         self.number_of_histogram_bins = number_of_histogram_bins
         self.learning_rate = learning_rate
@@ -420,10 +434,6 @@ class InterSubjectRegistrationFilterParams(FilterParams):
         self.smoothing_sigmas: Tuple[float, ...] = smoothing_sigmas
         self.sampling_percentage = sampling_percentage
         self.resampling_interpolator = resampling_interpolator
-
-        self.registration = get_registration_method(registration_type, number_of_histogram_bins, learning_rate,
-                                                    step_size, number_of_iterations, relaxation_factor, shrink_factors,
-                                                    smoothing_sigmas, sampling_percentage)
 
 
 class InterSubjectRegistrationFilter(Filter):
@@ -477,7 +487,7 @@ class InterSubjectRegistrationFilter(Filter):
                 continue
 
             # get the image data and cast if necessary
-            image_sitk = image.get_image_data(as_sitk=True)
+            image_sitk = image.get_image_data()
             if isinstance(image, IntensityImage):
                 image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
 
@@ -512,7 +522,7 @@ class InterSubjectRegistrationFilter(Filter):
         # construct the original image as a reference
         original_image_props = transform_info.get_image_properties(pre_transform=True)
 
-        reference_image_np = np.zeros(original_image_props.size, dtype=np.float32)
+        reference_image_np = np.zeros(original_image_props.size[::-1], dtype=np.float32)
         reference_image_sitk = sitk.GetImageFromArray(reference_image_np)
         reference_image_sitk.SetOrigin(original_image_props.origin)
         reference_image_sitk.SetSpacing(original_image_props.spacing)
@@ -524,7 +534,7 @@ class InterSubjectRegistrationFilter(Filter):
         # transform and resample the images
         for image in subject.get_images():
             # get the image data and cast if necessary
-            image_sitk = image.get_image_data(as_sitk=True)
+            image_sitk = image.get_image_data()
             if isinstance(image, IntensityImage):
                 image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
 
@@ -559,9 +569,20 @@ class InterSubjectRegistrationFilter(Filter):
             sitk.Transform: The registration transformation.
         """
         moving_image = subject.get_image_by_modality(params.subject_modality)
-        moving_image_sitk = moving_image.get_image_data(as_sitk=True)
+        moving_image_sitk = moving_image.get_image_data()
 
-        return register_images(moving_image_sitk, reference_image, params.registration_type, params.registration)
+        # get the registration method
+        registration_method = get_registration_method(params.registration_type,
+                                                      params.number_of_histogram_bins,
+                                                      params.learning_rate,
+                                                      params.step_size,
+                                                      params.number_of_iterations,
+                                                      params.relaxation_factor,
+                                                      params.shrink_factors,
+                                                      params.smoothing_sigmas,
+                                                      params.sampling_percentage)
+
+        return register_images(moving_image_sitk, reference_image, params.registration_type, registration_method)
 
     def execute(self,
                 subject: Subject,
@@ -580,7 +601,7 @@ class InterSubjectRegistrationFilter(Filter):
         """
         # get the reference image
         reference_image = params.reference_subject.get_image_by_modality(params.reference_modality)
-        reference_image_sitk = reference_image.get_image_data(as_sitk=True)
+        reference_image_sitk = reference_image.get_image_data()
 
         # register the subject to the reference image
         transform = self._register_image(subject, reference_image_sitk, params)

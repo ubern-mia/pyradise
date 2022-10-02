@@ -472,8 +472,8 @@ class RaterExtractor(Extractor):
         raise NotImplementedError('The extract method needs to be adopted for the intended use case!')
 
 
-class SimpleRaterExtractor(OrganExtractor):
-    """A simple :class:`OrganExtractor` implementation that searches for a provided set of rater names
+class SimpleRaterExtractor(RaterExtractor):
+    """A simple :class:`RaterExtractor` implementation that searches for a provided set of rater names
     (``raters``) in the file name and generates a :class:`~pyradise.data.rater.Rater` with the same name. If no
     match is found :data:`None` is returned.
 

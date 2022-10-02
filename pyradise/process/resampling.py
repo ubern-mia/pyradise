@@ -1,7 +1,8 @@
 from typing import (
     Tuple,
     Optional,
-    Sequence)
+    Sequence,
+    Union)
 
 import numpy as np
 import SimpleITK as sitk
@@ -12,7 +13,8 @@ from pyradise.data import (
     Modality,
     TransformInfo,
     SegmentationImage,
-    IntensityImage)
+    IntensityImage,
+    str_to_modality)
 from .base import (
     Filter,
     FilterParams)
@@ -37,8 +39,8 @@ class ResampleFilterParams(FilterParams):
     Args:
         output_size (Optional[Tuple[int, ...]]) : The output size of the images.
         output_spacing (Optional[Tuple[float, ...]]): The output spacing of the images.
-        reference_modality (Optional[Modality]): The reference modality used if ``centering_method = 'reference'`` or
-         ``centering_method = 'label_moment'`` (default: None).
+        reference_modality (Optional[Union[Modality, str]]): The reference modality used if ``centering_method =
+         'reference'`` or ``centering_method = 'label_moment'`` (default: None).
         transform (sitk.Transform): The transformation applied during resampling
          (default: sitk.AffineTransform(3) (identity transform)).
         centering_method (str): The method to center the image (options: 'none', 'reference', 'label_moment')
@@ -50,7 +52,7 @@ class ResampleFilterParams(FilterParams):
     def __init__(self,
                  output_size: Optional[Tuple[int, ...]],
                  output_spacing: Optional[Tuple[float, ...]],
-                 reference_modality: Optional[Modality] = None,
+                 reference_modality: Optional[Union[Modality, str]] = None,
                  transform: sitk.Transform = sitk.AffineTransform(3),
                  centering_method: str = 'none',
                  rescaling_intensity_images: bool = True
@@ -65,7 +67,12 @@ class ResampleFilterParams(FilterParams):
 
         self.output_size = output_size
         self.output_spacing = output_spacing
-        self.reference_modality: Optional[Modality] = reference_modality
+
+        if reference_modality is not None:
+            self.reference_modality: Optional[Modality] = str_to_modality(reference_modality)
+        else:
+            self.reference_modality: Optional[Modality] = reference_modality
+
         self.transform = transform
         self.centering_method = centering_method
         self.rescaling_intensity_images = rescaling_intensity_images
@@ -115,7 +122,7 @@ class ResampleFilter(Filter):
         # compute the average label center
         bounding_box = []
         for image in images:
-            image_sitk = image.get_image_data(as_sitk=True)
+            image_sitk = image.get_image_data()
             num_dims = image_sitk.GetDimension()
 
             filter_ = sitk.LabelShapeStatisticsImageFilter()
@@ -153,7 +160,7 @@ class ResampleFilter(Filter):
             np.ndarray: The moment around the center.
         """
         # compute the image center of gravity
-        image_itk = image.get_image_data()
+        image_itk = image.get_image_data(as_sitk=False)
         image_type = image.get_image_itk_type()
         moment_calc = itk.ImageMomentsCalculator[image_type].New()
         moment_calc.SetImage(image_itk)
@@ -189,7 +196,7 @@ class ResampleFilter(Filter):
             IntensityImage: The resampled intensity image.
         """
         # get the image data of the moving and fixed image as SimpleITK images
-        image_sitk = image.get_image_data(as_sitk=True)
+        image_sitk = image.get_image_data()
 
         # cast the image to a float image
         if image_sitk.GetPixelID() != sitk.sitkFloat32:
@@ -211,7 +218,7 @@ class ResampleFilter(Filter):
             if reference_image is None:
                 raise ValueError('The reference image must be provided for the centering method "reference" and '
                                  '"label_moment"!')
-            reference_image_sitk = reference_image.get_image_data(as_sitk=True)
+            reference_image_sitk = reference_image.get_image_data()
             output_origin = reference_image_sitk.GetOrigin()
             output_direction = reference_image_sitk.GetDirection()
             output_size = reference_image_sitk.GetSize()
@@ -221,7 +228,7 @@ class ResampleFilter(Filter):
             if reference_image is None:
                 raise ValueError('The reference image must be provided for the centering method "reference" and '
                                  '"label_moment"!')
-            reference_image_sitk = reference_image.get_image_data(as_sitk=True)
+            reference_image_sitk = reference_image.get_image_data()
             output_size = reference_image_sitk.GetSize()
             output_spacing = reference_image_sitk.GetSpacing()
 
@@ -289,7 +296,7 @@ class ResampleFilter(Filter):
             IntensityImage: The inversely resampled intensity image.
         """
         # get the image data and the pre-transform image properties
-        image_sik = image.get_image_data(True)
+        image_sik = image.get_image_data()
         pre_transform_props = transform_info.get_image_properties(True)
 
         # apply the resampling filter
@@ -334,7 +341,7 @@ class ResampleFilter(Filter):
             SegmentationImage: The resampled segmentation image.
         """
         # get the image data of the moving and fixed image as SimpleITK images
-        image_sitk = image.get_image_data(as_sitk=True)
+        image_sitk = image.get_image_data()
 
         # get the output origin and direction
         if params.centering_method == 'none':
@@ -347,7 +354,7 @@ class ResampleFilter(Filter):
             if reference_image is None:
                 raise ValueError('The reference image must be provided for the centering method "reference" and '
                                  '"label_moment"!')
-            reference_image_sitk = reference_image.get_image_data(as_sitk=True)
+            reference_image_sitk = reference_image.get_image_data()
             output_origin = reference_image_sitk.GetOrigin()
             output_direction = reference_image_sitk.GetDirection()
             output_size = reference_image_sitk.GetSize()
@@ -398,7 +405,7 @@ class ResampleFilter(Filter):
             SegmentationImage: The inversely resampled segmentation image.
         """
         # get the image data and the pre-transform image properties
-        image_sik = image.get_image_data(True)
+        image_sik = image.get_image_data()
         pre_transform_props = transform_info.get_image_properties(True)
 
         # apply the resampling filter

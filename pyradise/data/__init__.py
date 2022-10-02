@@ -19,7 +19,12 @@ from .taping import (
     TransformInfo,
     TransformTape)
 
-
-__all__ = ['Modality', 'Rater', 'Organ', 'OrganRaterCombination', 'Image',
-           'IntensityImage', 'SegmentationImage', 'Subject', 'Tape',
-           'TransformInfo', 'TransformTape', 'ImageProperties']
+from .utils import (
+    str_to_modality,
+    seq_to_modalities,
+    str_to_organ,
+    seq_to_organs,
+    str_to_rater,
+    seq_to_raters,
+    str_to_organ_rater_combination,
+    seq_to_organ_rater_combinations)

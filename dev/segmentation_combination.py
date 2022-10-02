@@ -170,11 +170,11 @@ class SegmentationCombinationFilter(Filter):
         Returns:
             SegmentationImage: The combined segmentation image.
         """
-        segmentations_sitk = [segmentation.get_image_data(as_sitk=True) for segmentation in segmentations]
+        segmentations_sitk = [segmentation.get_image_data() for segmentation in segmentations]
 
         SegmentationCombinationFilter._is_valid(segmentations_sitk)
 
-        segmentations_np = [sitk.GetArrayFromImage(segmentation) for segmentation in segmentations_sitk]
+        segmentations_np = [segmentation.get_image_data_as_np() for segmentation in segmentations]
 
         if params.check_for_overlap:
             SegmentationCombinationFilter._contains_overlap(segmentations_np)
@@ -384,13 +384,13 @@ class CombineEnumeratedLabelFilter(Filter):
         Returns:
             None
         """
-        reference_image = segmentations[0][0].get_image_data(as_sitk=True)
+        reference_image = segmentations[0][0].get_image_data()
         reference_origin = reference_image.GetOrigin()
         reference_direction = reference_image.GetDirection()
         reference_size = reference_image.GetSize()
 
         for segmentation, _ in segmentations:
-            image = segmentation.get_image_data(as_sitk=True)
+            image = segmentation.get_image_data()
 
             criteria = (reference_origin == image.GetOrigin(),
                         reference_direction == image.GetDirection(),
@@ -414,17 +414,17 @@ class CombineEnumeratedLabelFilter(Filter):
         Returns:
             SegmentationImage: The combined segmentation image.
         """
-        combined_mask = np.zeros_like(sitk.GetArrayFromImage(segmentations[0][0].get_image_data(as_sitk=True)))
+        combined_mask = np.zeros_like(segmentations[0][0].get_image_data_as_np())
 
         for segmentation, label_idx in segmentations:
-            mask = sitk.GetArrayFromImage(segmentation.get_image_data(as_sitk=True))
+            mask = segmentation.get_image_data_as_np()
 
             mask[mask != 0] = label_idx
 
             np.putmask(combined_mask, mask != 0, mask)
 
         image = sitk.GetImageFromArray(combined_mask)
-        image.CopyInformation(segmentations[0][0].get_image_data(as_sitk=True))
+        image.CopyInformation(segmentations[0][0].get_image_data())
 
         segmentation_image = SegmentationImage(image, params.output_organ, params.output_rater)
 
@@ -545,14 +545,14 @@ class CombineSegmentationsFilter(Filter):
         Returns:
             None
         """
-        reference_image = images[0].get_image_data(as_sitk=True)
+        reference_image = images[0].get_image_data()
         size = reference_image.GetSize()
         spacing = reference_image.GetSpacing()
         direction = reference_image.GetDirection()
         origin = reference_image.GetOrigin()
 
         for image in images[1:]:
-            image_sitk = image.get_image_data(as_sitk=True)
+            image_sitk = image.get_image_data()
             result = all((size == image_sitk.GetSize(),
                           spacing == image_sitk.GetSpacing(),
                           direction == image_sitk.GetDirection(),
@@ -575,17 +575,17 @@ class CombineSegmentationsFilter(Filter):
         Returns:
             SegmentationImage: The combined segmentation image.
         """
-        new_image_np = sitk.GetArrayFromImage(images[0].get_image_data(as_sitk=True))
+        new_image_np = images[0].get_image_data_as_np()
         new_image_np[new_image_np != 0] = 1
 
         for image in images[1:]:
-            image_np = sitk.GetArrayFromImage(image.get_image_data(as_sitk=True))
+            image_np = image.get_image_data_as_np()
             image_np[image_np != 0] = 1
 
             np.putmask(new_image_np, image_np, 1)
 
         new_image_sitk = sitk.GetImageFromArray(new_image_np)
-        new_image_sitk.CopyInformation(images[0].get_image_data(as_sitk=True))
+        new_image_sitk.CopyInformation(images[0].get_image_data())
 
         new_image = SegmentationImage(new_image_sitk, params.new_organ, params.new_rater)
         return new_image

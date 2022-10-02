@@ -809,7 +809,7 @@ def main():
     #             'seg_ISAS_GBM_009_RP_Hippocampus_R.nii.gz'
     file_name = 'D:/DataBackupsConversion/20210105_ISAS_OAR_conversion_small/ISAS_GBM_009/' \
                 'seg_ISAS_GBM_009_RP_Brainstem.nii.gz'
-    file_name = 'E:/conversion_experiment/nifti_0/ISAS_GBM_001/seg_ISAS_GBM_001_Daniel_Schmidhalter_Hippocampus_R.nii.gz'
+    file_name = 'E:/conversion_experiment/nifti_0/ISAS_GBM_001/seg_ISAS_GBM_001_Daniel_Schmidhalter_Brain.nii.gz'
     dicom_dir = 'E:/DataBackups/2020_08_ISAS_OAR_test/ISAS_GBM_001/'
 
     sitk_image = sitk.ReadImage(file_name)

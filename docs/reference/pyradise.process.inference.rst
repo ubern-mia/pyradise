@@ -20,9 +20,15 @@ The following classes are provided by the :mod:`~pyradise.process.inference` mod
 +--------------------------------------------+--------------------------------------------------------------+
 | Class                                      | Description                                                  |
 +============================================+==============================================================+
-| :class:`InferenceFilterParams`              | Parameterization class for the :class:`InferenceFilter`.    |
+| :class:`InferenceFilterParams`             | Parameterization class for the :class:`InferenceFilter`.     |
 +--------------------------------------------+--------------------------------------------------------------+
-| :class:`InferenceFilter`                    | Filter prototype for deep learning model inference.         |
+| :class:`InferenceFilter`                   | Filter prototype for deep learning model inference.          |
++--------------------------------------------+--------------------------------------------------------------+
+| :class:`IndexingStrategy`                  | An abstract base class for all :class:`IndexingStrategy`.    |
++--------------------------------------------+--------------------------------------------------------------+
+| :class:`SliceIndexingStrategy`             | Indexing strategy for slice-wise looping (for 2D models).    |
++--------------------------------------------+--------------------------------------------------------------+
+| :class:`PatchIndexingStrategy`             | Indexing strategy for patch-wise looping (for 3D models).    |
 +--------------------------------------------+--------------------------------------------------------------+
 
 Details

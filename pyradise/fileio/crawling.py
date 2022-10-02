@@ -396,6 +396,12 @@ class SubjectDicomCrawler(Crawler):
         image_series_paths = []
         for series_uid in series_extractor.GetSeriesUIDs():
             series_paths = [str(os.path.normpath(entry)) for entry in series_extractor.GetFileNames(series_uid)]
+
+            # check if the image belongs to the DICOM RT SOP Classes
+            dataset = load_dataset_tag(series_paths[0], (Tag(0x0008, 0x0016),))
+            if '481' in str(dataset.get('SOPClassUID', '')):
+                continue
+
             image_series_paths.append(tuple(series_paths))
 
         return tuple(image_series_paths)

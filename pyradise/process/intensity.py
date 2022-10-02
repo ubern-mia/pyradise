@@ -14,7 +14,8 @@ from pyradise.data import (
     Subject,
     Modality,
     IntensityImage,
-    TransformInfo)
+    TransformInfo,
+    seq_to_modalities)
 from .base import (
     Filter,
     FilterParams,
@@ -41,19 +42,10 @@ class IntensityFilterParams(FilterParams):
     """
 
     def __init__(self, modalities: Optional[Tuple[Union[Modality, str], ...]] = None) -> None:
-        # check and cast modalities
-        self.modalities: Optional[List[Modality, ...]] = []
-
         if modalities is not None:
-            for modality in modalities:
-                if isinstance(modality, Modality):
-                    self.modalities.append(modality)
-                elif isinstance(modality, str):
-                    self.modalities.append(Modality(modality))
-                else:
-                    raise TypeError('The provided modalities must be of type Modality or str.')
+            self.modalities = seq_to_modalities(modalities)
         else:
-            self.modalities: Optional[List[Modality, ...]] = None
+            self.modalities: Optional[Tuple[Modality, ...]] = None
 
 
 class IntensityFilter(Filter):
@@ -78,12 +70,6 @@ class IntensityFilter(Filter):
 
         An example implementation of an intensity clippling filter:
 
-        >>> import SimpleITK as sitk
-        >>>
-        >>> from pyradise.process import IntensityFilter, FilterParams
-        >>> from pyradise.data import Subject, IntensityImage, TransformInfo
-        >>>
-        >>>
         >>> class ClipFilterParams(IntensityFilterParams):
         >>>     def __init__(self,
         >>>                  min_out: float,
@@ -117,7 +103,7 @@ class IntensityFilter(Filter):
         >>>                        params: ClipFilterParams
         >>>                        ) -> IntensityImage:
         >>>         # get the image data
-        >>>         sitk_image = image.get_image_data(True)
+        >>>         sitk_image = image.get_image_data()
         >>>
         >>>         # apply the clipping
         >>>         clipped_image_sitk = sitk.Clamp(sitk_image,
@@ -202,7 +188,7 @@ class IntensityFilter(Filter):
 
                 # check if the image is specified for processing
                 if params.modalities is not None and image.modality not in params.modalities:
-                    image_sitk = image.get_image_data(True)
+                    image_sitk = image.get_image_data()
                     self._register_tracked_data(image, image_sitk, image_sitk, params)
 
                 else:
@@ -256,19 +242,10 @@ class IntensityLoopFilterParams(LoopEntryFilterParams):
                  ) -> None:
         super().__init__(loop_axis)
 
-        # check and cast modalities
-        self.modalities: Optional[List[Modality, ...]] = []
-
         if modalities is not None:
-            for modality in modalities:
-                if isinstance(modality, Modality):
-                    self.modalities.append(modality)
-                elif isinstance(modality, str):
-                    self.modalities.append(Modality(modality))
-                else:
-                    raise TypeError('The provided modalities must be of type Modality or str.')
+            self.modalities = seq_to_modalities(modalities)
         else:
-            self.modalities: Optional[List[Modality, ...]] = None
+            self.modalities = None
 
 
 class IntensityLoopFilter(LoopEntryFilter):
@@ -357,7 +334,7 @@ class IntensityLoopFilter(LoopEntryFilter):
         self.loop_axis_pos_idx = 0
 
         # get the image data for computation
-        image_sitk = image.get_image_data(as_sitk=True)
+        image_sitk = image.get_image_data()
         if 'integer' in image_sitk.GetPixelIDTypeAsString():
             image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
 
@@ -400,7 +377,7 @@ class IntensityLoopFilter(LoopEntryFilter):
         self.loop_axis_pos_idx = 0
 
         # get the image data for inverse processing
-        image_sitk = image.get_image_data(as_sitk=True)
+        image_sitk = image.get_image_data()
         if 'integer' in image_sitk.GetPixelIDTypeAsString():
             image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
         image_np = sitk.GetArrayFromImage(image_sitk)
@@ -437,7 +414,7 @@ class IntensityLoopFilter(LoopEntryFilter):
 
                 # check if the image is specified for processing
                 if params.modalities is not None and image.get_modality() not in params.modalities:
-                    image_sitk = image.get_image_data(as_sitk=True)
+                    image_sitk = image.get_image_data()
                     self._register_tracked_data(image, image_sitk, image_sitk, params)
 
                 else:
@@ -819,11 +796,8 @@ class RescaleIntensityFilter(IntensityFilter):
             IntensityImage: The processed image with rescaled intensity values.
         """
         # get the image data as numpy array
-        image_sitk = image.get_image_data(True)
-        if 'integer' in image_sitk.GetPixelIDTypeAsString():
-            image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
-
-        image_np = sitk.GetArrayFromImage(image_sitk)
+        image_sitk = image.get_image_data()
+        image_np = image.get_image_data_as_np().astype(float)
 
         # get the min and max values
         min_i_o = np.min(image_np)
@@ -872,11 +846,8 @@ class RescaleIntensityFilter(IntensityFilter):
             IntensityImage: The inversely processed :class:`~pyradise.data.image.IntensityImage` instance.
         """
         # get the data as numpy array
-        image_sitk = image.get_image_data(True)
-        if 'integer' in image_sitk.GetPixelIDTypeAsString():
-            image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
-
-        image_np = sitk.GetArrayFromImage(image_sitk)
+        image_sitk = image.get_image_data()
+        image_np = image.get_image_data_as_np().astype(float)
 
         # get the tracked data
         min_i_o = transform_info.get_data(f'min')
@@ -1010,7 +981,7 @@ class ClipIntensityFilter(IntensityFilter):
             IntensityImage: The processed image.
         """
         # get the image data
-        sitk_image = image.get_image_data(True)
+        sitk_image = image.get_image_data()
 
         # apply the clipping
         clipped_image_sitk = sitk.Clamp(sitk_image, sitk_image.GetPixelIDValue(), params.min_value, params.max_value)
@@ -1132,7 +1103,7 @@ class GaussianFilter(IntensityFilter):
             IntensityImage: The Gaussian filtered image.
         """
         # get the image data as sitk image
-        image_sitk = image.get_image_data(True)
+        image_sitk = image.get_image_data()
 
         # cast the image if necessary
         if 'integer' in image_sitk.GetPixelIDTypeAsString():
@@ -1258,7 +1229,7 @@ class MedianFilter(IntensityFilter):
             IntensityImage: The median filtered image.
         """
         # get the image data as sitk image
-        image_sitk = image.get_image_data(True)
+        image_sitk = image.get_image_data()
 
         # cast the image if necessary
         if 'integer' in image_sitk.GetPixelIDTypeAsString():
@@ -1267,7 +1238,7 @@ class MedianFilter(IntensityFilter):
         # apply the median filter
         median_filter = sitk.MedianImageFilter()
         median_filter.SetRadius(params.radius)
-        new_image_sitk = median_filter.Execute(image.get_image_data(True))
+        new_image_sitk = median_filter.Execute(image.get_image_data())
 
         # add the new SimpleITK image to the PyRaDiSe image
         image.set_image_data(new_image_sitk)
@@ -1371,7 +1342,7 @@ class LaplacianFilter(IntensityFilter):
             IntensityImage: The Laplacian filtered image.
         """
         # get the image data as sitk image
-        image_sitk = image.get_image_data(True)
+        image_sitk = image.get_image_data()
 
         # cast the image if necessary
         if 'integer' in image_sitk.GetPixelIDTypeAsString():

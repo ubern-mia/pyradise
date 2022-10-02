@@ -69,7 +69,7 @@ class SingleConnectedComponentFilter(Filter):
             bool: True if the image is binary otherwise False.
         """
         if isinstance(image, SegmentationImage):
-            itk_image = image.get_image_data()
+            itk_image = image.get_image_data(as_sitk=False)
         else:
             itk_image = image
 
@@ -92,7 +92,7 @@ class SingleConnectedComponentFilter(Filter):
             Tuple[Tuple[itk.Image, ...], Tuple[int, ...]]: Returns the binary images and the original label indexes.
         """
         if isinstance(image, SegmentationImage):
-            itk_image = image.get_image_data()
+            itk_image = image.get_image_data(as_sitk=False)
         else:
             itk_image = image
 
@@ -154,7 +154,7 @@ class SingleConnectedComponentFilter(Filter):
         """
 
         if isinstance(image, SegmentationImage):
-            itk_image = image.get_image_data()
+            itk_image = image.get_image_data(as_sitk=False)
             itk_image_type = image.get_image_itk_type()
         else:
             itk_image = image
@@ -170,7 +170,7 @@ class SingleConnectedComponentFilter(Filter):
             return itk_image
 
         cc_itk_image = cc_filter.GetOutput()
-        casted_itk_image = Image.cast(cc_itk_image, itk.template(itk_image_type)[1][0])
+        casted_itk_image = Image.cast(cc_itk_image, itk.template(itk_image_type)[1][0], as_sitk=False)
 
         ko_filter = itk.LabelShapeKeepNObjectsImageFilter[itk_image_type].New()
         ko_filter.SetInput(casted_itk_image)
@@ -211,7 +211,7 @@ class SingleConnectedComponentFilter(Filter):
             if image.get_organ() in params.excluded_organs:
                 continue
 
-            image_sitk = image.get_image_data(as_sitk=True)
+            image_sitk = image.get_image_data()
             if self._is_binary_image(image):
                 single_label_images = (image,)
 
@@ -239,7 +239,7 @@ class SingleConnectedComponentFilter(Filter):
 
                 image.set_image_data(cc_image)
 
-                self._register_tracked_data(image, image_sitk, image.get_image_data(True), params)
+                self._register_tracked_data(image, image_sitk, image.get_image_data(), params)
 
         return subject
 

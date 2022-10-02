@@ -57,4 +57,5 @@ The functionality of PyRaDiSe is split into the following packages:
     reference/pyradise.process.modification
     reference/pyradise.process.inference
     reference/pyradise.process.postprocess
+    reference/pyradise.process.invertibility
 

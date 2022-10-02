@@ -153,10 +153,9 @@ class Image(ABC):
         super().__init__()
 
         if isinstance(image, sitk.Image):
-            self.image: itk.Image = convert_to_itk_image(image)
-
+            self.image: sitk.Image = image
         else:
-            self.image: itk.Image = image
+            self.image: sitk.Image = convert_to_sitk_image(image)
 
         self.transform_tape = TransformTape()
 
@@ -188,7 +187,7 @@ class Image(ABC):
     @staticmethod
     def cast(image: Union[sitk.Image, itk.Image],
              pixel_type: Union[itk.support.types.itkCType, int],
-             as_sitk: bool = False
+             as_sitk: bool = True
              ) -> Union[sitk.Image, itk.Image]:
         """Cast an image to a certain pixel type and return it as either a :class:`itk.Image` or
         :class:`SimpleITK.Image`.
@@ -196,7 +195,8 @@ class Image(ABC):
         Args:
             image (Union[sitk.Image, itk.Image]): The image to be casted.
             pixel_type (Union[itk.support.types.itkCType, int]): The output pixel type.
-            as_sitk (bool): If True the image gets returned as a SimpleITK image otherwise as an ITK image.
+            as_sitk (bool): If True the image gets returned as a SimpleITK image otherwise as an ITK image
+             (default: True).
 
         Returns:
             Union[sitk.Image, itk.Image]: The casted image as :class:`itk.Image` or :class:`SimpleITK.Image`.
@@ -216,19 +216,20 @@ class Image(ABC):
 
         return Image._return_image_as(img, as_sitk)
 
-    def get_image_data(self, as_sitk: bool = False) -> Union[itk.Image, sitk.Image]:
-        """Get the image data as an :class:`itk.Image` or :class:`SimpleITK.Image` (with ``as_sitk=True``).
+    def get_image_data(self, as_sitk: bool = True) -> Union[itk.Image, sitk.Image]:
+        """Get the image data as an :class:`itk.Image` (with ``as_sitk=False``) or :class:`SimpleITK.Image`
+        (with ``as_sitk=True``).
 
         Args:
-            as_sitk (bool): If True returns the image as a SimpleITK image else as an ITK image.
+            as_sitk (bool): If True returns the image as a SimpleITK image else as an ITK image (default: True).
 
         Returns:
             Union[itk.Image, sitk.Image]: The image as the either a :class:`itk.Image` or a :class:`SimpleITK.Image`.
         """
         if as_sitk:
-            return convert_to_sitk_image(self.image)
+            return self.image
 
-        return self.image
+        return convert_to_itk_image(self.image)
 
     def set_image_data(self, image: Union[sitk.Image, itk.Image]) -> None:
         """Set the image data.
@@ -240,18 +241,25 @@ class Image(ABC):
             None
         """
         if isinstance(image, sitk.Image):
-            self.image = convert_to_itk_image(image)
+            self.image: sitk.Image = image
 
         else:
-            self.image = image
+            self.image: sitk.Image = convert_to_sitk_image(image)
 
-    def get_image_data_as_np(self) -> np.ndarray:
+    def get_image_data_as_np(self, adjust_axes: bool = True) -> np.ndarray:
         """Get the image data as a numpy array.
+
+        Args:
+            adjust_axes (bool): If True, the axes of the image are adjusted to the numpy convention (default: True).
 
         Returns:
             np.ndarray: The image data as a numpy array.
         """
-        return itk.GetArrayFromImage(self.image)
+        if adjust_axes:
+            image_np = sitk.GetArrayFromImage(self.image)
+            return image_np.reshape(image_np.shape[::-1])
+
+        return sitk.GetArrayFromImage(self.image)
 
     def get_image_itk_type(self) -> itk.Image:
         """Get the image type of this image.
@@ -259,7 +267,8 @@ class Image(ABC):
         Returns:
             itk.Image: The image type of this image.
         """
-        return itk.Image[itk.template(self.image)[1]]
+        image = convert_to_itk_image(self.image)
+        return itk.Image[itk.template(image)[1]]
 
     def get_origin(self) -> Tuple[float, ...]:
         """Get the origin of the image.
@@ -275,7 +284,8 @@ class Image(ABC):
         Returns:
             np.ndarray: The direction of the image.
         """
-        return itk.GetArrayFromMatrix(self.image.GetDirection())
+        dims = self.image.GetDimension()
+        return np.array(self.image.GetDirection()).reshape(dims, dims)
 
     def get_spacing(self) -> Tuple[float, ...]:
         """Get the spacing of the image.
@@ -291,7 +301,7 @@ class Image(ABC):
         Returns:
             Tuple[int, ...]: The size of the image.
         """
-        return tuple(self.image.GetLargestPossibleRegion().GetSize())
+        return tuple(self.image.GetSize())
 
     def get_dimensions(self) -> int:
         """Get the number of image dimensions.
@@ -299,7 +309,15 @@ class Image(ABC):
         Returns:
             int: The number of image dimensions.
         """
-        return itk.template(self.image)[1][1]
+        return self.image.GetDimension()
+
+    def get_orientation(self) -> str:
+        """Get the orientation of the image.
+
+        Returns:
+            str: The orientation of the image.
+        """
+        return sitk.DICOMOrientImageFilter_GetOrientationFromDirectionCosines(self.image.GetDirection())
 
     def get_transform_tape(self) -> TransformTape:
         """Get the :class:`~pyradise.data.taping.TransformTape`.
@@ -615,7 +633,7 @@ class SegmentationImage(Image):
         Returns:
             bool: True if the image is binary, otherwise False.
         """
-        image_np = itk.GetArrayViewFromImage(self.image)
+        image_np = sitk.GetArrayViewFromImage(self.image)
         unique_pixel_vals = np.unique(image_np)
 
         if unique_pixel_vals.shape[0] == 2 and unique_pixel_vals[0] == 0:

@@ -797,7 +797,7 @@ class RescaleIntensityFilter(IntensityFilter):
         """
         # get the image data as numpy array
         image_sitk = image.get_image_data()
-        image_np = image.get_image_data_as_np().astype(float)
+        image_np = image.get_image_data_as_np(False).astype(float)
 
         # get the min and max values
         min_i_o = np.min(image_np)
@@ -847,7 +847,7 @@ class RescaleIntensityFilter(IntensityFilter):
         """
         # get the data as numpy array
         image_sitk = image.get_image_data()
-        image_np = image.get_image_data_as_np().astype(float)
+        image_np = image.get_image_data_as_np(False).astype(float)
 
         # get the tracked data
         min_i_o = transform_info.get_data(f'min')

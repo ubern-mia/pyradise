@@ -409,7 +409,7 @@ class SimpleOrganExtractor(OrganExtractor):
         """
         file_name = os.path.basename(path)
 
-        for organ in self.organs:
+        for organ in reversed(self.organs):
             if organ in file_name:
                 return Organ(organ)
 

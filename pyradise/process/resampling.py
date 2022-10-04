@@ -278,6 +278,7 @@ class ResampleFilter(Filter):
         # track the necessary parameters
         self.tracking_data['min_intensity'] = min_intensity
         self.tracking_data['max_intensity'] = max_intensity
+        self.tracking_data['is_intensity'] = True
         self._register_tracked_data(image, image_sitk, new_image_sitk, params, params.transform)
 
         return image
@@ -303,7 +304,7 @@ class ResampleFilter(Filter):
         resample_filter = sitk.ResampleImageFilter()
         resample_filter.SetInterpolator(sitk.sitkBSpline)
         resample_filter.SetTransform(transform_info.get_transform(True))
-        resample_filter.SetDefaultPixelValue(transform_info.get_data('min_intensity'))
+        resample_filter.SetDefaultPixelValue(float(transform_info.get_data('min_intensity')))
         resample_filter.SetOutputOrigin(pre_transform_props.origin)
         resample_filter.SetOutputDirection(pre_transform_props.direction)
         resample_filter.SetOutputSpacing(pre_transform_props.spacing)
@@ -387,6 +388,9 @@ class ResampleFilter(Filter):
         image.set_image_data(new_image_sitk)
 
         # track the necessary parameters
+        self.tracking_data['min_intensity'] = 0.
+        self.tracking_data['max_intensity'] = 1.
+        self.tracking_data['is_intensity'] = False
         self._register_tracked_data(image, image_sitk, new_image_sitk, params, params.transform)
 
         return image

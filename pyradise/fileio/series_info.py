@@ -813,8 +813,6 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
         additional_tags_ = [Tag(0x3006, 0x0002),    # StructureSetLabel
                             Tag(0x0008, 0x1070),    # OperatorName
                             Tag(0x3006, 0x0010),    # ReferencedFrameOfReferenceSequence
-                            Tag(0x3006, 0x0039),    # ROIContourSequence
-                            Tag(0x3006, 0x0020),    # StructureSetROISequence
                             Tag(0x3006, 0x0080)]    # RTROIObservationsSequence
 
         if additional_tags:

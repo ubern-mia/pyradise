@@ -34,6 +34,8 @@ The following :class:`Converter` classes are provided:
 +----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------+
 | :class:`SegmentToRTSSConverter`        | A low level :class:`Converter` to convert :class:`~pyradise.data.image.SegmentationImage` s to a DICOM-RTSS :class:`~pydicom.dataset.Dataset`.            |
 +----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------+
+| :class:`RTSSMetaData`                  | A class defining the DICOM-RTSS metadata (used in combination with :class:`SubjectToRTSSConverter` and :class:`SegmentToRTSSConverter`).                  |
++----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Details
 -------

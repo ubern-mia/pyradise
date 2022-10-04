@@ -408,7 +408,7 @@ class DicomSeriesSubjectWriter:
     def write(self,
               datasets: Tuple[Tuple[str, Dataset], ...],
               output_path: str,
-              folder_name: Optional[str],
+              folder_name: Optional[str] = None,
               series_infos: Optional[Tuple[SeriesInfo, ...]] = None
               ) -> None:
         """Write the provided data to a directory or a zip file.
@@ -417,7 +417,7 @@ class DicomSeriesSubjectWriter:
             datasets (Tuple[Tuple[str, Dataset], ...]): The :class:`~pydicom.dataset.Dataset` instances to write and
              its file names.
             output_path (str): The output path.
-            folder_name (str): The name of the output folder or the zip file.
+            folder_name (str): The name of the output folder or the zip file (default: None).
             series_infos (Optional[Tuple[SeriesInfo, ...]]): The :class:`~pyradise.fileio.series_info.DicomSeriesInfo`
              instances containing the path for DICOM files to copy (default: None).
 
@@ -430,7 +430,8 @@ class DicomSeriesSubjectWriter:
         if not os.path.isdir(output_path):
             raise NotADirectoryError(f'The output path {output_path} is not a directory!')
 
-        folder_name = remove_illegal_folder_chars(folder_name)
+        if folder_name is not None:
+            folder_name = remove_illegal_folder_chars(folder_name)
 
         if not series_infos:
             series_infos = []

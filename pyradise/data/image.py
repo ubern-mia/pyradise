@@ -19,6 +19,7 @@ from .organ import (
     OrganRaterCombination)
 from .rater import Rater
 from .taping import TransformTape
+from .utils import (str_to_organ, str_to_rater, str_to_modality)
 from ..utils import (convert_to_itk_image, convert_to_sitk_image)
 
 TransformInfo = TypeVar('TransformInfo')
@@ -395,16 +396,16 @@ class IntensityImage(Image):
 
     Args:
         image (Union[sitk.Image, itk.Image]): The image data as :class:`itk.Image` or :class:`SimpleITK.Image`.
-        modality (Modality): The image :class:`~pyradise.data.modality.Modality`.
+        modality (Union[Modality, str]): The image :class:`~pyradise.data.modality.Modality` or the modality's name.
     """
 
     def __init__(self,
                  image: Union[sitk.Image, itk.Image],
-                 modality: Modality
+                 modality: Union[Modality, str]
                  ) -> None:
         super().__init__(image)
 
-        self.modality = modality
+        self.modality: Modality = str_to_modality(modality)
 
     def get_modality(self,
                      as_str: bool = False
@@ -432,7 +433,7 @@ class IntensityImage(Image):
         Returns:
             None
         """
-        self.modality = modality
+        self.modality: Modality = modality
 
     def copy_info(self,
                   source: 'IntensityImage',
@@ -459,7 +460,7 @@ class IntensityImage(Image):
         if not isinstance(source, IntensityImage):
             raise TypeError('The source image must be an instance of IntensityImage.')
 
-        self.modality = deepcopy(source.get_modality())
+        self.modality: Modality = deepcopy(source.get_modality())
 
         if include_transforms:
             self.transform_tape = deepcopy(source.get_transform_tape())
@@ -501,18 +502,23 @@ class SegmentationImage(Image):
 
     Args:
         image (Union[sitk.Image, itk.Image]): The segmentation image data.
-        organ (Organ): The :class:`~pyradise.data.organ.Organ` represented by the segmentation image.
-        rater (Optional[Rater]): The :class:`~pyradise.data.rater.Rater` of the segmentation image (default: None).
+        organ (Union[Organ, str]): The :class:`~pyradise.data.organ.Organ` represented by the segmentation image or its
+         name.
+        rater (Optional[Union[Rater, str]]): The :class:`~pyradise.data.rater.Rater` of the segmentation image or a
+         string with the name of the rater (default: Rater.get_default()).
     """
 
     def __init__(self,
                  image: Union[sitk.Image, itk.Image],
-                 organ: Organ,
-                 rater: Optional[Rater] = Rater.get_default()
+                 organ: Union[Organ, str],
+                 rater: Optional[Union[Rater, str]] = Rater.get_default()
                  ) -> None:
         super().__init__(image)
-        self.organ: Organ = organ
-        self.rater: Rater = rater
+        self.organ: Organ = str_to_organ(organ)
+        if rater is not None:
+            self.rater: Optional[Rater] = str_to_rater(rater)
+        else:
+            self.rater: Optional[Rater] = None
 
     def get_organ(self, as_str: bool = False) -> Union[Organ, str]:
         """Get the :class:`~pyradise.data.organ.Organ`.
@@ -529,16 +535,16 @@ class SegmentationImage(Image):
 
         return self.organ
 
-    def set_organ(self, organ: Organ) -> None:
+    def set_organ(self, organ: Optional[Rater]) -> None:
         """Set the :class:`~pyradise.data.organ.Organ`.
 
         Args:
-            organ (Organ): The :class:`~pyradise.data.organ.Organ`.
+            organ (Optional[Rater]): The :class:`~pyradise.data.organ.Organ`.
 
         Returns:
             None
         """
-        self.organ = organ
+        self.organ: Optional[Rater] = organ
 
     def get_rater(self, as_str: bool = False) -> Union[Rater, str]:
         """Get the :class:`~pyradise.data.rater.Rater`.

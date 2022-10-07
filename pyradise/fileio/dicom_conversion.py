@@ -11,15 +11,18 @@ from typing import (
 from copy import deepcopy
 from datetime import datetime
 from dataclasses import dataclass
-from enum import IntEnum
 import warnings
 
+import vtkmodules.vtkFiltersCore as vtk_fcore
+import vtkmodules.vtkCommonDataModel as vtk_dm
+import vtkmodules.vtkImagingGeneral as vtk_igen
+import vtkmodules.vtkImagingCore as vtk_icore
+import vtkmodules.vtkFiltersModeling as vtk_fmodel
+import vtkmodules.vtkCommonCore as vtk_ccore
+import itk
 import numpy as np
 import cv2 as cv
 import SimpleITK as sitk
-from scipy.interpolate import (
-    splprep,
-    splev)
 from pydicom import (
     Dataset,
     FileDataset,
@@ -45,7 +48,8 @@ from pyradise.utils import (
     chunkify,
     get_slice_position,
     get_slice_direction,
-    get_spacing_between_slices)
+    get_spacing_between_slices,
+    convert_to_itk_image)
 from .series_info import (
     SeriesInfo,
     DicomSeriesImageInfo,
@@ -54,7 +58,8 @@ from .series_info import (
     RegistrationInfo)
 
 __all__ = ['Converter', 'DicomImageSeriesConverter', 'DicomRTSSSeriesConverter', 'SubjectToRTSSConverter',
-           'RTSSToSegmentConverter', 'SegmentToRTSSConverter', 'RTSSMetaData']
+           'RTSSToSegmentConverter', 'SegmentToRTSSConverter2D', 'SegmentToRTSSConverter3D', 'RTSSMetaData',
+           'RTSSConverter2DConfiguration', 'RTSSConverter3DConfiguration']
 
 
 ROI_GENERATION_ALGORITHMS = ['AUTOMATIC', 'SEMIAUTOMATIC', 'MANUAL']
@@ -81,102 +86,6 @@ COLOR_PALETTE = [[255, 0, 255],
                  [255, 140, 190],
                  [0, 0, 255],
                  [255, 225, 0]]
-
-
-# noinspection PyUnresolvedReferences
-@dataclass
-class ROIData:
-    """Data class to collect ROI data.
-
-    Args:
-        mask (np.ndarray): The segmentation mask.
-        color (Union[str, List[int]]): The color of the ROI.
-        number (int): The ROINumber.
-        frame_of_reference (int): The FrameOfReferenceUID.
-        description (str): The description of the ROI.
-        use_pin_hole (bool): If the pinhole algorithm should be used (default: False).
-        approximate_contours (bool): If True the contours will be approximated, otherwise not (default: True).
-        roi_generation_algorithm (Union[str, int]): The ROI generation algorithm selected (currently no function,
-         default: 0).
-    """
-    mask: np.ndarray
-    color: Union[str, List[int]]
-    number: int
-    name: str
-    frame_of_reference_uid: int
-    description: str = ''
-    use_pin_hole: bool = False
-    approximate_contours: bool = True
-    roi_generation_algorithm: Union[str, int] = 0
-
-    def __post_init__(self):
-        self._validate_color()
-        self._add_default_values()
-        self._validate_roi_generation_algorithm()
-
-    def _add_default_values(self):
-        if self.color is None:
-            self.color = COLOR_PALETTE[(self.number - 1) % len(COLOR_PALETTE)]
-
-        if self.name is None:
-            self.name = f'Structure_{self.number}'
-
-    def _validate_color(self):
-        if self.color is None:
-            return
-
-        if isinstance(self.color, list):
-            if len(self.color) != 3:
-                raise ValueError(f'{self.color} is an invalid color for an ROI')
-            for color in self.color:
-                assert 0 <= color <= 255, ValueError(f'{self.color} is an invalid color for an ROI')
-
-        else:
-            self.color: str = str(self.color)
-            self.color = self.color.strip('#')
-
-            if len(self.color) == 3:
-                self.color = ''.join([x * 2 for x in self.color])
-
-            if not len(self.color) == 6:
-                raise ValueError(f'{self.color} is an invalid color for an ROI')
-
-            try:
-                self.color = [int(self.color[i:i + 2], 16) for i in (0, 2, 4)]
-
-            except Exception(f'{self.color} is an invalid color for an ROI') as error:
-                raise error
-
-    def _validate_roi_generation_algorithm(self):
-
-        if isinstance(self.roi_generation_algorithm, int):
-            # for ints we use the predefined values in ROI_GENERATION_ALGORITHMS
-            if self.roi_generation_algorithm > 2 or self.roi_generation_algorithm < 0:
-                raise ValueError('roi_generation_algorithm must be either an int (0=\'AUTOMATIC\', '
-                                 '1=\'SEMIAUTOMATIC\', 2=\'MANUAL\') or a str (not recommended).')
-
-            self.roi_generation_algorithm = ROI_GENERATION_ALGORITHMS[self.roi_generation_algorithm]
-
-        elif isinstance(self.roi_generation_algorithm, str):
-            # users can pick a str if they want to use a value other than the three default values
-            if self.roi_generation_algorithm not in ROI_GENERATION_ALGORITHMS:
-                print('Got self.roi_generation_algorithm {}. Some viewers might complain about this option. '
-                      'Better options might be 0=\'AUTOMATIC\', 1=\'SEMIAUTOMATIC\', or 2=\'MANUAL\'.'
-                      .format(self.roi_generation_algorithm))
-
-        else:
-            raise TypeError('Expected int (0=\'AUTOMATIC\', 1=\'SEMIAUTOMATIC\', 2=\'MANUAL\') '
-                            'or a str (not recommended) for self.roi_generation_algorithm. Got {}.'
-                            .format(type(self.roi_generation_algorithm)))
-
-
-class Hierarchy(IntEnum):
-    """ Utility enum class for OpenCV to detect what the positions in the hierarchy array mean.
-    """
-    NEXT_NODE = 0
-    PREVIOUS_NODE = 1
-    FIRST_CHILD = 2
-    PARENT_NODE = 3
 
 
 class Converter(ABC):
@@ -684,6 +593,7 @@ class RTSSToSegmentConverter(Converter):
         mask = np.swapaxes(mask, 0, -1)
 
         image = sitk.GetImageFromArray(mask.astype(np.uint8))
+        image = sitk.Cast(image, sitk.sitkUInt8)
 
         image.SetOrigin(image_datasets[0].get('ImagePositionPatient'))
 
@@ -838,16 +748,16 @@ class RTSSMetaData:
 
     Note:
         For some attributes, the value must follow the value representation of the DICOM standard. For example, the
-        ``PatientSex`` attribute must be either ``'M'`` or ``'F'``. For more information, we refer to the `DICOM
-        standard part 5 chapter 6.2 <https://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html>`_.
+        ``PatientSex`` attribute must be either ``'M'``, ``'F'`` or ``'O'``. For more information, we refer to the
+        `DICOM standard part 5 chapter 6.2 <https://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html>`_.
 
     Args:
         patient_name (Optional[str]): The patient name.
         patient_id (Optional[str]): The patient ID.
-        patient_birth_date (Optional[str]): The patient birth date.
-        patient_sex (Optional[str]): The patient sex.
-        patient_weight (Optional[str]): The patient weight.
-        patient_size (Optional[str]): The patient size.
+        patient_birth_date (Optional[str]): The patient birth date (format: YYYYMMDD).
+        patient_sex (Optional[str]): The patient sex (valid values: 'F' (female), 'M' (male), 'O' (other)).
+        patient_weight (Optional[str]): The patient weight (unit: kilograms with decimals).
+        patient_size (Optional[str]): The patient size (unit: meters with decimals).
         study_description (Optional[str]): The study description.
         series_description (Optional[str]): The series description.
         series_number (Optional[str]): The series number (default: '99').
@@ -857,7 +767,10 @@ class RTSSMetaData:
         manufacturer_model_name (str): The manufacturer model name (default: 'PyRaDiSe Package').
         institution_name (str): The institution name (default: 'Unknown Institution').
         referring_physician_name (str): The referring physician name (default: 'NA').
-        approval_status (str): The approval status (default: 'UNAPPROVED').
+        approval_status (str): The approval status (valid values: 'APPROVED', 'UNAPPROVED', 'REJECTED',
+         default: 'UNAPPROVED').
+        roi_gen_algorithm (str): The ROI generation algorithm (valid values: 'AUTOMATIC', 'SEMIAUTOMATIC', 'MANUAL',
+         default: 'AUTOMATIC').
 
     """
 
@@ -878,6 +791,7 @@ class RTSSMetaData:
     institution_name: str = 'Unknown Institution'
     referring_physician_name: str = 'NA'
     approval_status: str = 'UNAPPROVED'
+    roi_gen_algorithm: str = 'AUTOMATIC'
 
 
     def __post_init__(self) -> None:
@@ -900,30 +814,419 @@ class RTSSMetaData:
                     isinstance(self.referring_physician_name, str),
                     isinstance(self.approval_status, str) and self.approval_status in ('APPROVED',
                                                                                        'UNAPPROVED',
-                                                                                       'REJECTED'))
+                                                                                       'REJECTED'),
+                    isinstance(self.roi_gen_algorithm, str) and self.roi_gen_algorithm in ('AUTOMATIC',
+                                                                                           'SEMIAUTOMATIC',
+                                                                                           'MANUAL',
+                                                                                           ))
 
         if not all(criteria):
             raise ValueError('The RTSS meta data is not valid! Please check the input values.')
 
 
-class SegmentToRTSSConverter(Converter):
-    """A low-level :class:`Converter` class for converting one or multiple
-    :class:`~pyradise.data.image.SegmentationImage` instances to a DICOM-RTSS :class:`~pydicom.dataset.Dataset`.
-    In contrast to the :class:`SubjectToRTSSConverter` class, this class generates the DICOM-RTSS from a sequence of
-    binary :class:`SimpleITK.Image` instances and the appropriate DICOM image :class:`~pydicom.dataset.Dataset`
-    instances instead of the :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries.
 
-    Warning:
-        The provided ``label_images`` must be binary, otherwise the conversion will fail.
+class RTSSConverterConfiguration(ABC):
+    """An abstract base class to parameterize a segment to DICOM-RTSS converter."""
 
-    Note:
-        Typically, this class is not used directly by the used but via the :class:`SubjectToRTSSConverter` which
-        processes :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries and thus provides a more suitable
-        interface.
+    def __init__(self) -> None:
+        super().__init__()
+        self.general_params: Dict[str, Any] = {}
+        self.image_specific_params: Dict[str, Dict[str, Any]] = {}
 
-    Note:
-        This class can take a :class:`RTSSMetaData` instance as input to specify certain DICOM attributes of the
-        output DICOM-RTSS. If no instance is provided, the default values will be used.
+    @abstractmethod
+    def set_general_params(self, **kwargs: Any) -> None:
+        """Set the general parameters of the converter.
+
+        Args:
+            **kwargs: The parameters of the converter.
+
+        Returns:
+            None
+        """
+        raise NotImplementedError()
+
+    def get_general_params(self,
+                           name: Optional[str] = None
+                           ) -> Optional[Union[Dict[str, Any], Any]]:
+        """Get all or a specific general parameter for the converter.
+
+        Args:
+            name (Optional[str]): The name of the parameter to get. If ``None``, all parameters are returned
+             (default: None).
+
+        Returns:
+            Optional[Union[Dict[str, Any], Any]]: All or the selected parameter.
+        """
+        if name is None:
+            if self.general_params:
+                return self.general_params
+            return None
+
+        return self.general_params.get(name, None)
+
+    @abstractmethod
+    def set_image_params(self,
+                         **kwargs: Any
+                         ) -> None:
+        """Set the parameters of the converter for a specific image using an identifier.
+        instance.
+
+        Args:
+            **kwargs: The parameters of the converter.
+
+        Returns:
+            None
+        """
+        raise NotImplementedError()
+
+    def get_image_params(self,
+                         image_identifier: str,
+                         name: Optional[str] = None
+                         ) -> Optional[Union[Dict[str, Any], Any]]:
+        """Get all parameters for a specific image using its identifier.
+
+        Args:
+            image_identifier (str): The identifier of the image
+            name (Optional[str]): The name of the parameter to get. If ``None``, all parameters are returned (default:
+             None).
+
+        Returns:
+            Optional[Union[Dict[str, Any], Any]]: All or the selected parameter belonging to the specific image
+
+        """
+        if image_identifier not in self.image_specific_params:
+            return None
+
+        specific = self.image_specific_params[image_identifier]
+        if name is None:
+            if specific:
+                return specific
+            return None
+        return specific.get(name, None)
+
+
+class RTSSConverter2DConfiguration(RTSSConverterConfiguration):
+    """A configuration class to parameterize a :class:`SegmentToRTSSConverter2D` instance.
+
+    The configuration can be used to set the general and image specific conversion parameters of the converter.
+    The general parameters are applied to all images except if image specific parameters are provided.
+    used for the image.
+
+    The parameters define the following:
+
+    * ``smoothing``: Indicates if Gaussian smoothing is applied.
+
+    * ``smoothing_sigma``: The variance of the discrete Gaussian smoothing kernel.
+
+    * ``smoothing_kernel_size``: The size of the discrete Gaussian smoothing kernel.
+
+    Args:
+        smoothing (bool): Whether to smooth the contours or not (default: True).
+        smoothing_sigma (float): The variance of the Gaussian smoothing (default: 1.0).
+        smoothing_kernel_size (int): The size of the Gaussian smoothing kernel (default: 8).
+    """
+
+    def __init__(self,
+                 smoothing: bool = True,
+                 smoothing_sigma: float = 1.,
+                 smoothing_kernel_size: int = 8,
+                 ) -> None:
+        super().__init__()
+
+        self._validate_entries(smoothing, smoothing_sigma, smoothing_kernel_size)
+
+        self.set_general_params(smoothing, smoothing_sigma, smoothing_kernel_size)
+
+
+    @staticmethod
+    def _validate_entries(smoothing: bool,
+                          smoothing_sigma: float,
+                          smoothing_kernel_size: int,
+                          ) -> None:
+        """Validate the entries of the configuration.
+
+        Args:
+            smoothing (bool): Whether to smooth the contours or not.
+            smoothing_sigma (float): The variance of the Gaussian smoothing.
+            smoothing_kernel_size (int): The size of the Gaussian smoothing kernel.
+
+        Raises:
+            ValueError: If the entries are not valid.
+
+        Returns:
+            None
+        """
+        criteria = (isinstance(smoothing, bool),
+                    isinstance(smoothing_sigma, float) and smoothing_sigma > 0,
+                    isinstance(smoothing_kernel_size, int) and smoothing_kernel_size > 0)
+
+        if not all(criteria):
+            raise ValueError('The RTSS converter configuration is not valid! Please check the input values.')
+
+    def set_general_params(self,
+                           smoothing: bool,
+                           smoothing_sigma: float,
+                           smoothing_kernel_size: int,
+                           ) -> None:
+        """Set the general parameters for all images except those that have specific parameters.
+
+        Args:
+            smoothing (bool): Whether to apply Gaussian smoothing.
+            smoothing_sigma (float): The sigma of the Gaussian filter.
+            smoothing_kernel_size (int): The kernel size of the Gaussian filter.
+
+        Returns:
+            None
+        """
+        self._validate_entries(smoothing, smoothing_sigma, smoothing_kernel_size)
+
+        self.general_params['smoothing'] = smoothing
+        self.general_params['smoothing_sigma'] = smoothing_sigma
+        self.general_params['smoothing_kernel_size'] = smoothing_kernel_size
+
+    def set_image_params(self,
+                         image_identifier: str,
+                         smoothing: bool,
+                         smoothing_sigma: float,
+                         smoothing_kernel_size: int
+                         ) -> None:
+        """Set the parameters of the converter for a specific image using the :class:`~pyradise.data.organ.Organ`
+        instance.
+
+        Args:
+            image_identifier (str): The image to set the parameter(s) for.
+            smoothing (bool): Whether to apply Gaussian smoothing to the image.
+            smoothing_sigma (float): The sigma value for the Gaussian smoothing kernel.
+            smoothing_kernel_size (int): The kernel size for the Gaussian smoothing kernel.
+
+        Returns:
+            None
+        """
+        self._validate_entries(smoothing, smoothing_sigma, smoothing_kernel_size)
+
+        self.image_specific_params[image_identifier] = {'smoothing': smoothing,
+                                                        'smoothing_sigma': smoothing_sigma,
+                                                        'smoothing_kernel_size': smoothing_kernel_size}
+
+
+class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
+    """A configuration class to parameterize a :class:`SegmentToRTSSConverter3D` instance.
+
+    The configuration can be used to set the general and image specific conversion parameters of the converter.
+    The general parameters are applied to all images except if image specific parameters are provided.
+    used for the image.
+
+    The parameters define the following:
+
+    * ``image_smoothing``: Whether to apply Gaussian smoothing to the image before 3D model construction.
+
+    * ``image_smoothing_sigma``: The standard deviation value for the Gaussian smoothing kernel.
+
+    * ``image_smoothing_radius``: The radius of the Gaussian smoothing kernel.
+
+    * ``image_smoothing_threshold``: The threshold value for the Gaussian smoothing. All segmentation masks that
+      have less foreground voxels than this threshold are not smoothed to avoid deletion.
+
+    * ``decimate_reduction``: The reduction factor for the decimation of the 3D model. This factor defines how much
+      vertices are removed from the model during the decimation process (0 = none, 1: all).
+
+    * ``decimate_threshold``: The threshold value for the decimation of the 3D model. All models that arise from a
+      segmentation mask with less than the threshold number of foreground voxels are not decimated to avoid
+      deletion.
+
+    * ``model_smoothing_iterations``: The number of iterations for the smoothing of the 3D model (Sinc-Filter).
+      Typically, 15 to 20 iterations are sufficient for smoothing.
+
+    * ``model_smoothing_pass_band``: The pass band for the smoothing of the 3D model (Sinc-Filter). The closer this
+      value is to zero (e.g., 0.001) the stronger the smoothing is. The higher the value (e.g., 0.4) the less the
+      smoothing is.
+
+
+    Args:
+        image_smoothing (bool): Whether to smooth the image before 3D model construction or not (default: True).
+        image_smoothing_sigma (float): The standard deviation of the Gaussian smoothing before 3D model construction
+         (default: 2.).
+        image_smoothing_radius (float): The radius of the Gaussian smoothing before 3D model construction (default: 1.).
+        image_smoothing_threshold (float): The minimum number of foreground voxels that must be contained in the
+         segmentation mask to trigger Gaussian smoothing (default: 500).
+        decimate_reduction (float): The reduction factor for the 3D decimation. The decimation factor is valid
+         between 0 and 1 and the lower it is the more smoothing is applied (default: 0.2).
+        decimate_threshold (float): The minimum number of foreground voxels that must be contained in the
+         segmentation mask to trigger 3D decimation (default: 500).
+        model_smoothing_iterations (int): The number of 3D smoothing steps (typically 15 - 20 steps) (default: 15).
+        model_smoothing_pass_band (bool): The strength of the 3D smoothing (0.001 - 0.1 = strong smoothing,
+         0.5 - 1 = almost no smoothing) (default: 0.002).
+    """
+
+    def __init__(self,
+                 image_smoothing: bool = True,
+                 image_smoothing_sigma: float = 2.,
+                 image_smoothing_radius: float = 1.,
+                 image_smoothing_threshold: float = 500.,
+                 decimate_reduction: float = 0.2,
+                 decimate_threshold: float = 500.,
+                 model_smoothing_iterations: int = 15,
+                 model_smoothing_pass_band: float = 0.002
+                 ) -> None:
+        super().__init__()
+
+        self.set_general_params(image_smoothing,
+                                image_smoothing_sigma,
+                                image_smoothing_radius,
+                                image_smoothing_threshold,
+                                decimate_reduction,
+                                decimate_threshold,
+                                model_smoothing_iterations,
+                                model_smoothing_pass_band)
+
+    @staticmethod
+    def _validate_entries(image_smoothing: bool,
+                          image_smoothing_sigma: float,
+                          image_smoothing_radius: float,
+                          image_smoothing_threshold: float,
+                          decimate_reduction: float,
+                          decimate_threshold: float,
+                          model_smoothing_iterations: int,
+                          model_smoothing_pass_band: float
+                          ) -> None:
+        """Validate the entries of the configuration.
+
+        Args:
+            image_smoothing (bool): Whether to smooth the image before 3D model construction or not.
+            image_smoothing_sigma (float): The standard deviation of the Gaussian smoothing before 3D model
+             construction.
+            image_smoothing_radius (float): The radius of the Gaussian smoothing before 3D model construction.
+            image_smoothing_threshold (float): The minimum number of foreground voxels that must be contained in the
+             segmentation mask to trigger Gaussian smoothing.
+            decimate_reduction (float): The reduction factor for the 3D decimation. The decimation factor is valid
+             between 0 and 1 and the lower it is the more smoothing is applied.
+            decimate_threshold (float): The minimum number of foreground voxels that must be contained in the
+             segmentation mask to trigger 3D decimation.
+            model_smoothing_iterations (int): The number of 3D smoothing steps (typically 15 - 20 steps).
+            model_smoothing_pass_band (float): The strength of the 3D smoothing (0.001 - 0.1 = strong smoothing,
+             0.5 - 1 = almost no smoothing).
+
+        Raises:
+            ValueError: If the entries are not valid.
+
+        Returns:
+            None
+        """
+        criteria = (isinstance(image_smoothing, bool),
+                    isinstance(image_smoothing_sigma, float) and image_smoothing_sigma > 0,
+                    isinstance(image_smoothing_radius, float) and image_smoothing_radius > 0,
+                    isinstance(image_smoothing_threshold, (float, int)) and image_smoothing_threshold > 0,
+                    isinstance(decimate_reduction, float) and 0 < decimate_reduction < 0.99,
+                    isinstance(decimate_threshold, (float, int)) and decimate_threshold >= 0,
+                    isinstance(model_smoothing_iterations, int) and model_smoothing_iterations > 0,
+                    isinstance(model_smoothing_pass_band, float))
+
+        if not all(criteria):
+            raise ValueError('The RTSS converter configuration is not valid! Please check the input values.')
+
+    def set_general_params(self,
+                           image_smoothing: bool,
+                           image_smoothing_sigma: float,
+                           image_smoothing_radius: float,
+                           image_smoothing_threshold: float,
+                           decimate_reduction: float,
+                           decimate_threshold: float,
+                           model_smoothing_iterations: int,
+                           model_smoothing_pass_band: float
+                           ) -> None:
+        """Set the general parameters for all images except those that have specific parameters.
+
+        Args:
+            image_smoothing (bool): Whether to smooth the image before 3D model construction or not.
+            image_smoothing_sigma (float): The standard deviation of the Gaussian smoothing before 3D model
+             construction.
+            image_smoothing_radius (float): The radius of the Gaussian smoothing before 3D model construction.
+            image_smoothing_threshold (float): The minimum number of foreground voxels that must be contained in the
+             segmentation mask to trigger Gaussian smoothing.
+            decimate_reduction (float): The reduction factor for the 3D decimation. The decimation factor is valid
+             between 0 and 1 and the lower it is the more smoothing is applied.
+            decimate_threshold (float): The minimum number of foreground voxels that must be contained in the
+             segmentation mask to trigger 3D decimation.
+            model_smoothing_iterations (int): The number of 3D smoothing steps (typically 15 - 20 steps).
+            model_smoothing_pass_band (bool): The strength of the 3D smoothing (0.001 - 0.1 = strong smoothing,
+             0.5 - 1 = almost no smoothing).
+
+        Returns:
+            None
+        """
+        self._validate_entries(image_smoothing,
+                               image_smoothing_sigma,
+                               image_smoothing_radius,
+                               image_smoothing_threshold,
+                               decimate_reduction,
+                               decimate_threshold,
+                               model_smoothing_iterations,
+                               model_smoothing_pass_band)
+
+        self.general_params['image_smoothing'] = image_smoothing
+        self.general_params['image_smoothing_sigma'] = image_smoothing_sigma
+        self.general_params['image_smoothing_radius'] = image_smoothing_radius
+        self.general_params['image_smoothing_threshold'] = image_smoothing_threshold
+        self.general_params['decimate_reduction'] = decimate_reduction
+        self.general_params['decimate_threshold'] = decimate_threshold
+        self.general_params['model_smoothing_iterations'] = model_smoothing_iterations
+        self.general_params['model_smoothing_pass_band'] = model_smoothing_pass_band
+
+    def set_image_params(self,
+                         image_identifier: str,
+                         image_smoothing: bool,
+                         image_smoothing_sigma: float,
+                         image_smoothing_radius: float,
+                         image_smoothing_threshold: float,
+                         decimate_reduction: float,
+                         decimate_threshold: float,
+                         model_smoothing_iterations: int,
+                         model_smoothing_pass_band: float
+                         ) -> None:
+        """Set the parameters of the converter for a specific image using an identifier.
+
+        Args:
+            image_identifier (str): The identifier that identifies the segmentation mask for which the parameters are
+             set.
+            image_smoothing (bool): Whether to smooth the image before 3D model construction or not.
+            image_smoothing_sigma (float): The variance of the Gaussian smoothing before 3D model construction.
+            image_smoothing_radius (float): The radius of the Gaussian smoothing before 3D model construction.
+            image_smoothing_threshold (float): The minimum number of foreground voxels that must be contained in the
+             segmentation mask to trigger Gaussian smoothing.
+            decimate_reduction (float): The reduction factor for the 3D decimation. The decimation factor is valid
+             between 0 and 1 and the lower it is the more smoothing is applied.
+            decimate_threshold (float): The minimum number of foreground voxels that must be contained in the
+             segmentation mask to trigger 3D decimation.
+            model_smoothing_iterations (int): The number of 3D smoothing steps (typically 15 - 20 steps).
+            model_smoothing_pass_band (bool): The strength of the 3D smoothing (0.001 - 0.1 = strong smoothing,
+             0.5 - 1 = almost no smoothing).
+
+        Returns:
+            None
+        """
+
+        self._validate_entries(image_smoothing,
+                               image_smoothing_sigma,
+                               image_smoothing_radius,
+                               image_smoothing_threshold,
+                               decimate_reduction,
+                               decimate_threshold,
+                               model_smoothing_iterations,
+                               model_smoothing_pass_band)
+
+        self.image_specific_params[image_identifier] = {'image_smoothing': image_smoothing,
+                                                        'image_smoothing_sigma': image_smoothing_sigma,
+                                                        'image_smoothing_radius': image_smoothing_radius,
+                                                        'image_smoothing_threshold': image_smoothing_threshold,
+                                                        'decimate_reduction': decimate_reduction,
+                                                        'decimate_threshold': decimate_threshold,
+                                                        'model_smoothing_iterations': model_smoothing_iterations,
+                                                        'model_smoothing_pass_band': model_smoothing_pass_band}
+
+
+class SegmentToRTSSConverterBase(Converter):
+    """A base class for low-level segmentation mask to DICOM-RTSS converters. This class is not intended to be used
+    directly but rather as a base class for more specific conversion algorithm implementations.
 
     Args:
         label_images (Union[Tuple[str, ...], Tuple[sitk.Image, ...]]): The path to the images or a sequence of
@@ -932,36 +1235,29 @@ class SegmentToRTSSConverter(Converter):
          :class:`~pydicom.dataset.Dataset` instances.
         roi_names (Union[Tuple[str, ...], Dict[int, str], None]): The label names which will be assigned to the ROIs.
         colors (Optional[Tuple[Tuple[int, int, int], ...]]): The colors which will be assigned to the ROIs.
-        smoothing (Union[bool, Tuple[bool, ...]]): Whether to smooth the contours or not (default: True).
-        smoothing_sigma (Union[float, Tuple[float, ...]]): The sigma value for the smoothing (default: 2.).
-        smoothing_kernel_size (Union[int, Tuple[int, ...]]): The kernel size for the Gaussian smoothing (default: 32).
         meta_data (RTSSMetaData): The configuration to specify certain DICOM attributes (default: RTSSMetaData()).
     """
+
 
     def __init__(self,
                  label_images: Union[Tuple[str, ...], Tuple[sitk.Image, ...]],
                  ref_image_datasets: Union[Tuple[str, ...], Tuple[Dataset, ...]],
                  roi_names: Union[Tuple[str, ...], Dict[int, str], None],
                  colors: Optional[Tuple[Tuple[int, int, int], ...]],
-                 smoothing: Union[bool, Tuple[bool, ...]] = True,
-                 smoothing_sigma: Union[float, Tuple[float, ...]] = 2.0,
-                 smoothing_kernel_size: Union[int, Tuple[int, ...]] = 32,
-                 meta_data: RTSSMetaData = RTSSMetaData()
+                 config: RTSSConverterConfiguration,
+                 meta_data: RTSSMetaData = RTSSMetaData(),
                  ) -> None:
-        # pylint: disable=consider-using-generator
         super().__init__()
 
-        if isinstance(label_images[0], str):
-            self.label_images: Tuple[sitk.Image, ...] = tuple([sitk.ReadImage(path, sitk.sitkUInt8)
-                                                               for path in label_images])
-        else:
-            self.label_images: Tuple[sitk.Image, ...] = label_images
+        # get or load the label images
+        self.label_images: Tuple[sitk.Image, ...] = label_images if isinstance(label_images[0], sitk.Image) \
+            else tuple([sitk.ReadImage(path, sitk.sitkUInt8) for path in label_images])
 
-        if isinstance(ref_image_datasets[0], str):
-            self.image_datasets: Tuple[Dataset, ...] = load_datasets(ref_image_datasets)
-        else:
-            self.image_datasets: Tuple[Dataset, ...] = ref_image_datasets
+        # get or load the reference image datasets
+        self.image_datasets: Tuple[Dataset, ...] = ref_image_datasets if isinstance(ref_image_datasets[0], Dataset) \
+            else load_datasets(ref_image_datasets)
 
+        # get the ROI names
         if isinstance(roi_names, dict):
             sorted_keys = sorted(roi_names.keys())
             self.roi_names = tuple([str(roi_names.get(key)) for key in sorted_keys])
@@ -970,44 +1266,24 @@ class SegmentToRTSSConverter(Converter):
         else:
             self.roi_names = roi_names
 
+        # get the colors
         if not colors:
             self.colors = COLOR_PALETTE
         else:
             self.colors = colors
 
-        assert len(self.roi_names) >= len(self.label_images), 'The number of ROI names must be equal or larger ' \
-                                                              'than the number of label images!'
-        assert len(self.colors) >= len(self.label_images), 'The number of colors must be equal or larger ' \
-                                                           'than the number of label images!'
+        # check if the correct number of ROI names and colors are provided
+        if len(self.roi_names) < len(self.label_images):
+            raise ValueError('The number of ROI names must be equal or larger than the number of label images!')
 
-        if isinstance(smoothing, bool):
-            self.smoothing = [smoothing] * len(self.label_images)
-        else:
-            assert len(smoothing) == len(self.label_images), 'The number of smoothing indicators must be equal ' \
-                                                             'to the number of label images!'
-            self.smoothing = smoothing
+        if len(self.colors) < len(self.label_images):
+            raise ValueError('The number of colors must be equal or larger than the number of label images!')
 
-        if isinstance(smoothing_sigma, float) or isinstance(smoothing_sigma, int):
-            self.smoothing_sigma = [float(smoothing_sigma)] * len(self.label_images)
-        else:
-            assert len(smoothing_sigma) == len(self.label_images), 'The number of smoothing sigmas must be equal ' \
-                                                                   'to the number of label images!'
-            self.smoothing_sigma = smoothing_sigma
-
-        assert all([sigma > 0 for sigma in self.smoothing_sigma]), 'All smoothing sigma must be larger than 0!'
-
-        if isinstance(smoothing_kernel_size, int):
-            self.smoothing_kernel_size = [smoothing_kernel_size] * len(self.label_images)
-        else:
-            assert len(smoothing_kernel_size) == len(self.label_images), 'The number of smoothing kernel sizes must ' \
-                                                                         'be equal to the number of label images!'
-            self.smoothing_kernel_size = smoothing_kernel_size
-
-        assert all([kernel > 0 for kernel in self.smoothing_kernel_size]), 'All smoothing kernel must be larger than 0!'
-
+        # get the meta data
         self.meta_data = meta_data
 
-        self._validate_label_images()
+        # get the configuration
+        self.config = config
 
     def _validate_label_images(self) -> None:
         """Validate the label images.
@@ -1024,15 +1300,8 @@ class SegmentToRTSSConverter(Converter):
                 raise ValueError('The label images must have an integer pixel type!')
 
 
-    def _generate_basic_rtss(self,
-                             ref_image_datasets: Tuple[Dataset, ...],
-                             file_name: str = 'rt_struct'
-                             ) -> FileDataset:
+    def _generate_basic_rtss(self) -> FileDataset:
         """Generate the basic RTSS skeleton.
-
-        Args:
-            ref_image_datasets (Tuple[Dataset, ...]): The referenced image datasets.
-            file_name (str): The file name.
 
         Returns:
             FileDataset: The basic RT Structure Set.
@@ -1047,7 +1316,7 @@ class SegmentToRTSSConverter(Converter):
         file_meta.ImplementationClassUID = PYDICOM_IMPLEMENTATION_UID
 
         # create the dataset
-        rtss = FileDataset(file_name, {}, file_meta=file_meta, preamble=b"\0" * 128)
+        rtss = FileDataset('rt_struct', {}, file_meta=file_meta, preamble=b"\0" * 128)
 
         # add the basic information
         now = datetime.now()
@@ -1072,7 +1341,7 @@ class SegmentToRTSSConverter(Converter):
         rtss.SOPInstanceUID = rtss.file_meta.MediaStorageSOPInstanceUID
 
         # add study and series information
-        reference_dataset = ref_image_datasets[0]
+        reference_dataset = self.image_datasets[0]
         rtss.StudyDate = reference_dataset.StudyDate
         rtss.SeriesDate = getattr(reference_dataset, 'SeriesDate', '')
         rtss.StudyTime = reference_dataset.StudyTime
@@ -1133,7 +1402,7 @@ class SegmentToRTSSConverter(Converter):
 
         # construct the ContourImageSequence
         contour_image_sequence = Sequence()
-        for image_dataset in ref_image_datasets:
+        for image_dataset in self.image_datasets:
             contour_image_entry = Dataset()
             contour_image_entry.ReferencedSOPClassUID = image_dataset.file_meta.MediaStorageSOPClassUID
             contour_image_entry.ReferencedSOPInstanceUID = image_dataset.file_meta.MediaStorageSOPInstanceUID
@@ -1168,15 +1437,127 @@ class SegmentToRTSSConverter(Converter):
 
         return rtss
 
+
     @staticmethod
-    def _create_roi_contour(roi_data: ROIData,
+    def _append_rt_roi_observation(roi_number: int,
+                                   rtss: Dataset
+                                   ) -> None:
+        """Create a RTROIObservationsSequence entry for the given ROI data.
+
+        Args:
+            roi_number (int): The ROI data to be used for creating the RTROIObservationsSequence entry.
+            rtss (Dataset): The RTSS to be used for creating the RTROIObservationsSequence entry.
+
+        Returns:
+            None
+        """
+        # generate the RTROIObservationsSequence entry
+        rt_roi_observation = Dataset()
+        rt_roi_observation.ObservationNumber = roi_number
+        rt_roi_observation.ReferencedROINumber = roi_number
+        rt_roi_observation.ROIObservationDescription = 'Type:Soft,Range:*/*,Fill:0,Opacity:0.0,Thickness:1,' \
+                                                       'LineThickness:2,read-only:false'
+        rt_roi_observation.private_creators = 'University of Bern, Switzerland'
+        rt_roi_observation.RTROIInterpretedType = ''
+        rt_roi_observation.ROIInterpreter = ''
+
+        # add the RTROIObservationsSequence entry to the RTSS
+        rtss.RTROIObservationsSequence.append(rt_roi_observation)
+
+    def _append_structure_set_roi_sequence_entry(self,
+                                                 roi_name: str,
+                                                 roi_number: int,
+                                                 rtss: Dataset
+                                                 ) -> None:
+        """Append a StructureSetROISequence entry to the given RTSS.
+
+        Args:
+            roi_name (str): The name of the ROI.
+            roi_number (int): The number of the ROI.
+            rtss (Dataset): The RTSS to be used for creating the StructureSetROISequence entry.
+
+        Returns:
+            None
+        """
+        # generate the StructureSetROISequence entry
+        structure_set_roi = Dataset()
+        structure_set_roi.ROINumber = roi_number
+        structure_set_roi.ReferencedFrameOfReferenceUID = self.image_datasets[0].get('FrameOfReferenceUID')
+        structure_set_roi.ROIName = roi_name
+        structure_set_roi.ROIDescription = ''
+        structure_set_roi.ROIGenerationAlgorithm = self.meta_data.roi_gen_algorithm
+
+        # add the StructureSetROISequence entry to the RTSS
+        rtss.StructureSetROISequence.append(structure_set_roi)
+
+
+    @abstractmethod
+    def convert(self) -> Any:
+        """Abstract method for starting the conversion procedure.
+
+        Returns:
+            Any: The converted data.
+        """
+        raise NotImplementedError()
+
+
+class SegmentToRTSSConverter2D(SegmentToRTSSConverterBase):
+    """A low-level 2D-based :class:`Converter` class for converting one or multiple
+    :class:`~pyradise.data.image.SegmentationImage` instances to a DICOM-RTSS :class:`~pydicom.dataset.Dataset`.
+    In contrast to the :class:`SegmentToRTSSConverter3D` class, this class generates the DICOM-RTSS contours using a
+    two-dimensional approach. This reduces the computation time and leads to a more robust conversion procedure.
+    However, this class has limitations such as the inability to smooth contours in all three dimensions. Furthermore,
+    the resulting contours may appear to be artificially generated and not as smooth as the ones generated by the
+    :class:`SegmentToRTSSConverter3D` class.
+
+    Warning:
+        The provided ``label_images`` must be binary, otherwise the conversion will fail.
+
+    Note:
+        Typically, this class is not used directly by the used but via the :class:`SubjectToRTSSConverter` which
+        processes :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries and thus provides a more suitable
+        interface.
+
+    Note:
+        This class can take a :class:`RTSSMetaData` instance as input to specify certain DICOM attributes of the
+        output DICOM-RTSS. If no instance is provided, the default values will be used.
+
+    Args:
+        label_images (Union[Tuple[str, ...], Tuple[sitk.Image, ...]]): The path to the images or a sequence of
+         :class:`SimpleITK.Image` instances.
+        ref_image_datasets (Union[Tuple[str, ...], Tuple[Dataset, ...]]): The referenced DICOM image
+         :class:`~pydicom.dataset.Dataset` instances.
+        roi_names (Union[Tuple[str, ...], Dict[int, str], None]): The label names which will be assigned to the ROIs.
+        colors (Optional[Tuple[Tuple[int, int, int], ...]]): The colors which will be assigned to the ROIs.
+        meta_data (RTSSMetaData): The configuration to specify certain DICOM attributes (default: RTSSMetaData()).
+        config (RTSSConverter2DConfiguration): The configuration to specify certain conversion parameters (default:
+         RTSSConverter2DConfiguration()).
+    """
+
+    def __init__(self,
+                 label_images: Union[Tuple[str, ...], Tuple[sitk.Image, ...]],
+                 ref_image_datasets: Union[Tuple[str, ...], Tuple[Dataset, ...]],
+                 roi_names: Union[Tuple[str, ...], Dict[int, str], None],
+                 colors: Optional[Tuple[Tuple[int, int, int], ...]],
+                 meta_data: RTSSMetaData = RTSSMetaData(),
+                 config: RTSSConverter2DConfiguration = RTSSConverter2DConfiguration()
+                 ) -> None:
+        super().__init__(label_images, ref_image_datasets, roi_names, colors, config, meta_data)
+
+        self.config = config
+        self._validate_label_images()
+
+    @staticmethod
+    def _append_roi_contour(mask: np.ndarray,
                             image_datasets: Tuple[Dataset, ...],
-                            rtss: Dataset
+                            rtss: Dataset,
+                            roi_color: Tuple[int, int, int],
+                            roi_number: int,
                             ) -> None:
         """Create a ROIContourSequence entry for the given ROI data.
 
         Args:
-            roi_data (ROIData): The ROI data to be used for creating the ROIContourSequence entry.
+            mask (np.ndarray): The ROI mask to generate the contours from.
             image_datasets (Tuple[Dataset, ...]): The referenced image datasets.
             rtss (Dataset): The RTSS dataset.
 
@@ -1184,22 +1565,22 @@ class SegmentToRTSSConverter(Converter):
             None
         """
         roi_contour = Dataset()
-        roi_contour.ROIDisplayColor = roi_data.color
-        roi_contour.ContourSequence = SegmentToRTSSConverter._create_contour_sequence(roi_data, image_datasets)
-        roi_contour.ReferencedROINumber = str(roi_data.number)
+        roi_contour.ROIDisplayColor = roi_color
+        roi_contour.ContourSequence = SegmentToRTSSConverter2D._create_contour_sequence(mask, image_datasets)
+        roi_contour.ReferencedROINumber = str(roi_number)
 
         # add the ROIContourSequence entry to the RTSS
         rtss.ROIContourSequence.append(roi_contour)
 
     @staticmethod
-    def _create_contour_sequence(roi_data: ROIData,
+    def _create_contour_sequence(mask: np.ndarray,
                                  image_datasets: Tuple[Dataset, ...]
                                  ) -> Sequence:
         """Create a ContourSequence for the given ROI data by iterating through each slice of the mask.
         For each connected segment within a slice, a ContourSequence entry is created.
 
         Args:
-            roi_data (ROIData): The ROI data to be used for creating the ContourSequence.
+            mask (np.ndarray): The ROI mask for generating the contours.
             image_datasets (Tuple[Dataset, ...]): The referenced image datasets.
 
         Returns:
@@ -1207,48 +1588,44 @@ class SegmentToRTSSConverter(Converter):
         """
         contour_sequence = Sequence()
 
-        contours_coordinates = SegmentToRTSSConverter._get_contours_coordinates(roi_data, image_datasets)
+        contours_coordinates = SegmentToRTSSConverter2D._get_contours_coordinates(mask, image_datasets)
 
         for series_slice, slice_contours in zip(image_datasets, contours_coordinates):
             for contour_data in slice_contours:
                 if len(contour_data) <= 3:
                     continue
-                contour_seq_entry = SegmentToRTSSConverter._create_contour_sequence_entry(series_slice, contour_data)
+                contour_seq_entry = SegmentToRTSSConverter2D._create_contour_sequence_entry(series_slice, contour_data)
                 contour_sequence.append(contour_seq_entry)
 
         return contour_sequence
 
     @staticmethod
-    def _get_contours_coordinates(roi_data: ROIData,
+    def _get_contours_coordinates(mask: np.ndarray,
                                   image_datasets: Tuple[Dataset, ...]
                                   ) -> List[List[List[float]]]:
         """Get the contour coordinates for each slice of the mask.
 
         Args:
-            roi_data (ROIData): The ROI data to be used for creating the contour coordinates.
+            mask (np.ndarray): The ROI mask for generating the contours.
             image_datasets (Tuple[Dataset, ...]): The referenced image datasets.
 
         Returns:
             List[List[List[float]]]: The contour coordinates for each slice of the mask.
 
         """
-        transform_matrix = SegmentToRTSSConverter._get_pixel_to_patient_transformation_matrix(image_datasets)
+        transform_matrix = SegmentToRTSSConverter2D._get_pixel_to_patient_transformation_matrix(image_datasets)
 
         series_contours = []
         for i in range(len(image_datasets)):
-            mask_slice = roi_data.mask[i, :, :]
+            mask_slice = mask[i, :, :]
 
             # Do not add ROI's for blank slices
             if np.sum(mask_slice) == 0:
                 series_contours.append([])
                 continue
 
-            # Create pinhole mask if specified
-            if roi_data.use_pin_hole:
-                mask_slice = SegmentToRTSSConverter._create_pin_hole_mask(mask_slice, roi_data.approximate_contours)
-
             # Get contours from mask
-            contours, _ = SegmentToRTSSConverter._find_mask_contours(mask_slice, roi_data.approximate_contours)
+            contours, _ = SegmentToRTSSConverter2D._find_mask_contours(mask_slice)
 
             if not contours:
                 raise Exception('Unable to find contour in non empty mask, please check your mask formatting!')
@@ -1259,8 +1636,8 @@ class SegmentToRTSSConverter(Converter):
                 # Add z index
                 contour = np.concatenate((np.array(contour), np.full((len(contour), 1), i)), axis=1)
 
-                transformed_contour = SegmentToRTSSConverter._apply_transformation_to_3d_points(contour,
-                                                                                                transform_matrix)
+                transformed_contour = SegmentToRTSSConverter2D._apply_transformation_to_3d_points(contour,
+                                                                                                  transform_matrix)
                 dicom_formatted_contour = np.ravel(transformed_contour).tolist()
                 formatted_contours.append(dicom_formatted_contour)
 
@@ -1299,156 +1676,27 @@ class SegmentToRTSSConverter(Converter):
         return mat
 
     @staticmethod
-    def _create_pin_hole_mask(mask: np.ndarray,
-                              approximate_contours: bool):
-        """Create masks with pinholes added to contour regions with holes. This is done so that a given region can
-        be represented by a single contour.
-
-        Args:
-            mask (np.ndarray): The mask to be used for creating the pinhole mask.
-            approximate_contours (bool): Whether to approximate the contours.
-
-        Returns:
-            np.ndarray: The pinhole mask.
-        """
-        contours, hierarchy = SegmentToRTSSConverter._find_mask_contours(mask, approximate_contours)
-        pin_hole_mask = mask.copy()
-
-        # Iterate through the hierarchy, for child nodes, draw a line upwards from the first point
-        for i, array in enumerate(hierarchy):
-            parent_contour_index = array[Hierarchy.PARENT_NODE]
-            if parent_contour_index == -1:
-                continue  # Contour is not a child
-
-            child_contour = contours[i]
-
-            line_start = tuple(child_contour[0])
-
-            pin_hole_mask = SegmentToRTSSConverter._draw_line_upwards_from_point(pin_hole_mask, line_start,
-                                                                                 fill_value=0)
-        return pin_hole_mask
-
-    # pylint: disable=too-many-locals
-    # noinspection DuplicatedCode
-    @staticmethod
-    def _smoothen_contours(contours: Tuple[np.ndarray]) -> Tuple[np.ndarray]:
-        """Smoothen the contours by applying a heuristic filter to the contours.
-
-        Args:
-            contours (Tuple[np.ndarray]): The contours to be smoothened.
-
-        Returns:
-            Tuple[np.ndarray]: The smoothened contours.
-        """
-        smoothened = []
-        for contour in contours:
-            x, y = contour.T
-            x = x.tolist()[0]
-            y = y.tolist()[0]
-
-            num_points = len(x)
-
-            if len(x) >= 1:
-                while x[0] == x[-1] or y[0] == y[-1]:
-                    if len(x) <= 1:
-                        break
-                    x = x[:-1]
-                    y = y[:-1]
-
-            if len(x) < 6:
-                res_array = [[[int(i[0]), int(i[1])]] for i in zip(x, y)]
-                smoothened.append(np.asarray(res_array, dtype=np.int32))
-                continue
-
-            # preprocess the points if there are sufficient to facilitate smoothing
-            if len(x) > 10:
-                x_pp = x[::2]
-                y_pp = y[::2]
-
-                # remove coordinate duplicates
-                unique_coords = []
-                for x_i, y_i in zip(x_pp, y_pp):
-                    entry = [x_i, y_i]
-                    if entry not in unique_coords:
-                        unique_coords.append(entry)
-
-                x_pp = [entry[0] for entry in unique_coords]
-                y_pp = [entry[1] for entry in unique_coords]
-            else:
-                x_pp = x
-                y_pp = y
-
-            # perform the smoothing using a b-spline approach
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                try:
-                    # noinspection PyTupleAssignmentBalance
-                    tck, u = splprep([x_pp, y_pp], u=None, s=1.0, per=1)
-                    u_new = np.linspace(np.min(u), np.max(u), int(1.25 * num_points))
-                    x_new, y_new = splev(u_new, tck, der=0)
-
-                except ValueError:
-                    # noinspection PyTupleAssignmentBalance
-                    tck, u = splprep([x, y], u=None, s=1.0, per=1)
-                    u_new = np.linspace(np.min(u), np.max(u), int(1.25 * num_points))
-                    x_new, y_new = splev(u_new, tck, der=0)
-
-            res_array = [[[float(i[0]), float(i[1])]] for i in zip(x_new, y_new)]
-            smoothened.append(np.asarray(res_array, dtype=float))
-
-        return tuple(smoothened)
-
-    @staticmethod
     def _find_mask_contours(mask: np.ndarray,
-                            approximate_contours: bool
+                            approximate_contours: bool = True
                             ) -> Tuple[List[np.ndarray], List]:
         """Find the contours in the provided mask.
 
         Args:
             mask (np.ndarray): The mask to be used for finding the contours.
-            approximate_contours (bool): Whether to approximate the contours.
+            approximate_contours (bool): Whether to approximate the contours (default: True).
 
         Returns:
             Tuple[List[np.ndarray], List]: The contours and the hierarchy.
         """
-        approximation_method = cv.CHAIN_APPROX_SIMPLE if approximate_contours else cv.CHAIN_APPROX_NONE
-        contours, hierarchy = cv.findContours(mask.astype(np.uint8), cv.RETR_TREE, approximation_method)
-        contours = SegmentToRTSSConverter._smoothen_contours(contours)
+        method = cv.CHAIN_APPROX_SIMPLE if approximate_contours else cv.CHAIN_APPROX_NONE
+        contours, hierarchy = cv.findContours(mask.astype(np.uint8), cv.RETR_TREE, method)
         contours = list(contours)
-        # Format extra array out of data
+
         for i, contour in enumerate(contours):
             contours[i] = [[pos[0][0], pos[0][1]] for pos in contour]
-        hierarchy = hierarchy[0]  # Format extra array out of data
+        hierarchy = hierarchy[0]
 
         return contours, hierarchy
-
-    @staticmethod
-    def _draw_line_upwards_from_point(mask: np.ndarray,
-                                      start: Tuple[int, ...],
-                                      fill_value: int
-                                      ) -> np.ndarray:
-        """Draw a line upwards from the given point in the mask.
-
-        Args:
-            mask (np.ndarray): The mask to be used for drawing the line.
-            start (Tuple[int, ...]): The start point of the line.
-            fill_value (int): The value to be used for filling the line.
-
-        Returns:
-            np.ndarray: The mask with the line drawn.
-        """
-        line_width = 2
-        end = (start[0], start[1] - 1)
-        mask = mask.astype(np.uint8)  # type that OpenCV expects
-
-        # draw one point at a time until we hit a point that already has the desired value
-        while mask[end] != fill_value:
-            cv.line(mask, start, end, fill_value, line_width)
-
-            # update start and end to the next positions
-            start = end
-            end = (start[0], start[1] - line_width)
-        return mask.astype(bool)
 
     @staticmethod
     def _apply_transformation_to_3d_points(points: np.ndarray,
@@ -1500,56 +1748,6 @@ class SegmentToRTSSConverter(Converter):
         contour.ContourData = contour_data
 
         return contour
-
-    @staticmethod
-    def _create_structure_set_roi(roi_data: ROIData,
-                                  rtss: Dataset
-                                  ) -> None:
-        """Create a StructureSetROISequence entry for the given ROI data.
-
-        Args:
-            roi_data (ROIData): The ROI data to be used for creating the StructureSetROISequence entry.
-            rtss (Dataset): The RTSS to be used for creating the StructureSetROISequence entry.
-
-        Returns:
-            None
-        """
-        # generate the StructureSetROISequence entry
-        structure_set_roi_entry = Dataset()
-        structure_set_roi_entry.ROINumber = roi_data.number
-        structure_set_roi_entry.ReferencedFrameOfReferenceUID = roi_data.frame_of_reference_uid
-        structure_set_roi_entry.ROIName = roi_data.name
-        structure_set_roi_entry.ROIDescription = roi_data.description
-        structure_set_roi_entry.ROIGenerationAlgorithm = roi_data.roi_generation_algorithm
-
-        # add the StructureSetROISequence entry to the RTSS
-        rtss.StructureSetROISequence.append(structure_set_roi_entry)
-
-    @staticmethod
-    def _create_rt_roi_observation(roi_data: ROIData,
-                                   rtss: Dataset
-                                   ) -> None:
-        """Create a RTROIObservationsSequence entry for the given ROI data.
-
-        Args:
-            roi_data (ROIData): The ROI data to be used for creating the RTROIObservationsSequence entry.
-            rtss (Dataset): The RTSS to be used for creating the RTROIObservationsSequence entry.
-
-        Returns:
-            None
-        """
-        # generate the RTROIObservationsSequence entry
-        rt_roi_observation = Dataset()
-        rt_roi_observation.ObservationNumber = roi_data.number
-        rt_roi_observation.ReferencedROINumber = roi_data.number
-        rt_roi_observation.ROIObservationDescription = 'Type:Soft,Range:*/*,Fill:0,Opacity:0.0,Thickness:1,' \
-                                                       'LineThickness:2,read-only:false'
-        rt_roi_observation.private_creators = 'University of Bern, Switzerland'
-        rt_roi_observation.RTROIInterpretedType = ''
-        rt_roi_observation.ROIInterpreter = ''
-
-        # add the RTROIObservationsSequence entry to the RTSS
-        rtss.RTROIObservationsSequence.append(rt_roi_observation)
 
     @staticmethod
     def _adjust_label_image_to_dicom(label_image: sitk.Image,
@@ -1632,41 +1830,419 @@ class SegmentToRTSSConverter(Converter):
 
     def convert(self) -> Dataset:
         """Convert the provided :class:`SimpleITK.Image` instances to a DICOM-RTSS :class:`~pydicom.dataset.Dataset`
-        instance.
+        instance using a two-dimensional reconstruction algorithm.
 
         Returns:
             Dataset: The generated DICOM-RTSS :class:`~pydicom.dataset.Dataset`.
         """
         # generate the basic RTSS dataset
-        rtss = self._generate_basic_rtss(self.image_datasets)
+        rtss = self._generate_basic_rtss()
 
         # convert and add the ROIs to the RTSS
-        frame_of_reference_uid = self.image_datasets[0].get('FrameOfReferenceUID')
-        for idx, (label_image, label_name, color, smooth, sigma, kernel) in enumerate(zip(self.label_images,
-                                                                                          self.roi_names,
-                                                                                          self.colors,
-                                                                                          self.smoothing,
-                                                                                          self.smoothing_sigma,
-                                                                                          self.smoothing_kernel_size)):
+        for idx, (label, name, color) in enumerate(zip(self.label_images, self.roi_names, self.colors)):
+            # check if a specific parameterization must be used for this image
+            if self.config.get_image_params(name) is not None:
+                smooth = self.config.get_image_params(name, 'smoothing')
+                kernel = self.config.get_image_params(name, 'smoothing_kernel_size')
+                sigma = self.config.get_image_params(name, 'smoothing_sigma')
+            else:
+                config = self.config.get_general_params()
+                smooth = config.get('smoothing')
+                kernel = config.get('smoothing_kernel_size')
+                sigma = config.get('smoothing_sigma')
 
             # adjust the label image to have the same properties as the DICOM datasets
-            label_image_processed = self._adjust_label_image_to_dicom(label_image, self.image_datasets)
+            label_processed = self._adjust_label_image_to_dicom(label, self.image_datasets)
 
             # smooth the label image
             if smooth:
-                label_image_processed = self._smooth_label_image(label_image_processed, kernel, sigma)
+                label_processed = self._smooth_label_image(label_processed, kernel, sigma)
 
             # get the binary image data from the label image
-            mask = sitk.GetArrayFromImage(label_image_processed)
+            mask = sitk.GetArrayFromImage(label_processed)
 
-            if not issubclass(mask.dtype.type, np.integer):
-                raise TypeError('The label image must be of an integer type!')
+            self._append_roi_contour(mask, self.image_datasets, rtss, color, idx + 1)
+            self._append_structure_set_roi_sequence_entry(name, idx + 1, rtss)
+            self._append_rt_roi_observation(idx + 1, rtss)
 
-            roi_data = ROIData(mask, list(color), idx + 1, label_name, frame_of_reference_uid)
+        return rtss
 
-            self._create_roi_contour(roi_data, self.image_datasets, rtss)
-            self._create_structure_set_roi(roi_data, rtss)
-            self._create_rt_roi_observation(roi_data, rtss)
+
+class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
+    """A low-level 3D-based :class:`Converter` class for converting one or multiple
+    :class:`~pyradise.data.image.SegmentationImage` instances to a DICOM-RTSS :class:`~pydicom.dataset.Dataset`.
+    In contrast to the :class:`SegmentToRTSSConverter2D` class, this class generates the DICOM-RTSS contours using a
+    three-dimensional approach. This reduces spatial inconsistencies but comes at the cost of a longer computation time
+    and higher memory consumption. Furthermore, this converter is less robust than its two-dimensional counterpart.
+    However, the resulting contours are more accurate and appear more natural it the converter is applied with
+    appropriate parameterization.
+
+    Warning:
+        The provided ``label_images`` must be binary, otherwise the conversion will fail.
+
+    Note:
+        Typically, this class is not used directly by the used but via the :class:`SubjectToRTSSConverter` which
+        processes :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries and thus provides a more suitable
+        interface.
+
+    Note:
+        This class can take a :class:`RTSSMetaData` instance as input to specify certain DICOM attributes of the
+        output DICOM-RTSS. If no instance is provided, the default values will be used.
+
+    Args:
+        label_images (Union[Tuple[str, ...], Tuple[sitk.Image, ...]]): The path to the images or a sequence of
+         :class:`SimpleITK.Image` instances.
+        ref_image_datasets (Union[Tuple[str, ...], Tuple[Dataset, ...]]): The referenced DICOM image
+         :class:`~pydicom.dataset.Dataset` instances.
+        roi_names (Union[Tuple[str, ...], Dict[int, str], None]): The label names which will be assigned to the ROIs.
+        colors (Optional[Tuple[Tuple[int, int, int], ...]]): The colors which will be assigned to the ROIs.
+        meta_data (RTSSMetaData): The configuration to specify certain DICOM attributes (default: RTSSMetaData()).
+        config (RTSSConverter3DConfiguration): The configuration to specify certain conversion parameters (default:
+         RTSSConverter3DConfiguration()).
+    """
+
+    def __init__(self,
+                 label_images: Union[Tuple[str, ...], Tuple[sitk.Image, ...]],
+                 ref_image_datasets: Union[Tuple[str, ...], Tuple[Dataset, ...]],
+                 roi_names: Union[Tuple[str, ...], Dict[int, str], None],
+                 colors: Optional[Tuple[Tuple[int, int, int], ...]],
+                 meta_data: RTSSMetaData = RTSSMetaData(),
+                 config: RTSSConverter3DConfiguration = RTSSConverter3DConfiguration()
+                 ):
+        super().__init__(label_images, ref_image_datasets, roi_names, colors, config, meta_data)
+
+        self.config = config
+        self._validate_label_images()
+
+
+    def preprocess_image(self, image_sitk: sitk.Image) -> sitk.Image:
+        """Preprocess the provided :class:`SimpleITK.Image` instance such that the image has the same properties as
+        the referenced DICOM image series.
+
+        Args:
+            image_sitk (sitk.Image): The :class:`SimpleITK.Image` instance to preprocess.
+
+        Returns:
+            sitk.Image: The preprocessed :class:`SimpleITK.Image` instance.
+        """
+        # orient the image to the LPS coordinate system (-> DICOM standard)
+        image_sitk = sitk.DICOMOrient(image_sitk, 'LPS')
+
+        # resample to match the DICOM image
+        origin = self.image_datasets[0].ImagePositionPatient
+        slice_spacing = get_spacing_between_slices(self.image_datasets)
+        spacing = (self.image_datasets[0].PixelSpacing[0],
+                   self.image_datasets[0].PixelSpacing[1],
+                   slice_spacing)
+        direction = np.array(get_slice_direction(self.image_datasets[0])).T.flatten()
+        size = (self.image_datasets[0].Rows,
+                self.image_datasets[0].Columns,
+                len(self.image_datasets))
+
+        resampler = sitk.ResampleImageFilter()
+        resampler.SetOutputOrigin(origin)
+        resampler.SetOutputSpacing(spacing)
+        resampler.SetOutputDirection(direction)
+        resampler.SetSize(size)
+        resampler.SetTransform(sitk.Transform())
+        resampler.SetOutputPixelType(sitk.sitkUInt8)
+        resampler.SetInterpolator(sitk.sitkNearestNeighbor)
+        resampler.SetDefaultPixelValue(0)
+        image_sitk = resampler.Execute(image_sitk)
+
+        # convert to binary
+        image_sitk = sitk.BinaryThreshold(image_sitk, 1, 255, 255, 0)
+
+        return image_sitk
+
+    @staticmethod
+    def _get_3d_model(sitk_image: sitk.Image,
+                      image_smoothing: bool,
+                      smooth_sigma: float,
+                      smooth_radius: float,
+                      smooth_threshold: float,
+                      decimate_reduction: float,
+                      decimate_threshold: float,
+                      model_smooth_iter: int,
+                      model_smooth_pass_band: float
+                      ) -> vtk_dm.vtkPolyData:
+        """Generate a 3D model of the provided :class:`SimpleITK.Image` instance.
+
+        Args:
+            sitk_image (sitk.Image): The :class:`SimpleITK.Image` instance to generate the 3D model for.
+            image_smoothing (bool): Whether to smooth the image before generating the 3D model.
+            smooth_sigma (float): The sigma value for the Gaussian smoothing.
+            smooth_radius (float): The radius value for the Gaussian smoothing.
+            smooth_threshold (float): The threshold value for the Gaussian smoothing.
+            decimate_reduction (float): The reduction value for the decimation.
+            decimate_threshold (float): The threshold value for the decimation.
+            model_smooth_iter (int): The number of iterations for the model smoothing.
+            model_smooth_pass_band (float): The pass band value for the model smoothing.
+
+        Returns:
+            vtk_dm.vtkPolyData: The 3D model of the provided :class:`SimpleITK.Image` instance.
+        """
+        # cast the image to vtkImageData
+        itk_image = convert_to_itk_image(sitk_image)
+        vtk_image = itk.vtk_image_from_image(itk_image)
+
+        # set the direction matrix
+        vtk_image.SetDirectionMatrix(sitk_image.GetDirection())
+
+        # pad the image to avoid boundary effects
+        extent = vtk_image.GetExtent()
+        new_extent = (extent[0] - 5, extent[1] + 5, extent[2] - 5, extent[3] + 5, extent[4] - 5, extent[5] + 5)
+        padder = vtk_icore.vtkImageConstantPad()
+        padder.SetInputDataObject(0, vtk_image)
+        padder.SetOutputWholeExtent(new_extent)
+        padder.Update(0)
+        vtk_image = padder.GetOutput()
+
+        # apply gaussian smoothing
+        foreground_amount = sitk.GetArrayFromImage(sitk_image).sum() / 255
+        if foreground_amount > smooth_threshold and image_smoothing:
+            gaussian = vtk_igen.vtkImageGaussianSmooth()
+            gaussian.SetInputDataObject(0, vtk_image)
+            gaussian.SetStandardDeviation(smooth_sigma)
+            gaussian.SetRadiusFactor(smooth_radius)
+            gaussian.Update(0)
+            vtk_image = gaussian.GetOutputDataObject(0)
+
+        # apply flying edges
+        flying_edges = vtk_fcore.vtkFlyingEdges3D()
+        flying_edges.SetInputDataObject(0, vtk_image)
+        flying_edges.SetValue(0, 127.5)
+        flying_edges.ComputeGradientsOff()
+        flying_edges.ComputeNormalsOff()
+        flying_edges.Update(0)
+        model = flying_edges.GetOutputDataObject(0)
+
+        # apply decimation
+        if foreground_amount > decimate_threshold:
+            decimate = vtk_fcore.vtkDecimatePro()
+            decimate.SetInputConnection(0, flying_edges.GetOutputPort(0))
+            decimate.SetTargetReduction(decimate_reduction)
+            decimate.PreserveTopologyOn()
+            decimate.SetMaximumError(1)
+            decimate.SplittingOff()
+            decimate.SetFeatureAngle(60.)
+            decimate.Update(0)
+            model = decimate.GetOutputDataObject(0)
+
+        # smooth via the sinc filter
+        smoother = vtk_fcore.vtkWindowedSincPolyDataFilter()
+        smoother.SetInputDataObject(0, model)
+        smoother.SetNumberOfIterations(model_smooth_iter)
+        smoother.BoundarySmoothingOff()
+        smoother.FeatureEdgeSmoothingOff()
+        smoother.SetFeatureAngle(60.0)
+        smoother.SetPassBand(model_smooth_pass_band)
+        smoother.NonManifoldSmoothingOn()
+        smoother.NormalizeCoordinatesOff()
+
+        # get normals
+        normals = vtk_fcore.vtkPolyDataNormals()
+        normals.SetInputConnection(0, smoother.GetOutputPort(0))
+        normals.SetFeatureAngle(60.0)
+
+        # strip the polydata
+        stripper = vtk_fcore.vtkStripper()
+        stripper.SetInputConnection(0, normals.GetOutputPort(0))
+        stripper.JoinContiguousSegmentsOn()
+        stripper.Update(0)
+        stripped = stripper.GetOutput()
+
+        return stripped
+
+    def _get_2d_contours(self, polydata: vtk_dm.vtkPolyData) -> List[List[List[List[float]]]]:
+        """Get the 2D contours of the provided :class:`vtk.vtkPolyData` instance that correspond with the referenced
+        DICOM image series.
+
+        Args:
+            polydata (vtk.vtkPolyData): The :class:`vtk.vtkPolyData` instance to get the 2D contours for.
+
+        Returns:
+            List[List[List[List[float]]]]: The 2D contours of the provided :class:`vtk.vtkPolyData` instance that
+            correspond with the referenced DICOM image series.
+        """
+        origin = self.image_datasets[0].ImagePositionPatient
+        origin = [float(val) for val in origin]
+        first_pos = self.image_datasets[0].ImagePositionPatient
+        last_pos = self.image_datasets[-1].ImagePositionPatient
+        length = np.abs(np.linalg.norm(np.array(last_pos) - np.array(first_pos)))
+        slice_spacing = length / (len(self.image_datasets) - 1)
+        normal = tuple(np.cross(np.array(self.image_datasets[0].get('ImageOrientationPatient')[0:3]),
+                                np.array(self.image_datasets[0].get('ImageOrientationPatient')[3:6])))
+
+        # create the initial cutting plane
+        plane = vtk_dm.vtkPlane()
+        plane.SetOrigin(*origin)
+        plane.SetNormal(*normal)
+
+        # create the cutter
+        cutter = vtk_fcore.vtkCutter()
+        cutter.SetInputDataObject(0, polydata)
+        cutter.SetCutFunction(plane)
+        cutter.GenerateTrianglesOn()
+        cutter.GenerateValues(len(self.image_datasets), 0, length)
+
+        # create the cleaner
+        cleaner = vtk_fcore.vtkCleanPolyData()
+        cleaner.SetInputConnection(0, cutter.GetOutputPort(0))
+        cleaner.SetAbsoluteTolerance(0.1)
+        cleaner.SetPointMerging(True)
+        cleaner.Update(0)
+
+        # get the polylines
+        loop = vtk_fmodel.vtkContourLoopExtraction()
+        loop.SetInputConnection(0, cleaner.GetOutputPort(0))
+        loop.SetOutputModeToPolygons()
+        loop.SetNormal(*normal)
+        loop.Update(0)
+
+        # get the polylines for each slice if there are any
+        cells = loop.GetOutput().GetPolys()
+        points = loop.GetOutput().GetPoints()
+        contours_points = []
+
+        indices = vtk_ccore.vtkIdList()
+        cell_indicator = cells.GetNextCell(indices)
+
+        for slice_idx, dataset in enumerate(self.image_datasets):
+            slice_plane = vtk_dm.vtkPlane()
+            slice_plane.SetOrigin(*dataset.ImagePositionPatient)
+            slice_plane.SetNormal(*normal)
+
+            if cell_indicator:
+                point = points.GetPoint(indices.GetId(0))
+                distance = slice_plane.DistanceToPlane(point)
+            else:
+                distance = 2 * slice_spacing
+
+            if distance <= slice_spacing and cell_indicator == 1:
+                contour_points = []
+                for i in range(indices.GetNumberOfIds()):
+                    point = list(points.GetPoint(indices.GetId(i)))
+                    contour_points.append(point)
+                contours_points.append(contour_points)
+                cell_indicator = cells.GetNextCell(indices)
+
+            else:
+                contours_points.append(None)
+
+        return [contours_points]
+
+
+    def _append_roi_contour_sequence_entry(self,
+                                           contours: List[List[List[List[float]]]],
+                                           color: Tuple[int, int, int],
+                                           roi_number: int,
+                                           rtss: Dataset
+                                           ) -> None:
+        """Append a ROIContourSequence entry to the given DICOM-RTSS.
+
+        Args:
+            contours (List[List[List[List[float]]]]): The 2D contours of the ROI.
+            color (Tuple[int, int, int]): The color of the ROI.
+            roi_number (int): The ROI number.
+            rtss (Dataset): The DICOM-RTSS to append the ROIContourSequence entry to.
+
+        Returns:
+            None
+        """
+        roi_contour = Dataset()
+        roi_contour.ROIDisplayColor = list(color)
+        roi_contour.ReferencedROINumber = str(roi_number)
+
+        # create the contour sequence
+        contour_sequence = Sequence()
+        for slice_dataset, slice_coords in zip(self.image_datasets, contours):
+            for contour_data in slice_coords:
+                if contour_data is None:
+                    continue
+
+                # create the contour image sequence
+                contour_image = Dataset()
+                contour_image.ReferencedSOPClassUID = slice_dataset.file_meta.MediaStorageSOPClassUID
+                contour_image.ReferencedSOPInstanceUID = slice_dataset.file_meta.MediaStorageSOPInstanceUID
+
+                contour_image_sequence = Sequence()
+                contour_image_sequence.append(contour_image)
+
+                # append to the contour sequence
+                contour = Dataset()
+                contour.ContourImageSequence = contour_image_sequence
+                contour.ContourGeometricType = 'CLOSED_PLANAR'
+                contour.NumberOfContourPoints = len(contour_data)
+                contour.ContourData = [coord for point in contour_data for coord in point]
+                contour_sequence.append(contour)
+
+        roi_contour.ContourSequence = contour_sequence
+
+        # append to the ROIContourSequence to the RTSS
+        rtss.ROIContourSequence.append(roi_contour)
+
+    def convert(self) -> Dataset:
+        """Convert the provided :class:`SimpleITK.Image` instances to a DICOM-RTSS :class:`~pydicom.dataset.Dataset`
+        instance using a three-dimensional reconstruction algorithm.
+
+        Returns:
+            Dataset: The generated DICOM-RTSS :class:`~pydicom.dataset.Dataset`.
+        """
+        rtss = self._generate_basic_rtss()
+
+        for idx, (label, name, color) in enumerate(zip(self.label_images, self.roi_names, self.colors)):
+
+            # check if the image is empty
+            label_image_np = sitk.GetArrayFromImage(label)
+            if np.sum(label_image_np) == 0:
+                warnings.warn(f'The label image {name} is empty and will be skipped from RTSS construction')
+                continue
+
+            # check if specific parameters are given for this ROI
+            if self.config.get_image_params(name) is not None:
+                image_params = self.config.get_image_params(name)
+                image_smooth = image_params.get('image_smoothing')
+                image_smooth_sigma = image_params.get('image_smoothing_sigma')
+                image_smooth_radius = image_params.get('image_smoothing_radius')
+                image_threshold = image_params.get('image_smoothing_threshold')
+                decimate_reduction = image_params.get('decimate_reduction')
+                decimate_threshold = image_params.get('decimate_threshold')
+                model_smoothing_iter = image_params.get('model_smoothing_iterations')
+                model_smoothing_pass_band = image_params.get('model_smoothing_pass_band')
+            else:
+                image_params = self.config.get_general_params()
+                image_smooth = image_params.get('image_smoothing')
+                image_smooth_sigma = image_params.get('image_smoothing_sigma')
+                image_smooth_radius = image_params.get('image_smoothing_radius')
+                image_threshold = image_params.get('image_smoothing_threshold')
+                decimate_reduction = image_params.get('decimate_reduction')
+                decimate_threshold = image_params.get('decimate_threshold')
+                model_smoothing_iter = image_params.get('model_smoothing_iterations')
+                model_smoothing_pass_band = image_params.get('model_smoothing_pass_band')
+
+
+            # preprocess the image
+            label = self.preprocess_image(label)
+
+            # Get polydata
+            polydata = self._get_3d_model(label,
+                                          image_smooth,
+                                          image_smooth_sigma,
+                                          image_smooth_radius,
+                                          image_threshold,
+                                          decimate_reduction,
+                                          decimate_threshold,
+                                          model_smoothing_iter,
+                                          model_smoothing_pass_band)
+
+            # Get the contour data
+            contours = self._get_2d_contours(polydata)
+
+            # enhance the rtss with the data
+            self._append_structure_set_roi_sequence_entry(name, idx + 1, rtss)
+            self._append_roi_contour_sequence_entry(contours, color, idx + 1, rtss)
+            self._append_rt_roi_observation(idx + 1, rtss)
 
         return rtss
 
@@ -1979,6 +2555,14 @@ class SubjectToRTSSConverter(Converter):
         This class can take a :class:`RTSSMetaData` instance as input to specify certain DICOM attributes of the
         output DICOM-RTSS. If no instance is provided, the default values will be used.
 
+    Important:
+        The ``config`` parameter defines the type of conversion algorithm. If specific conversion parameters are
+        required for a certain :class:`~pyradise.data.image.SegmentationImage` instance, they must be provided in the
+        appropriate :class:`RTSSConverterConfiguration` (i.e., :class:`RTSSConverter2DConfiguration` or
+        :class:`RTSSConverter3DConfiguration`). Furthermore, the ``image_identifier`` parameter must be set to the
+        organ name of the :class:`~pyradise.data.image.SegmentationImage` instance. Otherwise, segmentation masks with
+        specific parameters can not be identified.
+
     Args:
         subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be converted to a DICOM-RTSS
          :class:`~pydicom.dataset.Dataset` instance.
@@ -1986,23 +2570,19 @@ class SubjectToRTSSConverter(Converter):
          the conversion (only :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` will be considered).
         reference_modality (Union[Modality, str]): The reference :class:`~pyradise.data.modality.Modality` of the
          images to be used for the conversion to DICOM-RTSS.
-        size_dependent_smoothing (bool): Indicates if size-dependent smoothing should be used (default: True).
-        smoothing_volume_threshold (int): The lower volume threshold in voxels for using smoothing (if size-dependent
-         smoothing is used) (default: 500).
-        smoothing_sigma (float): The sigma used for Gaussian smoothing (default: 2.)
-        smoothing_kernel_size (int): The kernel size used for Gaussian smoothing (default: 32),
+        config (Union[RTSSConverter2DConfiguration, RTSSConverter3DConfiguration]): The configuration for the conversion
+         procedure. The type of conversion configuration determines also the conversion algorithm (2D or 3D) that is
+         used.
         meta_data (RTSSMetaData): The configuration to specify certain DICOM attributes (default: RTSSMetaData()).
+        config (Union[RTSS
     """
 
     def __init__(self,
                  subject: Subject,
                  infos: Tuple[SeriesInfo, ...],
                  reference_modality: Union[Modality, str],
-                 size_dependent_smoothing: bool = True,
-                 smoothing_volume_threshold: int = 500,
-                 smoothing_sigma: float = 2.,
-                 smoothing_kernel_size: int = 32,
-                 meta_data: RTSSMetaData = RTSSMetaData()
+                 config: Union[RTSSConverter2DConfiguration, RTSSConverter3DConfiguration],
+                 meta_data: RTSSMetaData = RTSSMetaData(),
                  ) -> None:
         super().__init__()
 
@@ -2021,25 +2601,16 @@ class SubjectToRTSSConverter(Converter):
         self.image_info = image_infos[0]
         self.ref_modality = reference_modality_
 
-        self.size_dependent_smoothing = size_dependent_smoothing
-
-        if smoothing_volume_threshold <= 0:
-            self.size_dependent_smoothing = False
-
-        self.smoothing_volume_threshold = smoothing_volume_threshold
-
-        assert smoothing_sigma > 0, 'The smoothing sigma must be larger than 0!'
-        self.smoothing_sigma = smoothing_sigma
-
-        assert smoothing_kernel_size > 0, 'The smoothing kernel size must be larger than 0!'
-        self.smoothing_kernel_size = smoothing_kernel_size
-
         # check if all segmentation images are binary
         for image in subject.segmentation_images:
             if not image.is_binary():
                 raise ValueError(f'The segmentation image of organ {image.get_organ(True)} and '
                                  f'rater {image.get_rater(True)} is not binary!')
 
+        if not isinstance(config, (RTSSConverter2DConfiguration, RTSSConverter3DConfiguration)):
+            raise ValueError(f'The config type {type(config)} is not supported!')
+
+        self.config: Union[RTSSConverter2DConfiguration, RTSSConverter3DConfiguration] = config
         self.meta_data = meta_data
 
     def convert(self) -> Dataset:
@@ -2053,34 +2624,32 @@ class SubjectToRTSSConverter(Converter):
         # get the image data and the label names
         sitk_images = []
         label_names = []
-        smoothing_indicators = []
         for image in self.subject.segmentation_images:
             sitk_image = image.get_image_data()
             sitk_images.append(sitk_image)
             label_names.append(image.get_organ(as_str=True))
 
-            if self.size_dependent_smoothing:
-                image_np = sitk.GetArrayFromImage(sitk_image)
-                sum_foreground = np.sum(image_np)
-
-                if sum_foreground > self.smoothing_volume_threshold:
-                    smoothing_indicators.append(True)
-                else:
-                    smoothing_indicators.append(False)
-            else:
-                smoothing_indicators.append(False)
-
         # load the image datasets
         image_datasets = load_datasets(self.image_info.path)
 
         # convert the images to a rtss
-        rtss = SegmentToRTSSConverter(label_images=tuple(sitk_images),
-                                      ref_image_datasets=image_datasets,
-                                      roi_names=tuple(label_names),
-                                      colors=None,
-                                      smoothing=tuple(smoothing_indicators),
-                                      smoothing_sigma=self.smoothing_sigma,
-                                      smoothing_kernel_size=self.smoothing_kernel_size,
-                                      meta_data=self.meta_data).convert()
+        if isinstance(self.config, RTSSConverter2DConfiguration):
+            rtss = SegmentToRTSSConverter2D(label_images=tuple(sitk_images),
+                                            ref_image_datasets=image_datasets,
+                                            roi_names=tuple(label_names),
+                                            colors=None,
+                                            meta_data=self.meta_data,
+                                            config=self.config).convert()
+
+        elif isinstance(self.config, RTSSConverter3DConfiguration):
+            rtss = SegmentToRTSSConverter3D(label_images=tuple(sitk_images),
+                                            ref_image_datasets=image_datasets,
+                                            roi_names=tuple(label_names),
+                                            colors=None,
+                                            meta_data=self.meta_data,
+                                            config=self.config).convert()
+
+        else:
+            raise ValueError(f'Invalid configuration type: {type(self.config)}!')
 
         return rtss

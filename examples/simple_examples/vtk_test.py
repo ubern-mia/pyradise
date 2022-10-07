@@ -99,7 +99,7 @@ class ROIData:
         mask (np.ndarray): The segmentation mask.
         color (Union[str, List[int]]): The color of the ROI.
         number (int): The ROINumber.
-        frame_of_reference (int): The FrameOfReferenceUID.
+        frame_of_reference_uid (int): The FrameOfReferenceUID.
         description (str): The description of the ROI.
         use_pin_hole (bool): If the pinhole algorithm should be used (default: False).
         approximate_contours (bool): If True the contours will be approximated, otherwise not (default: True).

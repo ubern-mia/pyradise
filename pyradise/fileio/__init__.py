@@ -50,7 +50,10 @@ from .dicom_conversion import (
     DicomRTSSSeriesConverter,
     SubjectToRTSSConverter,
     RTSSToSegmentConverter,
-    SegmentToRTSSConverter,
+    SegmentToRTSSConverter2D,
+    SegmentToRTSSConverter3D,
+    RTSSConverter2DConfiguration,
+    RTSSConverter3DConfiguration,
     RTSSMetaData)
 
 from .writing import (

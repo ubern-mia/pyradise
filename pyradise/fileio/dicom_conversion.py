@@ -1118,7 +1118,7 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
                     isinstance(image_smoothing_threshold, (float, int)) and image_smoothing_threshold > 0,
                     isinstance(decimate_reduction, float) and 0 < decimate_reduction < 0.99,
                     isinstance(decimate_threshold, (float, int)) and decimate_threshold >= 0,
-                    isinstance(model_smoothing_iterations, int) and model_smoothing_iterations > 0,
+                    isinstance(model_smoothing_iterations, int) and model_smoothing_iterations >= 0,
                     isinstance(model_smoothing_pass_band, float))
 
         if not all(criteria):
@@ -1931,8 +1931,8 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
         # resample to match the DICOM image
         origin = self.image_datasets[0].ImagePositionPatient
         slice_spacing = get_spacing_between_slices(self.image_datasets)
-        spacing = (self.image_datasets[0].PixelSpacing[0],
-                   self.image_datasets[0].PixelSpacing[1],
+        spacing = (float(self.image_datasets[0].PixelSpacing[0]),
+                   float(self.image_datasets[0].PixelSpacing[1]),
                    slice_spacing)
         direction = np.array(get_slice_direction(self.image_datasets[0])).T.flatten()
         size = (self.image_datasets[0].Rows,
@@ -2030,19 +2030,22 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
             model = decimate.GetOutputDataObject(0)
 
         # smooth via the sinc filter
-        smoother = vtk_fcore.vtkWindowedSincPolyDataFilter()
-        smoother.SetInputDataObject(0, model)
-        smoother.SetNumberOfIterations(model_smooth_iter)
-        smoother.BoundarySmoothingOff()
-        smoother.FeatureEdgeSmoothingOff()
-        smoother.SetFeatureAngle(60.0)
-        smoother.SetPassBand(model_smooth_pass_band)
-        smoother.NonManifoldSmoothingOn()
-        smoother.NormalizeCoordinatesOff()
+        if model_smooth_iter > 0:
+            smoother = vtk_fcore.vtkWindowedSincPolyDataFilter()
+            smoother.SetInputDataObject(0, model)
+            smoother.SetNumberOfIterations(model_smooth_iter)
+            smoother.BoundarySmoothingOff()
+            smoother.FeatureEdgeSmoothingOff()
+            smoother.SetFeatureAngle(60.0)
+            smoother.SetPassBand(model_smooth_pass_band)
+            smoother.NonManifoldSmoothingOn()
+            smoother.NormalizeCoordinatesOff()
+            smoother.Update(0)
+            model = smoother.GetOutputDataObject(0)
 
         # get normals
         normals = vtk_fcore.vtkPolyDataNormals()
-        normals.SetInputConnection(0, smoother.GetOutputPort(0))
+        normals.SetInputDataObject(0, model)
         normals.SetFeatureAngle(60.0)
 
         # strip the polydata
@@ -2089,20 +2092,21 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
         # create the cleaner
         cleaner = vtk_fcore.vtkCleanPolyData()
         cleaner.SetInputConnection(0, cutter.GetOutputPort(0))
-        cleaner.SetAbsoluteTolerance(0.1)
-        cleaner.SetPointMerging(True)
+        cleaner.SetAbsoluteTolerance(0.01)
+        cleaner.PointMergingOn()
         cleaner.Update(0)
 
         # get the polylines
         loop = vtk_fmodel.vtkContourLoopExtraction()
         loop.SetInputConnection(0, cleaner.GetOutputPort(0))
-        loop.SetOutputModeToPolygons()
+        loop.SetOutputModeToPolylines()
         loop.SetNormal(*normal)
         loop.Update(0)
+        looped = loop.GetOutput()
 
         # get the polylines for each slice if there are any
-        cells = loop.GetOutput().GetPolys()
-        points = loop.GetOutput().GetPoints()
+        cells = looped.GetLines()
+        points = looped.GetPoints()
         contours_points = []
 
         indices = vtk_ccore.vtkIdList()
@@ -2130,7 +2134,7 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
             else:
                 contours_points.append(None)
 
-        return [contours_points]
+        return contours_points
 
 
     def _append_roi_contour_sequence_entry(self,
@@ -2157,25 +2161,24 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
         # create the contour sequence
         contour_sequence = Sequence()
         for slice_dataset, slice_coords in zip(self.image_datasets, contours):
-            for contour_data in slice_coords:
-                if contour_data is None:
-                    continue
+            if slice_coords is None:
+                continue
 
-                # create the contour image sequence
-                contour_image = Dataset()
-                contour_image.ReferencedSOPClassUID = slice_dataset.file_meta.MediaStorageSOPClassUID
-                contour_image.ReferencedSOPInstanceUID = slice_dataset.file_meta.MediaStorageSOPInstanceUID
+            # create the contour image sequence
+            contour_image = Dataset()
+            contour_image.ReferencedSOPClassUID = str(slice_dataset.file_meta.MediaStorageSOPClassUID)
+            contour_image.ReferencedSOPInstanceUID = str(slice_dataset.SOPInstanceUID)
 
-                contour_image_sequence = Sequence()
-                contour_image_sequence.append(contour_image)
+            contour_image_sequence = Sequence()
+            contour_image_sequence.append(contour_image)
 
-                # append to the contour sequence
-                contour = Dataset()
-                contour.ContourImageSequence = contour_image_sequence
-                contour.ContourGeometricType = 'CLOSED_PLANAR'
-                contour.NumberOfContourPoints = len(contour_data)
-                contour.ContourData = [coord for point in contour_data for coord in point]
-                contour_sequence.append(contour)
+            # append to the contour sequence
+            contour = Dataset()
+            contour.ContourImageSequence = contour_image_sequence
+            contour.ContourGeometricType = 'CLOSED_PLANAR'
+            contour.NumberOfContourPoints = len(slice_coords)
+            contour.ContourData = [coord for point in slice_coords for coord in point]
+            contour_sequence.append(contour)
 
         roi_contour.ContourSequence = contour_sequence
 
@@ -2605,7 +2608,7 @@ class SubjectToRTSSConverter(Converter):
         for image in subject.segmentation_images:
             if not image.is_binary():
                 raise ValueError(f'The segmentation image of organ {image.get_organ(True)} and '
-                                 f'rater {image.get_rater(True)} is not binary!')
+                                 f'rater {image.get_rater(True)} is not binary or empty!')
 
         if not isinstance(config, (RTSSConverter2DConfiguration, RTSSConverter3DConfiguration)):
             raise ValueError(f'The config type {type(config)} is not supported!')
@@ -2653,3 +2656,39 @@ class SubjectToRTSSConverter(Converter):
             raise ValueError(f'Invalid configuration type: {type(self.config)}!')
 
         return rtss
+
+
+def show_polydata(polydata: vtk_dm.vtkPolyData) -> None:
+    import vtkmodules.vtkInteractionStyle
+    import vtkmodules.vtkRenderingOpenGL2
+    from vtkmodules.vtkCommonColor import vtkNamedColors
+    from vtkmodules.vtkRenderingCore import (
+        vtkActor,
+        vtkPolyDataMapper,
+        vtkRenderWindow,
+        vtkRenderWindowInteractor,
+        vtkRenderer
+    )
+
+    # Visualize
+    colors = vtkNamedColors()
+
+    mapper = vtkPolyDataMapper()
+    mapper.SetInputData(polydata)
+    actor = vtkActor()
+    actor.SetMapper(mapper)
+    actor.GetProperty().SetLineWidth(4)
+    actor.GetProperty().SetColor(colors.GetColor3d("Peacock"))
+
+    renderer = vtkRenderer()
+    renderWindow = vtkRenderWindow()
+    renderWindow.SetWindowName("Line")
+    renderWindow.AddRenderer(renderer)
+    renderWindowInteractor = vtkRenderWindowInteractor()
+    renderWindowInteractor.SetRenderWindow(renderWindow)
+
+    renderer.SetBackground(colors.GetColor3d("Silver"))
+    renderer.AddActor(actor)
+
+    renderWindow.Render()
+    renderWindowInteractor.Start()

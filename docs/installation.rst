@@ -24,10 +24,10 @@ PyRaDiSe requires Python 3.8 (or higher) and depends on the following packages:
  - `Pydicom <https://github.com/pydicom/pydicom>`_
  - `SimpleITK <https://simpleitk.org/>`_
  - `ITK <https://itk.org/>`_
+ - `VTK <https://vtk.org/>`_
  - `NumPy <https://numpy.org/>`_
  - `SciPy <https://www.scipy.org/>`_
  - `OpenCV <https://github.com/opencv/opencv-python>`_
- - `pymia <https://pymia.readthedocs.io/en/latest/>`_
 
 Building the documentation
 --------------------------

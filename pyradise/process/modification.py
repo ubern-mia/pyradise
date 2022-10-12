@@ -13,12 +13,12 @@ from pyradise.data import (
     TransformInfo,
     Modality,
     Organ,
-    Rater,
+    Annotator,
     seq_to_modalities,
     seq_to_organs,
-    seq_to_raters,
+    seq_to_annotators,
     str_to_organ,
-    str_to_rater)
+    str_to_annotator)
 from .orientation import SpatialOrientation
 from .base import (
     Filter,
@@ -29,7 +29,7 @@ import numpy as np
 
 __all__ = ['AddImageFilterParams', 'AddImageFilter',
            'RemoveImageByOrganFilterParams', 'RemoveImageByOrganFilter',
-           'RemoveImageByRaterFilterParams', 'RemoveImageByRaterFilter',
+           'RemoveImageByAnnotatorFilterParams', 'RemoveImageByAnnotatorFilter',
            'RemoveImageByModalityFilterParams', 'RemoveImageByModalityFilter',
            'MergeSegmentationFilterParams', 'MergeSegmentationFilter']
 
@@ -97,7 +97,7 @@ class AddImageFilter(Filter):
             # track the necessary information
             image_sitk = image.get_image_data()
             self.tracking_data['organ'] = deepcopy(image.get_organ())
-            self.tracking_data['rater'] = deepcopy(image.get_rater())
+            self.tracking_data['annotator'] = deepcopy(image.get_annotator())
             self._register_tracked_data(image, image_sitk, image_sitk, params)
 
         return subject
@@ -189,27 +189,27 @@ class RemoveImageByOrganFilter(Filter):
         return subject
 
 
-class RemoveImageByRaterFilterParams(FilterParams):
-    """A filter parameter class for the :class:`~pyradise.process.modification.RemoveImageByRaterFilter` class.
+class RemoveImageByAnnotatorFilterParams(FilterParams):
+    """A filter parameter class for the :class:`~pyradise.process.modification.RemoveImageByAnnotatorFilter` class.
 
     Args:
-        raters (Sequence[Union[Rater, str]]): The raters identifying the
+        annotators (Sequence[Union[Annotator, str]]): The annotators identifying the
          :class:`~pyradise.data.image.SegmentationImage` instances to remove from the provided
          :class:`~pyradise.data.subject.Subject` instance.
     """
 
-    def __init__(self, raters: Sequence[Union[Rater, str]]) -> None:
-        self.raters: Tuple[Rater, ...] = seq_to_raters(raters)
+    def __init__(self, annotators: Sequence[Union[Annotator, str]]) -> None:
+        self.annotators: Tuple[Annotator, ...] = seq_to_annotators(annotators)
 
 
-class RemoveImageByRaterFilter(Filter):
+class RemoveImageByAnnotatorFilter(Filter):
     """A filter class to remove :class:`~pyradise.data.image.SegmentationImage` instances from the provided
     :class:`~pyradise.data.subject.Subject` instance. The :class:`~pyradise.data.image.SegmentationImage` instances
-    are identified by their :class:`~pyradise.data.rater.Rater` instance.
+    are identified by their :class:`~pyradise.data.annotator.Annotator` instance.
 
     Note:
         If multiple :class:`~pyradise.data.image.SegmentationImage` instances exist with the same
-        :class:`~pyradise.data.rater.Rater` instance all of them will be removed.
+        :class:`~pyradise.data.annotator.Annotator` instance all of them will be removed.
     """
 
     @staticmethod
@@ -224,21 +224,21 @@ class RemoveImageByRaterFilter(Filter):
 
     def execute(self,
                 subject: Subject,
-                params: RemoveImageByRaterFilterParams
+                params: RemoveImageByAnnotatorFilterParams
                 ) -> Subject:
         """Execute the removal procedure.
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to remove the appropriate
              :class:`~pyradise.data.image.SegmentationImage` instances from.
-            params (RemoveImageByRaterFilterParams): The filter parameters.
+            params (RemoveImageByAnnotatorFilterParams): The filter parameters.
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance excluding the removed
             :class:`~pyradise.data.image.SegmentationImage` instances.
         """
-        for rater in params.raters:
-            subject.remove_image_by_rater(rater)
+        for annotator in params.annotators:
+            subject.remove_image_by_annotator(annotator)
 
             # track the necessary information
             # --> do not track the removal of entities
@@ -345,8 +345,8 @@ class MergeSegmentationFilterParams(FilterParams):
          organs). If ```None`` is provided the organs will be enumerated from 1 to n (default: None).
         output_organ (Union[Organ, str]): The :class:`~pyradise.data.organ.Organ` instance of the resulting
          segmentation.
-        output_rater (Union[Rater, str]): The :class:`~pyradise.data.rater.Rater` instance of the resulting
-         segmentation.
+        output_annotator (Union[Annotator, str]): The :class:`~pyradise.data.annotator.Annotator` instance of the
+         resulting segmentation.
         output_orientation (Union[SpatialOrientation, str]): The orientation of the output segmentation (default: LPS).
     """
 
@@ -354,7 +354,7 @@ class MergeSegmentationFilterParams(FilterParams):
                  organs: Sequence[Union[Organ, str]],
                  output_organ_indexes: Optional[Sequence[int]],
                  output_organ: Union[Organ, str],
-                 output_rater: Union[Rater, str],
+                 output_annotator: Union[Annotator, str],
                  output_orientation: Union[SpatialOrientation, str] = SpatialOrientation.LPS
                  ) -> None:
 
@@ -380,7 +380,7 @@ class MergeSegmentationFilterParams(FilterParams):
             self.output_orientation: SpatialOrientation = output_orientation
 
         self.output_organ: Organ = str_to_organ(output_organ)
-        self.output_rater: Rater = str_to_rater(output_rater)
+        self.output_annotator: Annotator = str_to_annotator(output_annotator)
 
 
 class MergeSegmentationFilter(Filter):
@@ -549,7 +549,7 @@ class MergeSegmentationFilter(Filter):
                                                  tuple(sorted_organs), params)
 
         # create the new segmentation image
-        merged_segmentation = SegmentationImage(merged_image, params.output_organ, params.output_rater)
+        merged_segmentation = SegmentationImage(merged_image, params.output_organ, params.output_annotator)
         subject.add_image(merged_segmentation)
 
         return subject

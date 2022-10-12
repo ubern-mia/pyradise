@@ -11,7 +11,7 @@ from warnings import warn
 
 from .modality import Modality
 from .organ import Organ
-from .rater import Rater
+from .annotator import Annotator
 
 from .image import (
     Image,
@@ -43,7 +43,7 @@ class Subject:
         >>> import SimpleITK as sitk
         >>>
         >>> from pyradise.data import (Subject, IntensityImage, SegmentationImage,
-        >>>                            Modality, Organ, Rater)
+        >>>                            Modality, Organ, Annotator)
         >>> from pyradise.fileio import SubjectWriter, ImageFileFormat
         >>>
         >>>
@@ -93,7 +93,7 @@ class Subject:
         >>>     images = []
         >>>     for path, organ in zip(segmentation_file_paths, organs):
         >>>         image = SegmentationImage(sitk.ReadImage(path, sitk.sitkUInt8),
-        >>>                                   organ, Rater.get_default())
+        >>>                                   organ, Annotator.get_default())
         >>>         images.append(image)
         >>>
         >>>     # Load the intensity image files
@@ -227,13 +227,13 @@ class Subject:
         organs = [seg.get_organ() for seg in self.segmentation_images]
         return tuple(organs)
 
-    def get_raters(self) -> Tuple[Optional[Rater], ...]:
-        """Get the raters of the subject-associated segmentation images.
+    def get_annotators(self) -> Tuple[Optional[Annotator], ...]:
+        """Get the annotators of the subject-associated segmentation images.
 
         Returns:
-            Tuple[Optional[Rater], ...]: The raters of the segmentation images.
+            Tuple[Optional[Rater], ...]: The annotators of the segmentation images.
         """
-        raters = [seg.get_rater() for seg in self.segmentation_images]
+        raters = [seg.get_annotator() for seg in self.segmentation_images]
         return tuple(raters)
 
     def add_image(self,
@@ -334,38 +334,38 @@ class Subject:
 
         return self._check_for_single_candidate(candidates, 'organs', return_first_on_multiple)
 
-    def get_images_by_rater(self,
-                            rater: Union[Rater, str]
-                            ) -> Optional[Tuple[SegmentationImage]]:
-        """Get one or multiple segmentation images by their rater.
+    def get_images_by_annotator(self,
+                                annotator: Union[Annotator, str]
+                                ) -> Optional[Tuple[SegmentationImage]]:
+        """Get one or multiple segmentation images by their annotator.
 
         Args:
-            rater (Union[Rater, str]): The rater of the image to retrieve.
+            annotator (Union[Annotator, str]): The annotator of the image to retrieve.
 
         Returns:
             Optional[Union[SegmentationImage, Tuple[SegmentationImage]]]: The segmentation images or None if there is
-            no image with this rater.
+            no image with this annotator.
         """
-        if isinstance(rater, str):
-            rater = Rater(rater)
+        if isinstance(annotator, str):
+            annotator = Annotator(annotator)
 
-        candidates: List[SegmentationImage] = [img for img in self.segmentation_images if img.get_rater() == rater]
+        candidates: List[SegmentationImage] = [img for img in self.segmentation_images if img.get_annotator() == annotator]
 
         if not candidates:
             return None
 
         return tuple(candidates)
 
-    def get_image_by_organ_and_rater(self,
-                                     organ: Union[Organ, str],
-                                     rater: Union[Rater, str],
-                                     return_first_on_multiple: bool = False
-                                     ) -> Optional[SegmentationImage]:
-        """Get one segmentation image by its organ and rater.
+    def get_image_by_organ_and_annotator(self,
+                                         organ: Union[Organ, str],
+                                         annotator: Union[Annotator, str],
+                                         return_first_on_multiple: bool = False
+                                         ) -> Optional[SegmentationImage]:
+        """Get one segmentation image by its organ and annotator.
 
         Args:
             organ (Union[Organ, str]): The organ of the image to retrieve.
-            rater (Union[Rater, str]): The rater of the image to retrieve.
+            annotator (Union[Annotator, str]): The annotator of the image to retrieve.
             return_first_on_multiple (bool): Indicates if the first found image should be returned if there are
              multiple candidates, otherwise an error is raised on multiple candidates (default: False).
 
@@ -374,12 +374,13 @@ class Subject:
         """
         if isinstance(organ, str):
             organ = Organ(organ, None)
-        if isinstance(rater, str):
-            rater = Rater(rater)
+        if isinstance(annotator, str):
+            annotator = Annotator(annotator)
 
-        candidates = [img for img in self.segmentation_images if img.get_organ() == organ and img.get_rater() == rater]
+        candidates = [img for img in self.segmentation_images
+                      if img.get_organ() == organ and img.get_annotator() == annotator]
 
-        return self._check_for_single_candidate(candidates, 'organs and raters', return_first_on_multiple)
+        return self._check_for_single_candidate(candidates, 'organs and annotators', return_first_on_multiple)
 
     def get_images_by_type(self, image_type: type) -> List[Image]:
         """Get all images of a specific type.
@@ -407,7 +408,7 @@ class Subject:
 
         - :class:`~pyradise.data.image.IntensityImage`: The :class:`~pyradise.data.modality.Modality` of the image.
         - :class:`~pyradise.data.image.SegmentationImage`: The :class:`~pyradise.data.organ.Organ` and the
-          :class:`~pyradise.data.rater.Rater` of the image.
+          :class:`~pyradise.data.annotator.Rater` of the image.
 
         Args:
             new_image (Union[IntensityImage, SegmentationImage]): The new image which will be inserted into the subject.
@@ -511,19 +512,19 @@ class Subject:
 
         return success
 
-    def remove_image_by_rater(self, rater: Union[Rater, str]) -> bool:
-        """Remove one or multiple images as specified by the rater.
+    def remove_image_by_annotator(self, annotator: Union[Annotator, str]) -> bool:
+        """Remove one or multiple images as specified by the annotator.
 
         Args:
-            rater (Union[Rater, str]): The rater of all images to remove.
+            annotator (Union[Annotator, str]): The annotator of all images to remove.
 
         Returns:
             bool: True when the removal procedure was successful, otherwise False.
         """
-        if isinstance(rater, str):
-            rater = Rater(rater)
+        if isinstance(annotator, str):
+            annotator = Annotator(annotator)
 
-        candidates = [img for img in self.segmentation_images if img.get_rater() == rater]
+        candidates = [img for img in self.segmentation_images if img.get_annotator() == annotator]
 
         if not candidates:
             return False
@@ -537,25 +538,26 @@ class Subject:
 
         return success
 
-    def remove_image_by_organ_and_rater(self,
-                                        organ: Union[Organ, str],
-                                        rater: Union[Rater, str]
-                                        ) -> bool:
-        """Remove one or multiple images as specified by the organ and rater.
+    def remove_image_by_organ_and_annotator(self,
+                                            organ: Union[Organ, str],
+                                            annotator: Union[Annotator, str]
+                                            ) -> bool:
+        """Remove one or multiple images as specified by the organ and annotator.
 
         Args:
             organ (Union[Organ, str]): The organ of all images to remove.
-            rater (Union[Rater, str]): The rater of all images to remove.
+            annotator (Union[Annotator, str]): The annotator of all images to remove.
 
         Returns:
             bool: True when the removal procedure was successful, otherwise False.
         """
         if isinstance(organ, str):
             organ = Organ(organ, None)
-        if isinstance(rater, str):
-            rater = Rater(rater)
+        if isinstance(annotator, str):
+            annotator = Annotator(annotator)
 
-        candidates = [img for img in self.segmentation_images if img.get_organ() == organ and img.get_rater() == rater]
+        candidates = [img for img in self.segmentation_images
+                      if img.get_organ() == organ and img.get_annotator() == annotator]
 
         if not candidates:
             return False

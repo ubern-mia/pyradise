@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 
 from pyradise.serialization import (SimpleFilePathGenerator, FileSystemDatasetCreator)
-from pyradise.data import (OrganRaterCombination, Modality)
+from pyradise.data import (OrganAnnotatorCombination, Modality)
 
 
 def main(input_dir_path: str,
@@ -35,7 +35,7 @@ def main(input_dir_path: str,
     Returns:
         None
     """
-    label_identifiers = {'LB': OrganRaterCombination('all', 'Combination')}
+    label_identifiers = {'LB': OrganAnnotatorCombination('all', 'Combination')}
     image_identifiers = {'T1c': Modality('T1c'),
                          'T1w': Modality('T1w'),
                          'T2w': Modality('T2w'),

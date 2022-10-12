@@ -16,10 +16,10 @@ import numpy as np
 from .modality import Modality
 from .organ import (
     Organ,
-    OrganRaterCombination)
-from .rater import Rater
+    OrganAnnotatorCombination)
+from .annotator import Annotator
 from .taping import TransformTape
-from .utils import (str_to_organ, str_to_rater, str_to_modality)
+from .utils import (str_to_organ, str_to_annotator, str_to_modality)
 from ..utils import (convert_to_itk_image, convert_to_sitk_image)
 
 TransformInfo = TypeVar('TransformInfo')
@@ -495,30 +495,31 @@ class IntensityImage(Image):
 
 class SegmentationImage(Image):
     """A segmentation image class including a :class:`~pyradise.data.taping.TransformTape` and additional attributes
-    to identify the :class:`~pyradise.data.organ.Organ` segmented and the :class:`~pyradise.data.rater.Rater` who
-    created the segmentation.
+    to identify the :class:`~pyradise.data.organ.Organ` segmented and the :class:`~pyradise.data.annotator.Annotator`
+    who created the segmentation.
 
-    The specification of :class:`~pyradise.data.rater.Rater` is optional and can be omitted if not explicitly used.
+    The specification of :class:`~pyradise.data.annotator.Annotator` is optional and can be omitted if not explicitly
+    used.
 
     Args:
         image (Union[sitk.Image, itk.Image]): The segmentation image data.
         organ (Union[Organ, str]): The :class:`~pyradise.data.organ.Organ` represented by the segmentation image or its
          name.
-        rater (Optional[Union[Rater, str]]): The :class:`~pyradise.data.rater.Rater` of the segmentation image or a
-         string with the name of the rater (default: Rater.get_default()).
+        annotator (Optional[Union[Annotator, str]]): The :class:`~pyradise.data.annotator.Annotator` of the segmentation
+         image or a string with the name of the annotator (default: Annotator.get_default()).
     """
 
     def __init__(self,
                  image: Union[sitk.Image, itk.Image],
                  organ: Union[Organ, str],
-                 rater: Optional[Union[Rater, str]] = Rater.get_default()
+                 annotator: Optional[Union[Annotator, str]] = Annotator.get_default()
                  ) -> None:
         super().__init__(image)
         self.organ: Organ = str_to_organ(organ)
-        if rater is not None:
-            self.rater: Optional[Rater] = str_to_rater(rater)
+        if annotator is not None:
+            self.annotator: Optional[Annotator] = str_to_annotator(annotator)
         else:
-            self.rater: Optional[Rater] = None
+            self.annotator: Optional[Annotator] = None
 
     def get_organ(self, as_str: bool = False) -> Union[Organ, str]:
         """Get the :class:`~pyradise.data.organ.Organ`.
@@ -535,63 +536,64 @@ class SegmentationImage(Image):
 
         return self.organ
 
-    def set_organ(self, organ: Optional[Rater]) -> None:
+    def set_organ(self, organ: Optional[Annotator]) -> None:
         """Set the :class:`~pyradise.data.organ.Organ`.
 
         Args:
-            organ (Optional[Rater]): The :class:`~pyradise.data.organ.Organ`.
+            organ (Optional[Annotator]): The :class:`~pyradise.data.organ.Organ`.
 
         Returns:
             None
         """
-        self.organ: Optional[Rater] = organ
+        self.organ: Optional[Annotator] = organ
 
-    def get_rater(self, as_str: bool = False) -> Union[Rater, str]:
-        """Get the :class:`~pyradise.data.rater.Rater`.
+    def get_annotator(self, as_str: bool = False) -> Union[Annotator, str]:
+        """Get the :class:`~pyradise.data.annotator.Annotator`.
 
         Args:
-            as_str (bool): If True the name of the :class:`~pyradise.data.rater.Rater` gets returned as a :class:`str`,
-             otherwise as an :class:`~pyradise.data.rater.Rater` (default: False).
+            as_str (bool): If True the name of the :class:`~pyradise.data.annotator.Annotator` gets returned as a
+             :class:`str`, otherwise as an :class:`~pyradise.data.annotator.Annotator` (default: False).
 
         Returns:
-            Union[Rater, str]: The :class:`~pyradise.data.rater.Rater` or its name as string.
+            Union[Annotator, str]: The :class:`~pyradise.data.annotator.Annotator` or its name as string.
         """
         if as_str:
-            return self.rater.get_name()
+            return self.annotator.get_name()
 
-        return self.rater
+        return self.annotator
 
-    def set_rater(self, rater: Rater) -> None:
-        """Set the :class:`~pyradise.data.rater.Rater`.
+    def set_annotator(self, annotator: Annotator) -> None:
+        """Set the :class:`~pyradise.data.annotator.Annotator`.
 
         Args:
-            rater (Rater): The :class:`~pyradise.data.rater.Rater`.
+            annotator (Annotator): The :class:`~pyradise.data.annotator.Annotator`.
 
         Returns:
             None
         """
-        self.rater: Rater = rater
+        self.annotator: Annotator = annotator
 
-    def get_organ_rater_combination(self) -> OrganRaterCombination:
-        """Get the :class:`~pyradise.data.organ.OrganRaterCombination`.
+    def get_organ_annotator_combination(self) -> OrganAnnotatorCombination:
+        """Get the :class:`~pyradise.data.organ.OrganAnnotatorCombination`.
 
         Returns:
-            OrganRaterCombination: The combination of the :class:`~pyradise.data.organ.Organ` and the
-            :class:`~pyradise.data.rater.Rater`.
+            OrganAnnotatorCombination: The combination of the :class:`~pyradise.data.organ.Organ` and the
+            :class:`~pyradise.data.annotator.Annotator`.
         """
-        return OrganRaterCombination(self.organ, self.rater)
+        return OrganAnnotatorCombination(self.organ, self.annotator)
 
-    def set_organ_rater_combination(self, organ_rater_combination: OrganRaterCombination) -> None:
-        """Set the :class:`~pyradise.data.organ.OrganRaterCombination`.
+    def set_organ_annotator_combination(self, organ_annotator_combination: OrganAnnotatorCombination) -> None:
+        """Set the :class:`~pyradise.data.organ.OrganAnnotatorCombination`.
 
         Args:
-            organ_rater_combination (OrganRaterCombination): The :class:`~pyradise.data.organ.OrganRaterCombination`.
+            organ_annotator_combination (OrganAnnotatorCombination): The
+             :class:`~pyradise.data.organ.OrganAnnotatorCombination`.
 
         Returns:
             None
         """
-        self.organ: Organ = organ_rater_combination.organ
-        self.rater: Rater = organ_rater_combination.rater
+        self.organ: Organ = organ_annotator_combination.organ
+        self.annotator: Annotator = organ_annotator_combination.annotator
 
     def copy_info(self,
                   source: 'SegmentationImage',
@@ -602,7 +604,7 @@ class SegmentationImage(Image):
         The copied information includes the following attributes:
 
             - :class:`~pyradise.data.organ.Organ`
-            - :class:`~pyradise.data.rater.Rater`
+            - :class:`~pyradise.data.annotator.Annotator`
             - :class:`~pyradise.data.taping.TransformTape` (optional)
 
         Raises:
@@ -620,7 +622,7 @@ class SegmentationImage(Image):
             raise TypeError('The source image must be an instance of SegmentationImage.')
 
         self.organ: Organ = deepcopy(source.get_organ())
-        self.rater: Rater = deepcopy(source.get_rater())
+        self.annotator: Annotator = deepcopy(source.get_annotator())
 
         if include_transforms:
             self.transform_tape = deepcopy(source.get_transform_tape())
@@ -649,7 +651,7 @@ class SegmentationImage(Image):
 
     def __eq__(self, other) -> bool:
         """Check if the provided instance is of the same type and if it has the same :class:`~pyradise.data.organ.Organ`
-         and :class:`~pyradise.rater.Rater`.
+         and :class:`~pyradise.annotator.Annotator`.
 
         Args:
             other (object): The object to be checked.
@@ -660,10 +662,10 @@ class SegmentationImage(Image):
         if not isinstance(other, SegmentationImage):
             return False
 
-        return all((self.organ == other.organ, self.rater == other.rater))
+        return all((self.organ == other.organ, self.annotator == other.annotator))
 
     def __str__(self) -> str:
-        if not self.rater:
+        if not self.annotator:
             return f'SegmentationImage: {self.organ.get_name()}'
 
-        return f'SegmentationImage: {self.organ.get_name()} / {self.rater.get_name()}'
+        return f'SegmentationImage: {self.organ.get_name()} / {self.annotator.get_name()}'

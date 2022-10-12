@@ -17,8 +17,8 @@ loaded. This is especially useful if more data is provided to your pipeline than
 In this module a :class:`SeriesInfoSelector` base class is provided and several :class:`SeriesInfoSelector`
 implementations which can be used to select specific :class:`~pyradise.fileio.series_info.SeriesInfo` entries according
 to the :class:`~pyradise.data.modality.Modality`, :class:`~pyradise.data.organ.Organ`, or
-:class:`~pyradise.data.rater.Rater`. In addition, two :class:`SeriesInfoSelector` implementations are provided to
-exclude all :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entries and all
+:class:`~pyradise.data.annotator.Annotator`. In addition, two :class:`SeriesInfoSelector` implementations are provided
+to exclude all :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entries and all
 :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` entries such that no registration is applied to
 the data during loading and that no DICOM-RTSS is loaded, respectively.
 
@@ -29,21 +29,21 @@ Class Overview
 
 The following :class:`SeriesInfoSelector` classes are provided:
 
-+----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Class                                  | Description                                                                                                                                               |
-+========================================+===========================================================================================================================================================+
-| :class:`SeriesInfoSelector`            | Base class for all :class:`SeriesInfoSelector` classes.                                                                                                   |
-+----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| :class:`ModalityInfoSelector`          | A :class:`SeriesInfoSelector` to keep :class:`~pyradise.fileio.series_info.SeriesInfo` entries with specific :class:`~pyradise.data.modality.Modality` s. |
-+----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| :class:`OrganInfoSelector`             | A :class:`SeriesInfoSelector` to keep :class:`~pyradise.fileio.series_info.SeriesInfo` entries with specific :class:`~pyradise.data.organ.Organ` s.       |
-+----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| :class:`RaterInfoSelector`             | A :class:`SeriesInfoSelector` to keep :class:`~pyradise.fileio.series_info.SeriesInfo` entries with specific :class:`~pyradise.data.rater.Rater` s.       |
-+----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| :class:`NoRegistrationInfoSelector`    | A :class:`SeriesInfoSelector` to exclude all :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entries.                                   |
-+----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| :class:`NoRTSSInfoSelector`            | A :class:`SeriesInfoSelector` to exclude all :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` entries.                                           |
-+----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------+
++----------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Class                                  | Description                                                                                                                                                 |
++========================================+=============================================================================================================================================================+
+| :class:`SeriesInfoSelector`            | Base class for all :class:`SeriesInfoSelector` classes.                                                                                                     |
++----------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| :class:`ModalityInfoSelector`          | A :class:`SeriesInfoSelector` to keep :class:`~pyradise.fileio.series_info.SeriesInfo` entries with specific :class:`~pyradise.data.modality.Modality` s.   |
++----------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| :class:`OrganInfoSelector`             | A :class:`SeriesInfoSelector` to keep :class:`~pyradise.fileio.series_info.SeriesInfo` entries with specific :class:`~pyradise.data.organ.Organ` s.         |
++----------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| :class:`AnnotatorInfoSelector`         | A :class:`SeriesInfoSelector` to keep :class:`~pyradise.fileio.series_info.SeriesInfo` entries with specific :class:`~pyradise.data.annotator.Annotator` s. |
++----------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| :class:`NoRegistrationInfoSelector`    | A :class:`SeriesInfoSelector` to exclude all :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entries.                                     |
++----------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| :class:`NoRTSSInfoSelector`            | A :class:`SeriesInfoSelector` to exclude all :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` entries.                                             |
++----------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Details
 -------

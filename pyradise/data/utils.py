@@ -7,14 +7,14 @@ from typing import (
 from .modality import Modality
 from .organ import (
     Organ,
-    OrganRaterCombination)
-from .rater import Rater
+    OrganAnnotatorCombination)
+from .annotator import Annotator
 
 
 __all__ = ['str_to_modality', 'seq_to_modalities',
            'str_to_organ', 'seq_to_organs',
-           'str_to_rater', 'seq_to_raters',
-           'str_to_organ_rater_combination', 'seq_to_organ_rater_combinations']
+           'str_to_annotator', 'seq_to_annotators',
+           'str_to_organ_annotator_combination', 'seq_to_organ_annotator_combinations']
 
 
 def str_to_modality(text: Union[str, Modality]) -> Modality:
@@ -72,68 +72,72 @@ def seq_to_organs(seq: Sequence[Union[str, Organ]]) -> Tuple[Organ, ...]:
     return tuple(str_to_organ(text) for text in seq)
 
 
-def str_to_rater(name: Union[str, Rater]) -> Rater:
-    """Converts a string to a :class:`~pyradise.data.rater.Rater` instance.
+def str_to_annotator(name: Union[str, Annotator]) -> Annotator:
+    """Converts a string to a :class:`~pyradise.data.annotator.Annotator` instance.
 
     Args:
-        name (Union[str, Rater]): A string or a :class:`~pyradise.data.rater.Rater` instance.
+        name (Union[str, Annotator]): A string or a :class:`~pyradise.data.annotator.Annotator` instance.
 
     Returns:
-        Rater: A :class:`~pyradise.data.rater.Rater` instance.
+        Annotator: A :class:`~pyradise.data.annotator.Annotator` instance.
     """
-    if isinstance(name, Rater):
+    if isinstance(name, Annotator):
         return name
 
-    return Rater(name)
+    return Annotator(name)
 
 
-def seq_to_raters(seq: Sequence[Union[str, Rater]]) -> Tuple[Rater, ...]:
-    """Converts a sequence of strings to a tuple of :class:`~pyradise.data.rater.Rater` instances.
-
-    Args:
-        seq (Sequence[Union[str, Rater]]): A sequence of strings or :class:`~pyradise.data.rater.Rater` instances.
-
-    Returns:
-        Tuple[Rater, ...]: A tuple of :class:`~pyradise.data.rater.Rater` instances.
-    """
-    return tuple(str_to_rater(text) for text in seq)
-
-
-def str_to_organ_rater_combination(data_or_organ_name: Union[str, Tuple[str, str], OrganRaterCombination],
-                                   rater_name: Optional[str] = None
-                                   ) -> OrganRaterCombination:
-    """Converts a string to a :class:`~pyradise.data.organ.OrganRaterCombination` instance.
+def seq_to_annotators(seq: Sequence[Union[str, Annotator]]) -> Tuple[Annotator, ...]:
+    """Converts a sequence of strings to a tuple of :class:`~pyradise.data.annotator.Annotator` instances.
 
     Args:
-        data_or_organ_name (Union[str, Tuple[str, str], OrganRaterCombination]): A string for the organ name, a tuple
-         of two strings for the organ name and the rater name, or a :class:`~pyradise.data.organ.OrganRaterCombination`
-         instance.
-        rater_name (Optional[str], optional): A string for the rater's name (default: None).
+        seq (Sequence[Union[str, Annotator]]): A sequence of strings or :class:`~pyradise.data.annotator.Annotator`
+         instances.
 
     Returns:
-        OrganRaterCombination: A :class:`~pyradise.data.organ.OrganRaterCombination` instance.
+        Tuple[Annotator, ...]: A tuple of :class:`~pyradise.data.annotator.Annotator` instances.
     """
-    if isinstance(data_or_organ_name, OrganRaterCombination):
+    return tuple(str_to_annotator(text) for text in seq)
+
+
+def str_to_organ_annotator_combination(data_or_organ_name: Union[str, Tuple[str, str], OrganAnnotatorCombination],
+                                       annotator_name: Optional[str] = None
+                                       ) -> OrganAnnotatorCombination:
+    """Converts a string to a :class:`~pyradise.data.organ.OrganAnnotatorCombination` instance.
+
+    Args:
+        data_or_organ_name (Union[str, Tuple[str, str], OrganAnnotatorCombination]): A string for the organ name, a
+         tuple of two strings for the organ name and the annotator name, or a
+         :class:`~pyradise.data.organ.OrganAnnotatorCombination` instance.
+        annotator_name (Optional[str], optional): A string for the annotator's name (default: None).
+
+    Returns:
+        OrganAnnotatorCombination: A :class:`~pyradise.data.organ.OrganAnnotatorCombination` instance.
+    """
+    if isinstance(data_or_organ_name, OrganAnnotatorCombination):
         return data_or_organ_name
 
     elif isinstance(data_or_organ_name, tuple):
-        return OrganRaterCombination(*data_or_organ_name)
+        return OrganAnnotatorCombination(*data_or_organ_name)
 
     else:
-        if rater_name is None:
-            raise ValueError('`rater_name` must be provided if `data_or_organ_name` is a string.')
-        return OrganRaterCombination(data_or_organ_name, rater_name)
+        if annotator_name is None:
+            raise ValueError('`annotator_name` must be provided if `data_or_organ_name` is a string.')
+        return OrganAnnotatorCombination(data_or_organ_name, annotator_name)
 
 
-def seq_to_organ_rater_combinations(seq: Sequence[Union[Tuple[str, str], OrganRaterCombination]],
-                                    ) -> Tuple[OrganRaterCombination, ...]:
-    """Converts a sequence of string tuples to a tuple of :class:`~pyradise.data.organ.OrganRaterCombination` instances.
+def seq_to_organ_annotator_combinations(seq: Sequence[Union[Tuple[str, str], OrganAnnotatorCombination]],
+                                        ) -> Tuple[OrganAnnotatorCombination, ...]:
+    """Converts a sequence of string tuples to a tuple of :class:`~pyradise.data.organ.OrganAnnotatorCombination`
+    instances.
 
     Args:
-        seq (Sequence[Union[Tuple[str, str], OrganRaterCombination]]): A sequence of tuples of two strings for the
-         organ names and the rater names or a sequence of :class:`~pyradise.data.organ.OrganRaterCombination` instances.
+        seq (Sequence[Union[Tuple[str, str], OrganAnnotatorCombination]]): A sequence of tuples of two strings for the
+         organ names and the annotator names or a sequence of :class:`~pyradise.data.organ.OrganAnnotatorCombination`
+         instances.
 
     Returns:
-        Tuple[OrganRaterCombination, ...]: A tuple of :class:`~pyradise.data.organ.OrganRaterCombination` instances.
+        Tuple[OrganAnnotatorCombination, ...]: A tuple of :class:`~pyradise.data.organ.OrganAnnotatorCombination`
+        instances.
     """
-    return tuple(str_to_organ_rater_combination(text) for text in seq)
+    return tuple(str_to_organ_annotator_combination(text) for text in seq)

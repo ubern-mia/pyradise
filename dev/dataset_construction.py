@@ -26,13 +26,13 @@ from pymia.data.transformation import (
 
 from pyradise.data import (
     Modality,
-    OrganRaterCombination)
+    OrganAnnotatorCombination)
 
 __all__ = ['SubjectFileLoader', 'FilePathGeneratorBase', 'SimpleFilePathGenerator', 'FileSystemCrawler',
            'SimpleSubjectFile', 'FileSystemDatasetCreator']
 
 
-FileKeyType = Union[Modality, OrganRaterCombination]
+FileKeyType = Union[Modality, OrganAnnotatorCombination]
 
 
 class SubjectFileLoader(Load):
@@ -79,7 +79,7 @@ class FilePathGeneratorBase(ABC):
         image_keys (Sequence[Modality, ...]): The keys for the images.
     """
     def __init__(self,
-                 label_keys: Sequence[OrganRaterCombination],
+                 label_keys: Sequence[OrganAnnotatorCombination],
                  image_keys: Sequence[Modality]
                  ) -> None:
         super().__init__()
@@ -124,7 +124,7 @@ class SimpleFilePathGenerator(FilePathGeneratorBase):
     """
 
     def __init__(self,
-                 label_keys: Tuple[OrganRaterCombination, ...],
+                 label_keys: Tuple[OrganAnnotatorCombination, ...],
                  image_keys: Tuple[Modality, ...],
                  ) -> None:
         super().__init__(label_keys, image_keys)

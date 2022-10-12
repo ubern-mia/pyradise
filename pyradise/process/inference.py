@@ -18,12 +18,12 @@ from pyradise.data import (
     SegmentationImage,
     Modality,
     Organ,
-    Rater,
+    Annotator,
     TransformInfo,
     str_to_modality,
     seq_to_modalities,
     seq_to_organs,
-    str_to_rater)
+    str_to_annotator)
 from .base import (
     Filter,
     FilterParams)
@@ -193,10 +193,10 @@ class InferenceFilterParams(FilterParams):
          instances.
         output_organs (Tuple[Union[str, Organ], ...]): The organs that get assigned to the created
          :class:`~pyradise.data.image.SegmentationImage` instances.
-        output_rater (Union[str, Rater]): The rater that get assigned to the created
+        output_annotator (Union[str, Annotator]): The annotator that get assigned to the created
          :class:`~pyradise.data.image.SegmentationImage` instances.
         organ_indices (Tuple[int, ...]): The indices of the organs on the output mask of the `model`
-         (must match `output_organs` and `output_raters`).
+         (must match `output_organs` and `output_annotators`).
         batch_size (int): The batch size to use for inference.
         indexing_strategy (IndexingStrategy): The :class:`~pyradise.process.inference.IndexingStrategy` defining how
          the data is fed to the `model`.
@@ -208,7 +208,7 @@ class InferenceFilterParams(FilterParams):
                  modalities: Tuple[Union[str, Modality], ...],
                  reference_modality: Union[str, Modality],
                  output_organs: Tuple[Union[str, Organ], ...],
-                 output_rater: Union[str, Rater],
+                 output_annotator: Union[str, Annotator],
                  organ_indices: Tuple[int, ...],
                  batch_size: int,
                  indexing_strategy: IndexingStrategy,
@@ -238,8 +238,8 @@ class InferenceFilterParams(FilterParams):
         # the organs that get assigned to the created segmentation images
         self.output_organs: Tuple[Organ, ...] = seq_to_organs(output_organs)
 
-        # the rater that get assigned to the created segmentation images
-        self.output_rater: Rater = str_to_rater(output_rater)
+        # the annotator that get assigned to the created segmentation images
+        self.output_annotator: Annotator = str_to_annotator(output_annotator)
 
         # the indexes of the organs on the output mask of the model (must match output_organs)
         if len(output_organs) != len(organ_indices):
@@ -553,7 +553,7 @@ class InferenceFilter(Filter):
             # Create a segmentation image from the image
             segmentation_image = SegmentationImage(image,
                                                    params.output_organs[idx],
-                                                   params.output_rater)
+                                                   params.output_annotator)
 
             # Copy the transform tape from the reference image such that the segmentation image
             # can be transformed in the same way as the reference image

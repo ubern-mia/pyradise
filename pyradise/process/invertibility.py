@@ -10,9 +10,9 @@ from pyradise.data import (
     SegmentationImage,
     TransformInfo,
     Modality,
-    OrganRaterCombination,
+    OrganAnnotatorCombination,
     seq_to_modalities,
-    seq_to_organ_rater_combinations)
+    seq_to_organ_annotator_combinations)
 from pyradise.process import (
     Filter,
     FilterParams)
@@ -27,14 +27,15 @@ class PlaybackTransformTapeFilterParams(FilterParams):
     Args:
         modalities (Optional[Tuple[Union[str, Modality], ...]]): A tuple of modalities for which the transform tape
          should be played back. If None, the transform tape will be played back for all modalities (default: None).
-        organ_rater_combinations (Optional[Tuple[Union[Tuple[str, str], OrganRaterCombination], ...]]): A tuple of
-         organ-rater combinations for which the transform tape should be played back. If None, the transform tape will
-         be played back for all organ-rater combinations (default: None).
+        organ_annotator_combinations (Optional[Tuple[Union[Tuple[str, str], OrganRaterCombination], ...]]): A tuple of
+         organ-annotator combinations for which the transform tape should be played back. If None, the transform tape
+         will be played back for all organ-annotator combinations (default: None).
     """
 
     def __init__(self,
                  modalities: Optional[Tuple[Union[str, Modality], ...]] = None,
-                 organ_rater_combinations: Optional[Tuple[Union[Tuple[str, str], OrganRaterCombination], ...]] = None
+                 organ_annotator_combinations: Optional[Tuple[Union[Tuple[str, str],
+                                                                    OrganAnnotatorCombination], ...]] = None
                  ) -> None:
         super().__init__()
 
@@ -43,10 +44,10 @@ class PlaybackTransformTapeFilterParams(FilterParams):
         else:
             self.modalities = None
 
-        if organ_rater_combinations is not None:
-            self.organ_rater_combinations = seq_to_organ_rater_combinations(organ_rater_combinations)
+        if organ_annotator_combinations is not None:
+            self.organ_annotator_combinations = seq_to_organ_annotator_combinations(organ_annotator_combinations)
         else:
-            self.organ_rater_combinations = organ_rater_combinations
+            self.organ_annotator_combinations = organ_annotator_combinations
 
 
 class PlaybackTransformTapeFilter(Filter):
@@ -90,8 +91,8 @@ class PlaybackTransformTapeFilter(Filter):
                 if not image.get_modality() in params.modalities:
                     continue
 
-            if isinstance(image, SegmentationImage) and params.organ_rater_combinations is not None:
-                if not image.get_organ_rater_combination() in params.organ_rater_combinations:
+            if isinstance(image, SegmentationImage) and params.organ_annotator_combinations is not None:
+                if not image.get_organ_annotator_combination() in params.organ_annotator_combinations:
                     continue
 
             # copy the original subject

@@ -32,11 +32,11 @@ Due to the fact that not all information necessary for :class:`~pyradise.data.su
 the file content the crawlers provide interfaces for information retrieval methods. The discrete image file
 crawlers (recognized by the word :data:`File` in their name) provide interfaces for three types of
 :class:`~pyradise.fileio.extraction.Extractor` s (i.e. :class:`~pyradise.fileio.extraction.ModalityExtractor`,
-:class:`~pyradise.fileio.extraction.OrganExtractor`, and :class:`~pyradise.fileio.extraction.RaterExtractor`) which
+:class:`~pyradise.fileio.extraction.OrganExtractor`, and :class:`~pyradise.fileio.extraction.AnnotatorExtractor`) which
 need to be implemented by the user for its specific task. Typically, the :class:`~pyradise.fileio.extraction.Extractor`
 s use parts of the file name to retrieve the necessary information (e.g. the modality from the file name or from a
 lookup table). Because DICOM data is more structured than discrete file formats and the information
-about the rater and the organs can be accessed directly in the DICOM-RTSS, DICOM crawlers provide just interfaces for
+about the annotator and the organs can be accessed directly in the DICOM-RTSS, DICOM crawlers provide just interfaces for
 retrieving the modality information of DICOM image data. This is essential when working with subject data consisting of
 multiple images from the same modality because DICOM provides just minimal information about the imaging modality such
 as for example MR for all types of MR-sequences. This minimal information may not be sufficient in many radiotherapy

@@ -18,7 +18,7 @@ from pyradise.data import (
     Subject,
     IntensityImage,
     SegmentationImage,
-    Rater)
+    Annotator)
 from pyradise.utils import remove_illegal_folder_chars
 from .series_info import (
     SeriesInfo,
@@ -65,10 +65,10 @@ def default_segmentation_file_name_fn(subject: Subject,
         str: The file name.
     """
     subject_name = remove_illegal_folder_chars(subject.name)
-    rater_name = remove_illegal_folder_chars(image.get_rater(as_str=True)) if isinstance(image.get_rater(), Rater) \
-        else 'NA'
+    annotator_name = remove_illegal_folder_chars(image.get_annotator(as_str=True)) \
+        if isinstance(image.get_annotator(), Annotator) else 'NA'
     organ_name = remove_illegal_folder_chars(image.get_organ(as_str=True))
-    return f'seg_{subject_name}_{rater_name}_{organ_name}'
+    return f'seg_{subject_name}_{annotator_name}_{organ_name}'
 
 
 class ImageFileFormat(Enum):
@@ -103,8 +103,9 @@ class SubjectWriter:
     Notes:
         This writer provides interfaces for file name generation functions which can be used to customize the file names
         of the intensity and segmentation images. Please be aware that certain patterns may cause problems if
-        the data should be reloaded again (e.g. separation of information by underline while separating the raters name
-        also with underline). Thus, check carefully if the file name generation function is suitable for your use case.
+        the data should be reloaded again (e.g. separation of information by underline while separating the annotators
+        name also with underline). Thus, check carefully if the file name generation function is suitable for your use
+        case.
 
         Currently, the serialization of :class:`~pyradise.data.image.IntensityImage` s,
         :class:`~pyradise.data.image.SegmentationImage` s, and transformations from the

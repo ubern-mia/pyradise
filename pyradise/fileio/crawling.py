@@ -28,7 +28,7 @@ from .series_info import (
     DicomSeriesRTSSInfo)
 from .extraction import (
     ModalityExtractor,
-    RaterExtractor,
+    AnnotatorExtractor,
     OrganExtractor)
 
 
@@ -80,7 +80,7 @@ class SubjectFileCrawler(Crawler):
         extension (str): The file extension of the files to be searched.
         modality_extractor (ModalityExtractor): The modality extractor.
         organ_extractor (OrganExtractor): The organ extractor.
-        rater_extractor (RaterExtractor): The rater extractor.
+        annotator_extractor (AnnotatorExtractor): The annotator extractor.
 
     """
 
@@ -90,7 +90,7 @@ class SubjectFileCrawler(Crawler):
                  extension: str,
                  modality_extractor: ModalityExtractor,
                  organ_extractor: OrganExtractor,
-                 rater_extractor: RaterExtractor
+                 annotator_extractor: AnnotatorExtractor
                  ) -> None:
         super().__init__(path)
 
@@ -102,7 +102,7 @@ class SubjectFileCrawler(Crawler):
         self.subject_name = subject_name
         self.modality_extractor = modality_extractor
         self.organ_extractor = organ_extractor
-        self.rater_extractor = rater_extractor
+        self.annotator_extractor = annotator_extractor
 
     def execute(self) -> Tuple[FileSeriesInfo, ...]:
         """Execute the crawling process.
@@ -125,9 +125,9 @@ class SubjectFileCrawler(Crawler):
 
                     if is_segmentation:
                         organ = self.organ_extractor.extract(file_path)
-                        rater = self.rater_extractor.extract(file_path)
+                        annotator = self.annotator_extractor.extract(file_path)
 
-                        series_info = SegmentationFileSeriesInfo(file_path, self.subject_name, organ, rater)
+                        series_info = SegmentationFileSeriesInfo(file_path, self.subject_name, organ, annotator)
                     else:
                         series_info = IntensityFileSeriesInfo(file_path, self.subject_name, modality)
 
@@ -151,9 +151,9 @@ class DatasetFileCrawler(Crawler):
 
         Demonstration of the iterative and the non-iterative loading approach:
 
-        >>> from pyradise.data import (Modality, Organ, Rater)
+        >>> from pyradise.data import (Modality, Organ, Annotator)
         >>> from pyradise.fileio import (DatasetFileCrawler, ModalityExtractor,
-        >>>                              OrganExtractor, RaterExtractor, SubjectLoader)
+        >>>                              OrganExtractor, AnnotatorExtractor, SubjectLoader)
         >>>
         >>>
         >>> # An example modality extractor
@@ -185,13 +185,13 @@ class DatasetFileCrawler(Crawler):
         >>>             return None
         >>>
         >>>
-        >>> # An example rater extractor
-        >>> class MyRaterExtractor(RaterExtractor):
+        >>> # An example annotator extractor
+        >>> class MyAnnotatorExtractor(AnnotatorExtractor):
         >>>
-        >>>     def extract(self, path: str) -> Optional[Rater]:
+        >>>     def extract(self, path: str) -> Optional[Annotator]:
         >>>         file_name = os.path.basename(path).lower()
         >>>         if 'example_expert' in file_name:
-        >>>             return Rater('ExampleExpert')
+        >>>             return Annotator('ExampleExpert')
         >>>         return None
         >>>
         >>>
@@ -200,7 +200,7 @@ class DatasetFileCrawler(Crawler):
         >>>
         >>>     # Create the crawler
         >>>     crawler = DatasetFileCrawler(dataset_path, extension, MyModalityExtractor(),
-        >>>                                  MyOrganExtractor(), MyRaterExtractor())
+        >>>                                  MyOrganExtractor(), MyAnnotatorExtractor())
         >>>
         >>>     # Use the crawler iteratively (more memory efficient)
         >>>     for series_info in crawler:
@@ -214,7 +214,7 @@ class DatasetFileCrawler(Crawler):
         >>>
         >>>     # Create the crawler
         >>>     crawler = DatasetFileCrawler(dataset_path, extension, MyModalityExtractor(),
-        >>>                                  MyOrganExtractor(), MyRaterExtractor())
+        >>>                                  MyOrganExtractor(), MyAnnotatorExtractor())
         >>>
         >>>     # Use the crawler with the execute function
         >>>     # (all series info entries are loaded in one step)
@@ -234,7 +234,7 @@ class DatasetFileCrawler(Crawler):
         extension (str): The file extension of the image files to be crawled.
         modality_extractor (ModalityExtractor): The modality extractor.
         organ_extractor (OrganExtractor): The organ extractor.
-        rater_extractor (RaterExtractor): The rater extractor.
+        annotator_extractor (AnnotatorExtractor): The annotator extractor.
     """
 
     def __init__(self,
@@ -242,7 +242,7 @@ class DatasetFileCrawler(Crawler):
                  extension: str,
                  modality_extractor: ModalityExtractor,
                  organ_extractor: OrganExtractor,
-                 rater_extractor: RaterExtractor
+                 annotator_extractor: AnnotatorExtractor
                  ) -> None:
         super().__init__(path)
 
@@ -253,7 +253,7 @@ class DatasetFileCrawler(Crawler):
 
         self.modality_extractor = modality_extractor
         self.organ_extractor = organ_extractor
-        self.rater_extractor = rater_extractor
+        self.annotator_extractor = annotator_extractor
 
         subject_dir_paths = self._get_subject_dir_paths(self.path, self.extension)
         self.subject_dir_path = tuple(sorted(subject_dir_paths))
@@ -296,7 +296,7 @@ class DatasetFileCrawler(Crawler):
         for subject_dir, subject_name in zip(self.subject_dir_path, self.subject_names):
             subject_file_crawler = SubjectFileCrawler(subject_dir, subject_name, self.extension,
                                                       self.modality_extractor, self.organ_extractor,
-                                                      self.rater_extractor)
+                                                      self.annotator_extractor)
             subject_files.append(subject_file_crawler.execute())
 
         return tuple(subject_files)
@@ -312,7 +312,7 @@ class DatasetFileCrawler(Crawler):
                                               self.extension,
                                               self.modality_extractor,
                                               self.organ_extractor,
-                                              self.rater_extractor).execute()
+                                              self.annotator_extractor).execute()
             self.current_idx += 1
             return subject_info
         else:

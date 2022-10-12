@@ -7,7 +7,7 @@ import itk
 from pyradise.data import (
     Subject,
     IntensityImage,
-    Rater,
+    Annotator,
     Organ,
     SegmentationImage)
 from pyradise.process.base import (
@@ -26,7 +26,7 @@ class SegmentationCheckingFilterParams(FilterParams):
         required_organs (Tuple[Organ, ...]): The organs which must be contained in the subject.
         reference_image (Union[IntensityImage, SegmentationImage]): The reference image for newly constructed label
          images.
-        default_rater (Union[Rater, str]): The default rater for newly constructed label images
+        default_rater (Union[Annotator, str]): The default rater for newly constructed label images
          (default: Rater.get_default()).
         strict (bool): If True organs in the subject which are not part of the required organs will be deleted
          (default: False).
@@ -35,7 +35,7 @@ class SegmentationCheckingFilterParams(FilterParams):
     def __init__(self,
                  required_organs: Tuple[Organ, ...],
                  reference_image: Union[IntensityImage, SegmentationImage],
-                 default_rater: Union[Rater, str] = Rater.get_default(),
+                 default_rater: Union[Annotator, str] = Annotator.get_default(),
                  strict: bool = False
                  ) -> None:
         super().__init__()
@@ -44,9 +44,9 @@ class SegmentationCheckingFilterParams(FilterParams):
         self.strict = strict
 
         if isinstance(default_rater, str):
-            self.default_rater: Rater = Rater(default_rater)
+            self.default_rater: Annotator = Annotator(default_rater)
         else:
-            self.default_rater: Rater = default_rater
+            self.default_rater: Annotator = default_rater
 
 
 class SegmentationCheckingFilter(Filter):

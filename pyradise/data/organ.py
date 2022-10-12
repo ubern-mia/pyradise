@@ -2,10 +2,10 @@ from typing import (
     Optional,
     Union)
 
-from .rater import Rater
+from .annotator import Annotator
 
 
-__all__ = ['Organ', 'OrganRaterCombination']
+__all__ = ['Organ', 'OrganAnnotatorCombination']
 
 
 class Organ:
@@ -61,28 +61,28 @@ class Organ:
         return hash(str(self))
 
 
-class OrganRaterCombination:
-    """A class combining an :class:`Organ` with a :class:`~pyradise.data.rater.Rater`.
+class OrganAnnotatorCombination:
+    """A class combining an :class:`Organ` with a :class:`~pyradise.data.annotator.Annotator`.
 
     Args:
         organ (Union[Organ, str]): The :class:`Organ` or its name.
-        rater (Union[Rater, str]): The :class:`~pyradise.data.rater.Rater` or its name.
+        annotator (Union[Annotator, str]): The :class:`~pyradise.data.annotator.Annotator` or its name.
     """
 
     def __init__(self,
                  organ: Union[Organ, str],
-                 rater: Union[Rater, str]
+                 annotator: Union[Annotator, str]
                  ) -> None:
         super().__init__()
 
         if isinstance(organ, str):
             organ = Organ(organ)
 
-        if isinstance(rater, str):
-            rater = Rater(rater)
+        if isinstance(annotator, str):
+            annotator = Annotator(annotator)
 
         self.organ: Organ = organ
-        self.rater: Rater = rater
+        self.annotator: Annotator = annotator
 
     def __str__(self) -> str:
         return self.name
@@ -95,9 +95,9 @@ class OrganRaterCombination:
 
     @property
     def name(self) -> str:
-        """Get the name of the :class:`OrganRaterCombination`.
+        """Get the name of the :class:`OrganAnnotatorCombination`.
 
         Returns:
             str: The combined name.
         """
-        return self.organ.name + '_' + self.rater.name
+        return self.organ.name + '_' + self.annotator.name

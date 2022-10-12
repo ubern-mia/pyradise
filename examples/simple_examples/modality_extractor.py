@@ -7,10 +7,10 @@ from typing import (
 import SimpleITK as sitk
 import numpy as np
 
-from pyradise.data import Modality, IntensityImage, Organ, Rater
+from pyradise.data import Modality, IntensityImage, Organ, Annotator
 from pyradise.fileio import (IterableDicomCrawler, ModalityExtractor, SubjectWriter,
-                             SubjectLoader, SubjectDicomCrawler, Tag,  DatasetFileCrawler, OrganExtractor,
-                             RaterExtractor)
+                             SubjectLoader, SubjectDicomCrawler, Tag, DatasetFileCrawler, OrganExtractor,
+                             AnnotatorExtractor)
 
 
 class ExampleModalityExtractor(ModalityExtractor):
@@ -84,13 +84,13 @@ class ExampleOrganExtractor(OrganExtractor):
             return None
 
 
-class ExampleRaterExtractor(RaterExtractor):
+class ExampleAnnotatorExtractor(AnnotatorExtractor):
 
-    def extract(self, path: str) -> Optional[Rater]:
+    def extract(self, path: str) -> Optional[Annotator]:
         file_name = os.path.basename(path)
 
         if 'Robert_Poel' in file_name:
-            return Rater('RP')
+            return Annotator('RP')
         else:
             return None
 
@@ -147,7 +147,7 @@ def main3():
     input_path = 'D:/temp/test_data_output'
 
     crawler = DatasetFileCrawler(input_path, '.nii.gz', ExampleModalityExtractor(), ExampleOrganExtractor(),
-                                 ExampleRaterExtractor())
+                                 ExampleAnnotatorExtractor())
 
     for subject_info in crawler:
         subject = SubjectLoader().load(subject_info)

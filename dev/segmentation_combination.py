@@ -11,7 +11,7 @@ import SimpleITK as sitk
 
 from pyradise.data import (
     Subject,
-    Rater,
+    Annotator,
     Organ,
     SegmentationImage)
 from pyradise.process.base import (
@@ -26,7 +26,7 @@ class SegmentationCombinationFilterParams(FilterParams):
     def __init__(self,
                  organs: Union[Tuple[str, ...], Tuple[Organ, ...]],
                  output_organ: Union[str, Organ],
-                 output_rater: Union[str, Rater] = Rater.get_default(),
+                 output_rater: Union[str, Annotator] = Annotator.get_default(),
                  exclude_terms: Tuple[str, ...] = (),
                  remove_organs: bool = True,
                  matching_method: str = 'exact',
@@ -37,7 +37,7 @@ class SegmentationCombinationFilterParams(FilterParams):
         Args:
             organs (Union[Tuple[str, ...], Tuple[Organ, ...]]): The organs to combine.
             output_organ (Union[str, Organ]): The organ of the combined segmentation image.
-            output_rater (Union[str, Rater]): The rater of the combined segmentation image
+            output_rater (Union[str, Annotator]): The rater of the combined segmentation image
              (default: Rater.get_default()).
             exclude_terms (Tuple[str, ...]): Exclude terms in the organ name.
             remove_organs (bool): Indicates if the segmentation images to combine should be removed after combination
@@ -58,7 +58,7 @@ class SegmentationCombinationFilterParams(FilterParams):
             self.output_organ = output_organ
 
         if isinstance(output_rater, str):
-            self.output_rater = Rater(output_rater)
+            self.output_rater = Annotator(output_rater)
         else:
             self.output_rater = output_rater
 
@@ -274,9 +274,9 @@ class CombineEnumeratedLabelFilterParams(FilterParams):
     def __init__(self,
                  organs: Dict[int, Organ],
                  combination_order: Optional[Tuple[int, ...]],
-                 required_rater: Optional[Rater],
+                 required_rater: Optional[Annotator],
                  output_organ: Union[Organ, str],
-                 output_rater: Optional[Union[Rater, str]] = None,
+                 output_rater: Optional[Union[Annotator, str]] = None,
                  remove_combined: bool = False
                  ) -> None:
         """Constructs the parameters for a CombineEnumeratedLabelFilter.
@@ -285,7 +285,7 @@ class CombineEnumeratedLabelFilterParams(FilterParams):
             organs (Dict[int, Organ]): A dict specifying the organs which should be combined and their output label
              index.
             combination_order (Optional[Tuple[int, ...]]): The order how the organs get combined.
-            required_rater (Optional[Rater]): If given adds a criterion for a matching rater.
+            required_rater (Optional[Annotator]): If given adds a criterion for a matching rater.
             output_organ (Union[Organ, str]): Specifies the output organ.
             output_rater (Optional[Union[Rater, str]]): Specifies the output rater.
             remove_combined (bool): Indicates if the combined segmentation masks should be removed from the subject.
@@ -314,10 +314,10 @@ class CombineEnumeratedLabelFilterParams(FilterParams):
 
         if not output_rater:
             self.output_rater = None
-        elif isinstance(output_rater, Rater):
+        elif isinstance(output_rater, Annotator):
             self.output_rater = output_rater
         else:
-            self.output_rater = Rater(output_rater)
+            self.output_rater = Annotator(output_rater)
 
         self.remove_combined = remove_combined
 
@@ -345,7 +345,7 @@ class CombineEnumeratedLabelFilter(Filter):
                 criteria = (segmentation.get_organ() == organ,)
             else:
                 criteria = (segmentation.get_organ() == organ,
-                            segmentation.get_rater() == params.required_rater)
+                            segmentation.get_annotator() == params.required_rater)
 
             if all(criteria):
                 result = True
@@ -479,7 +479,7 @@ class CombineSegmentationsFilterParams(FilterParams):
     def __init__(self,
                  organs_to_combine: Union[Tuple[Organ, ...], Tuple[str, ...]],
                  new_organ: Organ,
-                 new_rater: Rater = Rater.get_default(),
+                 new_rater: Annotator = Annotator.get_default(),
                  allow_override: bool = False
                  ) -> None:
         """Constructs the parameters for a CombineSegmentationsFilter.
@@ -488,7 +488,7 @@ class CombineSegmentationsFilterParams(FilterParams):
             organs_to_combine (Union[Tuple[Organ, ...], Tuple[str, ...]]): The organs identifying the images to be
              combined.
             new_organ (Organ): The organ of the combined segmentation image.
-            new_rater (Rater): The rater for the combined segmentation image (default: Rater.get_default()).
+            new_rater (Annotator): The rater for the combined segmentation image (default: Rater.get_default()).
             allow_override (bool): If true allows the overriding of a possible existing image with the newly combined,
              otherwise not (default: False).
         """

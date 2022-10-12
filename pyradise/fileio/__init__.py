@@ -16,10 +16,10 @@ from .series_info import (
 from .extraction import (
     ModalityExtractor,
     OrganExtractor,
-    RaterExtractor,
+    AnnotatorExtractor,
     SimpleModalityExtractor,
     SimpleOrganExtractor,
-    SimpleRaterExtractor)
+    SimpleAnnotatorExtractor)
 
 from pydicom.tag import Tag
 
@@ -35,7 +35,7 @@ from .selection import (
     SeriesInfoSelectorPipeline,
     ModalityInfoSelector,
     OrganInfoSelector,
-    RaterInfoSelector,
+    AnnotatorInfoSelector,
     NoRegistrationInfoSelector,
     NoRTSSInfoSelector)
 

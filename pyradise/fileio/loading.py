@@ -199,7 +199,7 @@ class SubjectLoader(ExplicitLoader):
         images = []
         for info_entry in info:
             image = sitk.ReadImage(info_entry.get_path()[0], pixel_value_type)
-            images.append(SegmentationImage(image, info_entry.get_organ(), info_entry.get_rater()))
+            images.append(SegmentationImage(image, info_entry.get_organ(), info_entry.get_annotator()))
 
         return tuple(images)
 

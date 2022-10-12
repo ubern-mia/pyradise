@@ -14,14 +14,14 @@ from pydicom.tag import Tag
 from pyradise.data import (
     Modality,
     Organ,
-    Rater)
+    Annotator)
 from pyradise.utils import (
     load_dataset_tag,
     is_dicom_file)
 
 
 __all__ = ['Extractor', 'ModalityExtractor', 'SimpleModalityExtractor', 'OrganExtractor', 'SimpleOrganExtractor',
-           'RaterExtractor', 'SimpleRaterExtractor']
+           'AnnotatorExtractor', 'SimpleAnnotatorExtractor']
 
 
 class Extractor(ABC):
@@ -29,7 +29,7 @@ class Extractor(ABC):
     the files content or from any other source of data in order to provide identification information
     (e.g. the imaging modality of a certain NIFTI file). Extractors can be used in combination with a
     :class:`~pyradise.fileio.crawling.Crawler` to extract the :class:`~pyradise.data.modality.Modality`,
-    :class:`~pyradise.data.organ.Organ` or :class:`~pyradise.data.rater.Rater` instances for
+    :class:`~pyradise.data.organ.Organ` or :class:`~pyradise.data.annotator.Annotator` instances for
     :class:`~pyradise.data.subject.Subject` construction.
 
     Typically, the user needs to implement the concrete extractor classes specific for the current task. This renders
@@ -416,26 +416,26 @@ class SimpleOrganExtractor(OrganExtractor):
         return None
 
 
-class RaterExtractor(Extractor):
-    """A prototype class to extract an :class:`~pyradise.data.rater.Rater` from a discrete image file path. This class
-    must be implemented by the user and is intended to be used with a :class:`~pyradise.fileio.crawling.Crawler` for
-    discrete image formats.
+class AnnotatorExtractor(Extractor):
+    """A prototype class to extract an :class:`~pyradise.data.annotator.Annotator` from a discrete image file path.
+    This class must be implemented by the user and is intended to be used with a
+    :class:`~pyradise.fileio.crawling.Crawler` for discrete image formats.
 
     Important:
         If the file path does not specify a segmentation image the extractor must return :data:`None`.
 
     Example:
 
-        Example of an :class:`RaterExtractor` implementation which takes search strings and associated rater names to
-        extract a :class:`~pyradise.data.rater.Rater` from a file path:
+        Example of an :class:`AnnotatorExtractor` implementation which takes search strings and associated annotator
+        names to extract a :class:`~pyradise.data.annotator.Annotator` from a file path:
 
         >>> from typing import (Any, Dict, Optional)
         >>>
-        >>> from pyradise.fileio import RaterExtractor
-        >>> from pyradise.data import Rater
+        >>> from pyradise.fileio import AnnotatorExtractor
+        >>> from pyradise.data import Annotator
         >>>
         >>>
-        >>> class ExampleRaterExtractor(RaterExtractor):
+        >>> class ExampleAnnotatorExtractor(AnnotatorExtractor):
         >>>
         >>>     def __init__(self,
         >>>                  search_strings: Dict[str, str],
@@ -445,63 +445,64 @@ class RaterExtractor(Extractor):
         >>>
         >>>         assert len(search_strings) == len(names), /
         >>>         f'Number of search strings ({len(search_strings)}) must match the' \
-        >>>         f'number of rater names ({len(names)})!'
+        >>>         f'number of annotator names ({len(names)})!'
         >>>
         >>>         self.search_strings = search_strings
         >>>         self.names = names
         >>>
-        >>>     def extract(self, path: str) -> Optional[Rater]:
+        >>>     def extract(self, path: str) -> Optional[Annotator]:
         >>>         file_name = os.path.basename(path)
         >>>
         >>>         for search_string, name in zip(self.search_strings, self.names):
         >>>             if search_string in file_name:
-        >>>                 return Rater(name)
+        >>>                 return Annotator(name)
         >>>
         >>>         return None
     """
 
-    def extract(self, path: str) -> Optional[Rater]:
-        """Extract the :class:`~pyradise.data.rater.Rater` from the file path.
+    def extract(self, path: str) -> Optional[Annotator]:
+        """Extract the :class:`~pyradise.data.annotator.Annotator` from the file path.
 
         Args:
-            path (str): The path to the file to extract the :class:`~pyradise.data.rater.Rater` for.
+            path (str): The path to the file to extract the :class:`~pyradise.data.annotator.Annotator` for.
 
         Returns:
-            Optional[Rater]: The extracted :class:`~pyradise.data.rater.Rater` or :data:`None`.
+            Optional[Annotator]: The extracted :class:`~pyradise.data.annotator.Annotator` or :data:`None`.
         """
         raise NotImplementedError('The extract method needs to be adopted for the intended use case!')
 
 
-class SimpleRaterExtractor(RaterExtractor):
-    """A simple :class:`RaterExtractor` implementation that searches for a provided set of rater names
-    (``raters``) in the file name and generates a :class:`~pyradise.data.rater.Rater` with the same name. If no
-    match is found :data:`None` is returned.
+class SimpleAnnotatorExtractor(AnnotatorExtractor):
+    """A simple :class:`AnnotatorExtractor` implementation that searches for a provided set of annotator names
+    (``annotators``) in the file name and generates a :class:`~pyradise.data.annotator.Annotator` with the same name.
+    If no match is found :data:`None` is returned.
 
     Args:
-        raters (Tuple[str, ...]): The possible rater names which will also be used to name the output :class:`Rater`.
+        annotators (Tuple[str, ...]): The possible annotator names which will also be used to name the output
+         :class:`Annotator`.
 
     """
 
-    def __init__(self, raters: Tuple[str, ...]) -> None:
+    def __init__(self, annotators: Tuple[str, ...]) -> None:
         super().__init__()
 
-        self.raters = raters
+        self.annotators = annotators
 
-    def extract(self, path: str) -> Optional[Rater]:
-        """Extract the :class:`~pyradise.data.rater.Rater` from the file name using the provided ``raters``. If no
-        :class:`~pyradise.data.rater.Rater` can be extracted or the file does not contain a segmentation image
-        :data:`None` is returned.
+    def extract(self, path: str) -> Optional[Annotator]:
+        """Extract the :class:`~pyradise.data.annotator.Annotator` from the file name using the provided ``annotators``.
+        If no :class:`~pyradise.data.annotator.Annotator` can be extracted or the file does not contain a segmentation
+        image :data:`None` is returned.
 
         Args:
-            path (str): The path to the file to extract the :class:`~pyradise.data.rater.Rater` for.
+            path (str): The path to the file to extract the :class:`~pyradise.data.annotator.Annotator` for.
 
         Returns:
-            Optional[Rater]: The extracted :class:`~pyradise.data.rater.Rater` or :data:`None`.
+            Optional[Annotator]: The extracted :class:`~pyradise.data.annotator.Annotator` or :data:`None`.
         """
         file_name = os.path.basename(path)
 
-        for rater in self.raters:
-            if rater in file_name:
-                return Rater(rater)
+        for annotator in self.annotators:
+            if annotator in file_name:
+                return Annotator(annotator)
 
         return None

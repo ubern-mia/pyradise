@@ -8,10 +8,10 @@ from typing import (
 from pyradise.data import (
     Modality,
     Organ,
-    Rater,
+    Annotator,
     seq_to_modalities,
     seq_to_organs,
-    seq_to_raters)
+    seq_to_annotators)
 from .series_info import (
     SeriesInfo,
     IntensityFileSeriesInfo,
@@ -22,7 +22,7 @@ from .series_info import (
     DicomSeriesRTSSInfo)
 
 __all__ = ['SeriesInfoSelector', 'SeriesInfoSelectorPipeline', 'ModalityInfoSelector', 'OrganInfoSelector',
-           'RaterInfoSelector', 'NoRegistrationInfoSelector', 'NoRTSSInfoSelector']
+           'AnnotatorInfoSelector', 'NoRegistrationInfoSelector', 'NoRTSSInfoSelector']
 
 
 class SeriesInfoSelector(ABC):
@@ -210,28 +210,28 @@ class OrganInfoSelector(SeriesInfoSelector):
         return tuple(selected)
 
 
-class RaterInfoSelector(SeriesInfoSelector):
+class AnnotatorInfoSelector(SeriesInfoSelector):
     """A :class:`SeriesInfoSelector` to remove all :class:`~pyradise.fileio.series_info.SegmentationFileSeriesInfo` and
     :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` entries that do not have a matching
-    :class:`~pyradise.data.rater.Rater`.
+    :class:`~pyradise.data.annotator.Annotator`.
 
     Args:
-        keep (Tuple[Union[Rater, str], ...]): The :class:`~pyradise.data.rater.Rater` entries of the
+        keep (Tuple[Union[Annotator, str], ...]): The :class:`~pyradise.data.annotator.Annotator` entries of the
          :class:`~pyradise.fileio.series_info.SeriesInfo` entries to keep.
     """
 
-    def __init__(self, keep: Tuple[Union[Rater, str], ...]) -> None:
+    def __init__(self, keep: Tuple[Union[Annotator, str], ...]) -> None:
         super().__init__()
 
-        assert keep, 'The raters to keep must not be empty!'
-        self.keep: Tuple[Rater, ...] = seq_to_raters(keep)
+        assert keep, 'The annotators to keep must not be empty!'
+        self.keep: Tuple[Annotator, ...] = seq_to_annotators(keep)
 
     # noinspection DuplicatedCode
     # pylint: disable=duplicate-code
     def execute(self, infos: Sequence[SeriesInfo]) -> Tuple[SeriesInfo, ...]:
         """Remove all :class:`~pyradise.fileio.series_info.SegmentationFileSeriesInfo` and
         :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` entries that do not contain one of the specified
-        :class:`~pyradise.data.rater.Rater` entries.
+        :class:`~pyradise.data.annotator.Annotator` entries.
 
         Args:
             infos (Sequence[SeriesInfo]): The :class:`~pyradise.fileio.series_info.SeriesInfo` entries to select from.
@@ -244,11 +244,11 @@ class RaterInfoSelector(SeriesInfoSelector):
         selected: List[SeriesInfo] = []
         for info in infos:
             if isinstance(info, SegmentationFileSeriesInfo):
-                if info.get_rater() in self.keep:
+                if info.get_annotator() in self.keep:
                     selected.append(info)
 
             elif isinstance(info, DicomSeriesRTSSInfo):
-                if info.rater in self.keep:
+                if info.annotator in self.keep:
                     selected.append(info)
             else:
                 selected.append(info)

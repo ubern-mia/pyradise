@@ -2541,7 +2541,7 @@ class DicomRTSSSeriesConverter(Converter):
             structures = RTSSToSegmentConverter(dataset, ref_image_info.path, reg_dataset).convert()
 
             for roi_name, segmentation_image in structures.items():
-                images.append(SegmentationImage(segmentation_image, Organ(roi_name), rtss_info.rater))
+                images.append(SegmentationImage(segmentation_image, Organ(roi_name), rtss_info.get_annotator()))
 
         return tuple(images)
 
@@ -2608,7 +2608,7 @@ class SubjectToRTSSConverter(Converter):
         for image in subject.segmentation_images:
             if not image.is_binary():
                 raise ValueError(f'The segmentation image of organ {image.get_organ(True)} and '
-                                 f'rater {image.get_rater(True)} is not binary or empty!')
+                                 f'annotator {image.get_annotator(True)} is not binary or empty!')
 
         if not isinstance(config, (RTSSConverter2DConfiguration, RTSSConverter3DConfiguration)):
             raise ValueError(f'The config type {type(config)} is not supported!')
@@ -2658,37 +2658,37 @@ class SubjectToRTSSConverter(Converter):
         return rtss
 
 
-def show_polydata(polydata: vtk_dm.vtkPolyData) -> None:
-    import vtkmodules.vtkInteractionStyle
-    import vtkmodules.vtkRenderingOpenGL2
-    from vtkmodules.vtkCommonColor import vtkNamedColors
-    from vtkmodules.vtkRenderingCore import (
-        vtkActor,
-        vtkPolyDataMapper,
-        vtkRenderWindow,
-        vtkRenderWindowInteractor,
-        vtkRenderer
-    )
-
-    # Visualize
-    colors = vtkNamedColors()
-
-    mapper = vtkPolyDataMapper()
-    mapper.SetInputData(polydata)
-    actor = vtkActor()
-    actor.SetMapper(mapper)
-    actor.GetProperty().SetLineWidth(4)
-    actor.GetProperty().SetColor(colors.GetColor3d("Peacock"))
-
-    renderer = vtkRenderer()
-    renderWindow = vtkRenderWindow()
-    renderWindow.SetWindowName("Line")
-    renderWindow.AddRenderer(renderer)
-    renderWindowInteractor = vtkRenderWindowInteractor()
-    renderWindowInteractor.SetRenderWindow(renderWindow)
-
-    renderer.SetBackground(colors.GetColor3d("Silver"))
-    renderer.AddActor(actor)
-
-    renderWindow.Render()
-    renderWindowInteractor.Start()
+# def show_polydata(polydata: vtk_dm.vtkPolyData) -> None:
+#     import vtkmodules.vtkInteractionStyle
+#     import vtkmodules.vtkRenderingOpenGL2
+#     from vtkmodules.vtkCommonColor import vtkNamedColors
+#     from vtkmodules.vtkRenderingCore import (
+#         vtkActor,
+#         vtkPolyDataMapper,
+#         vtkRenderWindow,
+#         vtkRenderWindowInteractor,
+#         vtkRenderer
+#     )
+#
+#     # Visualize
+#     colors = vtkNamedColors()
+#
+#     mapper = vtkPolyDataMapper()
+#     mapper.SetInputData(polydata)
+#     actor = vtkActor()
+#     actor.SetMapper(mapper)
+#     actor.GetProperty().SetLineWidth(4)
+#     actor.GetProperty().SetColor(colors.GetColor3d("Peacock"))
+#
+#     renderer = vtkRenderer()
+#     renderWindow = vtkRenderWindow()
+#     renderWindow.SetWindowName("Line")
+#     renderWindow.AddRenderer(renderer)
+#     renderWindowInteractor = vtkRenderWindowInteractor()
+#     renderWindowInteractor.SetRenderWindow(renderWindow)
+#
+#     renderer.SetBackground(*colors.GetColor3d("Silver"))
+#     renderer.AddActor(actor)
+#
+#     renderWindow.Render()
+#     renderWindowInteractor.Start()

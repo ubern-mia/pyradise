@@ -1,10 +1,10 @@
 from .modality import Modality
 
-from .rater import Rater
+from .annotator import Annotator
 
 from .organ import (
     Organ,
-    OrganRaterCombination)
+    OrganAnnotatorCombination)
 
 from .image import (
     Image,
@@ -24,7 +24,7 @@ from .utils import (
     seq_to_modalities,
     str_to_organ,
     seq_to_organs,
-    str_to_rater,
-    seq_to_raters,
-    str_to_organ_rater_combination,
-    seq_to_organ_rater_combinations)
+    str_to_annotator,
+    seq_to_annotators,
+    str_to_organ_annotator_combination,
+    seq_to_organ_annotator_combinations)

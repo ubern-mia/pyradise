@@ -52,7 +52,7 @@ Segmentation Image
 
 Additionally to the image data and the transform tape, a :class:`~pyradise.data.image.SegmentationImage` contains
 information about the :class:`~pyradise.data.organ.Organ` segmented on the image and the
-:class:`~pyradise.data.rater.Rater` who generated the segmentations / contours. By design, each
+:class:`~pyradise.data.annotator.Annotator` who generated the segmentations / contours. By design, each
 :class:`~pyradise.data.image.SegmentationImage` instance should contain a single organ / label to allow for simple
 processing. As explained earlier this is not a hard constraint and can be circumvented in appropriate cases such as
 for example if one needs to output multi-label segmentations.

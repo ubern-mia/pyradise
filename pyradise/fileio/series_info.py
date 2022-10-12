@@ -18,10 +18,10 @@ from pydicom.tag import Tag
 from pyradise.data import (
     Modality,
     Organ,
-    Rater,
+    Annotator,
     str_to_modality,
     str_to_organ,
-    str_to_rater)
+    str_to_annotator)
 from pyradise.utils import (
     is_file_and_exists,
     is_dir_and_exists,
@@ -41,8 +41,8 @@ class SeriesInfo(ABC):
     Depending on the type of data, the :class:`SeriesInfo` subclasses retrieve different information which is essential
     for loading and :class:`~pyradise.data.subject.Subject` construction. For example, the
     :class:`DicomSeriesImageInfo` retrieves and holds data about the :class:`~pyradise.data.modality.Modality`
-    whereas the :class:`DicomSeriesRTSSInfo` manages information about the :class:`~pyradise.data.rater.Rater` and
-    information about the referenced DICOM image series.
+    whereas the :class:`DicomSeriesRTSSInfo` manages information about the :class:`~pyradise.data.annotator.Annotator`
+    and information about the referenced DICOM image series.
 
     Args:
         path (Union[str, Tuple[str, ...]]): The path or paths to the files to load.
@@ -223,7 +223,7 @@ class IntensityFileSeriesInfo(FileSeriesInfo):
 class SegmentationFileSeriesInfo(FileSeriesInfo):
     """A :class:`FileSeriesInfo` class for segmentation images. In addition to the information provided by the
     :class:`FileSeriesInfo` class, this class contains also an :class:`~pyradise.data.organ.Organ` instance and a
-    :class:`~pyradise.data.rater.Rater` instance.
+    :class:`~pyradise.data.annotator.Annotator` instance.
 
     Note:
         We assume that the segmentation image is a binary image with the foreground having the value 1 and the
@@ -234,21 +234,21 @@ class SegmentationFileSeriesInfo(FileSeriesInfo):
         path (str): The path to the discrete segmentation image file to load.
         subject_name (str): The name of the subject.
         organ (Union[Organ, str]): The organ the segmentation is representing.
-        rater (Union[Rater, str]): The rater who created the segmentation.
+        annotator (Union[Annotator, str]): The annotator who created the segmentation.
     """
 
     def __init__(self,
                  path: str,
                  subject_name: str,
                  organ: Union[Organ, str],
-                 rater: Union[Rater, str]
+                 annotator: Union[Annotator, str]
                  ) -> None:
         if not isinstance(path, str):
             raise TypeError(f'Expected a single path as a string but got {type(path)}.')
         super().__init__(path, subject_name)
 
         self.organ: Organ = str_to_organ(organ)
-        self.rater: Rater = str_to_rater(rater)
+        self.annotator: Annotator = str_to_annotator(annotator)
 
         self.update()
 
@@ -271,24 +271,24 @@ class SegmentationFileSeriesInfo(FileSeriesInfo):
         """
         self.organ: Organ = organ
 
-    def get_rater(self) -> Rater:
-        """Get the :class:`~pyradise.data.rater.Rater`.
+    def get_annotator(self) -> Annotator:
+        """Get the :class:`~pyradise.data.annotator.Annotator`.
 
         Returns:
-            Rater: The :class:`~pyradise.data.rater.Rater`.
+            Annotator: The :class:`~pyradise.data.annotator.Annotator`.
         """
-        return self.rater
+        return self.annotator
 
-    def set_rater(self, rater: Rater) -> None:
-        """Set the :class:`~pyradise.data.rater.Rater`.
+    def set_annotator(self, annotator: Annotator) -> None:
+        """Set the :class:`~pyradise.data.annotator.Annotator`.
 
         Args:
-            rater (Rater): The :class:`~pyradise.data.rater.Rater` to be set.
+            annotator (Annotator): The :class:`~pyradise.data.annotator.Annotator` to be set.
 
         Returns:
             None
         """
-        self.rater: Rater = rater
+        self.annotator: Annotator = annotator
 
     def update(self) -> None:
         """Update the :class:`SegmentationFileSeriesInfo` instance.
@@ -781,8 +781,8 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
 
 class DicomSeriesRTSSInfo(DicomSeriesInfo):
     """A :class:`DicomSeriesInfo` class for DICOM-RTSS. In addition to the information provided by the
-    :class:`DicomSeriesInfo` class, this class contains a :class:`~pyradise.data.rater.Rater` instance and a reference
-    to the DICOM image associated with the DICOM-RTSS.
+    :class:`DicomSeriesInfo` class, this class contains a :class:`~pyradise.data.annotator.Annotator` instance and a
+    reference to the DICOM image associated with the DICOM-RTSS.
 
     Args:
         path (str): The path to the DICOM-RTSS file to load.
@@ -792,7 +792,7 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
                  path: str
                  ) -> None:
         self.dataset: Optional[Dataset] = None
-        self.rater: Rater = Rater.get_default()
+        self.annotator: Annotator = Annotator.get_default()
         self.referenced_instance_uid = ''
 
         super().__init__(path)
@@ -820,7 +820,7 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
 
         self.dataset = super()._get_dicom_base_info(additional_tags_)
 
-        self.rater = self._get_rater_from_dicom(self.dataset)
+        self.annotator = self._get_annotator_from_dicom(self.dataset)
         self.referenced_instance_uid = self._get_referenced_series_instance_uid(self.dataset)
 
         self._is_updated = True
@@ -828,14 +828,14 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
         return self.dataset
 
     @staticmethod
-    def _get_rater_from_dicom(dataset: Dataset) -> Rater:
-        """Get the :class:`~pyradise.data.rater.Rater` from the provided dataset.
+    def _get_annotator_from_dicom(dataset: Dataset) -> Annotator:
+        """Get the :class:`~pyradise.data.annotator.Annotator` from the provided dataset.
 
         Args:
-            dataset (Dataset): The dataset to retrieve the :class:`~pyradise.data.rater.Rater` from.
+            dataset (Dataset): The dataset to retrieve the :class:`~pyradise.data.annotator.Annotator` from.
 
         Returns:
-            Rater: The rater.
+            Annotator: The annotator.
         """
         operator_name = str(dataset.get('OperatorsName', ''))
 
@@ -849,17 +849,17 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
             abbreviation = ''.join(re.findall(search_pattern, operator_name))
             abbreviation = abbreviation if abbreviation else None
 
-            return Rater(operator_name, abbreviation)
+            return Annotator(operator_name, abbreviation)
 
-        return Rater.get_default()
+        return Annotator.get_default()
 
-    def get_rater(self) -> Rater:
-        """Get the :class:`~pyradise.data.rater.Rater`.
+    def get_annotator(self) -> Annotator:
+        """Get the :class:`~pyradise.data.annotator.Annotator`.
 
         Returns:
-            Rater: The rater.
+            Annotator: The annotator.
         """
-        return self.rater
+        return self.annotator
 
     @staticmethod
     def _get_referenced_series_instance_uid(dataset: Dataset) -> str:

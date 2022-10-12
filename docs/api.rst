@@ -40,7 +40,7 @@ The functionality of PyRaDiSe is split into the following packages:
     reference/pyradise.data.taping
     reference/pyradise.data.modality
     reference/pyradise.data.organ
-    reference/pyradise.data.rater
+    reference/pyradise.data.annotator
 
 
 .. toctree::

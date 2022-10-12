@@ -15,7 +15,7 @@ from pyradise.data import (
     TransformTape,
     ImageProperties,
     TransformInfo,
-    OrganRaterCombination)
+    OrganAnnotatorCombination)
 from pyradise.process.base import (
     Filter,
     FilterParams)
@@ -32,7 +32,7 @@ class ApplyTransformationTapeFilterParams(FilterParams):
     """A class representing the parameters for a ApplyTransformationTapeFilter.
 
     Args:
-        targets (Optional[Tuple[Union[Modality, OrganRaterCombination]]]): The targets to which the transformations
+        targets (Optional[Tuple[Union[Modality, OrganAnnotatorCombination]]]): The targets to which the transformations
          should be applied.
         transform_source (Optional[Union[Modality, OrganRaterCombination, TransformTape]]): The reference where the
          transformation is defined.
@@ -41,14 +41,14 @@ class ApplyTransformationTapeFilterParams(FilterParams):
     """
 
     def __init__(self,
-                 targets: Optional[Tuple[Union[Modality, OrganRaterCombination]]] = None,
-                 transform_source: Optional[Union[Modality, OrganRaterCombination, TransformTape]] = None,
+                 targets: Optional[Tuple[Union[Modality, OrganAnnotatorCombination]]] = None,
+                 transform_source: Optional[Union[Modality, OrganAnnotatorCombination, TransformTape]] = None,
                  backward_playback: bool = True,
                  clear_transformation_tapes: bool = False
                  ) -> None:
         super().__init__()
-        self.targets: Optional[Tuple[Union[Modality, OrganRaterCombination]]] = targets
-        self.transform_source: Optional[Union[Modality, OrganRaterCombination, TransformTape]] = transform_source
+        self.targets: Optional[Tuple[Union[Modality, OrganAnnotatorCombination]]] = targets
+        self.transform_source: Optional[Union[Modality, OrganAnnotatorCombination, TransformTape]] = transform_source
         self.backward_playback = backward_playback
         self.clear_transformation_tapes = clear_transformation_tapes
 
@@ -83,9 +83,9 @@ class ApplyTransformationTapeFilter(Filter):
                     if image.get_modality() == target:
                         to_process.append(image)
 
-            elif isinstance(target, OrganRaterCombination):
+            elif isinstance(target, OrganAnnotatorCombination):
                 for image in subject.segmentation_images:
-                    if image.get_organ_rater_combination() == target:
+                    if image.get_organ_annotator_combination() == target:
                         to_process.append(image)
 
         return tuple(to_process)
@@ -117,7 +117,7 @@ class ApplyTransformationTapeFilter(Filter):
 
         else:
             for image in subject.segmentation_images:
-                if image.get_organ_rater_combination() == params.transform_source:
+                if image.get_organ_annotator_combination() == params.transform_source:
                     return image.get_transform_tape()
 
         return None
@@ -296,7 +296,7 @@ class CopyReferenceTransformTapeFilterParams(FilterParams):
 
     def __init__(self,
                  reference_modality: Modality,
-                 excluded_organs: Tuple[OrganRaterCombination, ...] = ()
+                 excluded_organs: Tuple[OrganAnnotatorCombination, ...] = ()
                  ) -> None:
         super().__init__()
 

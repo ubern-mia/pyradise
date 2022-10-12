@@ -4,7 +4,7 @@ import os
 
 import SimpleITK as sitk
 
-from pyradise.data import Subject, IntensityImage, SegmentationImage, Modality, Organ, Rater
+from pyradise.data import Subject, IntensityImage, SegmentationImage, Modality, Organ, Annotator
 from pyradise.fileio import SubjectWriter, ImageFileFormat
 
 
@@ -45,7 +45,7 @@ def main(input_dir: str,
     # Load the segmentation image files
     images = []
     for path, organ in zip(segmentation_file_paths, organs):
-        image = SegmentationImage(sitk.ReadImage(path, sitk.sitkUInt8), organ, Rater.get_default())
+        image = SegmentationImage(sitk.ReadImage(path, sitk.sitkUInt8), organ, Annotator.get_default())
         images.append(image)
 
     # Load the intensity image files

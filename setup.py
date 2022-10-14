@@ -11,16 +11,17 @@ about = {}
 with open(os.path.join(directory, 'pyradise', '__version__.py'), 'r', encoding='utf-8') as f:
     exec(f.read(), about)
 
-with open(os.path.join('README.md'), 'r', encoding='utf-8') as f:
+with open(os.path.join(directory, 'README.md'), 'r', encoding='utf-8') as f:
     readme = f.read()
 
 REQUIRED_PACKAGES = [
-    'pydicom >= 2.2.0',
-    'numpy >= 1.21.5',
-    'SimpleITK >= 2.1.1',
-    'itk >= 5.2.1.post1',
-    'pymia >= 0.3.2',
-    'opencv-python ~= 4.5.5.63'
+    'pydicom',
+    'numpy',
+    'SimpleITK',
+    'itk',
+    'opencv-python',
+    'scipy',
+    'vtk',
 ]
 
 TEST_PACKAGES = [
@@ -48,7 +49,7 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
-        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Topic :: Scientific/Engineering :: Image Recognition',
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Scientific/Engineering :: Medical Science Apps.',

@@ -42,7 +42,7 @@ After loading, the data is either converted and written to a file or processed u
 :mod:`~pyradise.process` package. This package includes functionality and prototypes for pre-processing, deep
 learning model inference, and post-processing with a similar mode of operations as well-known medical image libraries,
 such as SimpleITK or ITK. However, in contrast to other libraries, the :mod:`~pyradise.process` package offers a
-mechanism for guaranteeing reproducibility and a limited method for invertibility that will eventually be extended.
+mechanism for guaranteeing reproducibility and limited invertibility.
 
 After processing or loading, the altered data can be written to disk using a versatile writer from the
 :mod:`~pyradise.fileio` package to save the data as either a discrete image file or as DICOM-RTSS. In addition, some of
@@ -80,10 +80,10 @@ BibTeX entry:
 .. code-block:: none
 
     @article{Ruefenacht2022a,
-    author = {Ruefenacht, Elias and Kamath, Amith and Suter, Yannik and Reyes, Mauricio},
+    author = {TO BE CHANGED},
     doi = {TO BE CHANGED},
     issn = {TO BE CHANGED},
-    journal = {Computer Methods and Programs in Biomedicine},
+    journal = {TO BE CHANGED},
     pages = {TO BE CHANGED},
     title = {{PyRaDiSe: TO BE CHANGED}},
     volume = {TO BE CHANGED},

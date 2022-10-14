@@ -1,8 +1,7 @@
 pydicom>=2.2.2
-SimpleITK>=2.1.1
-itk>=5.2.1.post1
-jupyter>=1.0.0
 numpy~=1.21.6
+SimpleITK>=2.1.1
+itk>=5.2.1post1
 opencv-python~=4.5.5.63
 scipy~=1.9.0
-vtk>=9.1.0
+vtk>=9.2.2

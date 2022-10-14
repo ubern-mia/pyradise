@@ -1,5 +1,5 @@
 pydicom>=2.2.2
-numpy~=1.21.6
+numpy>=1.22
 SimpleITK>=2.1.1
 itk>=5.2.1post1
 opencv-python~=4.5.5.63

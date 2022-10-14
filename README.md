@@ -53,7 +53,7 @@ Getting Started
 If you are new to PyRaDiSe, here are a few guides to get you up to speed right away:
 
  - [Installation](https://pyradise.readthedocs.io/en/latest/installation.html) for installation instructions - or simply run `pip install pyradise`
- - [Examples](https://pyradise.readthedocs.io/en/latest/examples.html) give you an overview of pymia's intended use. Jupyter notebooks and Python scripts are available in the directory [./examples](https://github.com/rundherum/pymia/tree/master/examples/).
+ - [Examples](https://pyradise.readthedocs.io/en/latest/examples.html) give you an overview of PyRaDiSe's intended use. Jupyter notebooks are available in the directory [./examples](https://github.com/ubern-mia/pyradise/tree/main/examples/).
  - [Change history](https://pyradise.readthedocs.io/en/latest/change_history.html)
  - [Acknowledgments](https://pyradise.readthedocs.io/en/latest/acknowledgment.html)
 

@@ -6,9 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "pyradise"
 version = "0.1.0"
 authors = [
-  { name="Elias Rüfenacht", email="elias.ruefenacht@unibe.ch" },
+  { name="Elias Ruefenacht", email="elias.ruefenacht@unibe.ch" },
 ]
-description = "PyRaDiSe: A Python package for DICOM-RT-based auto-segmentation pipeline development and DICOM-RT data conversion"
+description = "PyRaDiSe: A Python package for DICOM-RT-based auto-segmentation pipeline construction and DICOM-RT data conversion"
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [

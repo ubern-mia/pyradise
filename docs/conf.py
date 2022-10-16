@@ -36,8 +36,8 @@ if not os.path.exists(_temporary_directory):
 project = 'PyRaDiSe'
 copyright = '2022, Elias Ruefenacht, ARTORG Center for Biomedical Engineering Research, University of Bern, Switzerland'
 author = 'Elias Ruefenacht'
-version = '0.1.0'
-release = '0.1.0'
+version = '0.1.1'
+release = '0.1.1'
 
 
 # -- General configuration ---------------------------------------------------

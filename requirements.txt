@@ -1,7 +1,7 @@
-pydicom>=2.2.2
-numpy>=1.22
-SimpleITK>=2.1.1
-itk>=5.2.1post1
-opencv-python~=4.5.5.63
-scipy~=1.9.0
-vtk>=9.2.2
+pydicom
+numpy
+itk>=5.3rc4
+SimpleITK
+opencv-python
+scipy
+vtk

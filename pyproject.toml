@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyradise"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
   { name="Elias Ruefenacht", email="elias.ruefenacht@unibe.ch" },
 ]
 description = "PyRaDiSe: A Python package for DICOM-RT-based auto-segmentation pipeline construction and DICOM-RT data conversion"
 readme = "README.md"
 requires-python = ">=3.8"
+license = {file = "LICENSE"}
 classifiers = [
     'Development Status :: 3 - Alpha',
     'Intended Audience :: Developers',
@@ -18,13 +19,34 @@ classifiers = [
     'License :: OSI Approved :: Apache Software License',
     'Natural Language :: English',
     'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
     'Topic :: Scientific/Engineering :: Image Recognition',
     'Topic :: Scientific/Engineering :: Mathematics',
     'Topic :: Scientific/Engineering :: Medical Science Apps.',
     'Topic :: Software Development :: Libraries :: Python Modules',
     'Topic :: Software Development :: Libraries'
 ]
+keywords = [
+    'medical image analysis',
+    'deep learning',
+    'auto-segmentation',
+    'radiotherapy',
+    'DICOM conversion',
+    'DICOM data handling',
+    'DICOM-RT Structure Sets',
+]
+dependencies = [
+    'pydicom',
+    'numpy',
+    'itk>=5.3rc4',
+    'SimpleITK',
+    'opencv-python',
+    'scipy',
+    'vtk',
+]
 
 [project.urls]
 "Homepage" = "https://pyradise.readthedocs.io/"
 "Bug Tracker" = "https://github.com/ubern-mia/pyradise/issues"
+"GitHub" = "https://github.com/ubern-mia/pyradise/"

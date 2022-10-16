@@ -17,8 +17,8 @@ with open(os.path.join(directory, 'README.md'), 'r', encoding='utf-8') as f:
 REQUIRED_PACKAGES = [
     'pydicom',
     'numpy',
+    'itk>=5.3rc4',
     'SimpleITK',
-    'itk',
     'opencv-python',
     'scipy',
     'vtk',
@@ -50,6 +50,8 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Topic :: Scientific/Engineering :: Image Recognition',
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Scientific/Engineering :: Medical Science Apps.',
@@ -59,11 +61,10 @@ setup(
     keywords=[
         'medical image analysis',
         'deep learning',
-        'data handling',
-        'data conversion',
-        'data process',
-        'DICOM',
-        'DICOM-RT',
-        'RTSS'
+        'auto-segmentation',
+        'radiotherapy',
+        'DICOM conversion',
+        'DICOM data handling',
+        'DICOM-RT Structure Sets',
     ]
 )

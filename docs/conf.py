@@ -5,10 +5,11 @@
 import os
 import shutil
 import sys
-import pyradise.__version__ as info
 
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, basedir)
+
+import pyradise.__version__ as info
 
 # -- Copy example Jupyter notebooks for documentation building
 shutil.copyfile(os.path.join(basedir, 'examples', 'conversion', 'dicom_to_nii.ipynb'),

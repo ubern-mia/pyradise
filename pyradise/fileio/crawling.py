@@ -31,7 +31,6 @@ from .extraction import (
     AnnotatorExtractor,
     OrganExtractor)
 
-
 __all__ = ['Crawler', 'SubjectFileCrawler', 'DatasetFileCrawler', 'SubjectDicomCrawler', 'DatasetDicomCrawler']
 
 
@@ -720,11 +719,10 @@ class DatasetDicomCrawler(Crawler):
         self.config_file_name = modality_config_file_name
         self.write_config = write_modality_config
 
-        subject_dir_path = self._get_subject_dir_paths(self.path)
-        self.subject_dir_path = tuple(sorted(subject_dir_path))
+        self.subject_dir_paths: Optional[str] = None
 
         self.current_idx = 0
-        self.num_subjects = len(self.subject_dir_path)
+        self.num_subjects = 0
 
     @staticmethod
     def _get_subject_dir_paths(path: str) -> Tuple[str, ...]:
@@ -736,17 +734,27 @@ class DatasetDicomCrawler(Crawler):
         Returns:
             Tuple[str, ...]: Paths to all subject directories containing DICOM files.
         """
-        candidate_dir_paths = [entry.path for entry in os.scandir(path) if entry.is_dir()]
+        # Search for all dicom files and sort them according to their patient id
+        subjects = {}
+        patient_id_tag = Tag(0x0010, 0x0020)  # Patient ID
 
-        subject_dir_paths = []
-        for candidate_dir_path in candidate_dir_paths:
-            for root, _, files in os.walk(candidate_dir_path):
-                for file in files:
-                    if is_dicom_file(os.path.join(root, file)):
-                        subject_dir_paths.append(os.path.normpath(candidate_dir_path))
-                        break
+        for root, _, files in os.walk(path):
+            for file in files:
+                file_path = os.path.join(root, file)
 
-        return tuple(sorted(set(subject_dir_paths)))
+                # check if file is a dicom file
+                if is_dicom_file(file_path):
+                    # get the patient id
+                    patient_id = str(load_dataset_tag(file_path, (patient_id_tag,)).get(patient_id_tag).value)
+
+                    # collect the file paths per patient id
+                    if patient_id not in subjects:
+                        subjects[patient_id] = file_path
+                    else:
+                        common_path = os.path.commonpath([subjects.get(patient_id), file_path])
+                        subjects[patient_id] = common_path
+
+        return tuple(sorted(subjects.values()))
 
     def execute(self) -> Tuple[Tuple[DicomSeriesInfo, ...], ...]:
         """Execute the crawling process to retrieve the :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries.
@@ -755,10 +763,10 @@ class DatasetDicomCrawler(Crawler):
             Tuple[Tuple[DicomSeriesInfo, ...], ...]: The retrieved :class:`~pyradise.fileio.series_info.DicomSeriesInfo`
              entries.
         """
-        subject_dir_paths = self._get_subject_dir_paths(self.path)
+        self.subject_dir_paths = self._get_subject_dir_paths(self.path)
 
         subject_infos = []
-        for subject_dir_path in subject_dir_paths:
+        for subject_dir_path in self.subject_dir_paths:
             subject_info = SubjectDicomCrawler(subject_dir_path, self.modality_extractor, self.config_file_name,
                                                self.write_config).execute()
 
@@ -767,12 +775,14 @@ class DatasetDicomCrawler(Crawler):
         return tuple(subject_infos)
 
     def __iter__(self) -> 'DatasetDicomCrawler':
+        self.subject_dir_paths = self._get_subject_dir_paths(self.path)
+        self.num_subjects = len(self.subject_dir_paths)
         self.current_idx = 0
         return self
 
     def __next__(self) -> Tuple[DicomSeriesInfo, ...]:
         if self.current_idx < self.num_subjects:
-            subject_info = SubjectDicomCrawler(self.subject_dir_path[self.current_idx], self.modality_extractor,
+            subject_info = SubjectDicomCrawler(self.subject_dir_paths[self.current_idx], self.modality_extractor,
                                                self.config_file_name, self.write_config).execute()
             self.current_idx += 1
             return subject_info

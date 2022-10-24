@@ -17,7 +17,7 @@ with open(os.path.join(directory, 'README.md'), 'r', encoding='utf-8') as f:
 REQUIRED_PACKAGES = [
     'pydicom',
     'numpy',
-    'itk>=5.3rc4',
+    'itk>=5.3rc4.post3',
     'SimpleITK',
     'opencv-python',
     'scipy',
@@ -25,8 +25,11 @@ REQUIRED_PACKAGES = [
 ]
 
 TEST_PACKAGES = [
-    'pytest >= 5',
-    'pytest-cov >= 2.10.0'
+    'tox >= 3.4.0',
+    'tox-pipenv >= 1.10.1',
+    'pytest >= 7.0.0',
+    'pytest-cov >= 4.0.0',
+    'pipenv >= 2022.10.12',
 ]
 
 setup(
@@ -52,6 +55,7 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
         'Topic :: Scientific/Engineering :: Image Recognition',
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Scientific/Engineering :: Medical Science Apps.',

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyradise"
-version = "0.1.1"
+version = "0.1.2"
 authors = [
   { name="Elias Ruefenacht", email="elias.ruefenacht@unibe.ch" },
 ]
@@ -21,6 +21,7 @@ classifiers = [
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
     'Topic :: Scientific/Engineering :: Image Recognition',
     'Topic :: Scientific/Engineering :: Mathematics',
     'Topic :: Scientific/Engineering :: Medical Science Apps.',
@@ -39,7 +40,7 @@ keywords = [
 dependencies = [
     'pydicom',
     'numpy',
-    'itk>=5.3rc4',
+    'itk>=5.3rc4.post3',
     'SimpleITK',
     'opencv-python',
     'scipy',
@@ -50,3 +51,10 @@ dependencies = [
 "Homepage" = "https://pyradise.readthedocs.io/"
 "Bug Tracker" = "https://github.com/ubern-mia/pyradise/issues"
 "GitHub" = "https://github.com/ubern-mia/pyradise/"
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+]

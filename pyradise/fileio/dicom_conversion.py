@@ -418,7 +418,7 @@ class RTSSToSegmentConverter(Converter):
         columns = int(image_datasets[0].get('Columns'))
         num_slices = len(image_datasets)
 
-        return np.zeros((columns, rows, num_slices)).astype(np.bool)
+        return np.zeros((columns, rows, num_slices)).astype(bool)
 
     @staticmethod
     def _create_empty_slice_mask(image_dataset: Dataset) -> np.ndarray:

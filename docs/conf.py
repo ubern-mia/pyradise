@@ -5,6 +5,7 @@
 import os
 import shutil
 import sys
+import pyradise.__version__ as info
 
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, basedir)
@@ -34,10 +35,10 @@ if not os.path.exists(_temporary_directory):
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'PyRaDiSe'
-copyright = '2022, Elias Ruefenacht, ARTORG Center for Biomedical Engineering Research, University of Bern, Switzerland'
-author = 'Elias Ruefenacht'
-version = '0.1.1'
-release = '0.1.1'
+copyright = info.__copyright__
+author = info.__author__
+version = info.__version__
+release = info.__version__
 
 
 # -- General configuration ---------------------------------------------------

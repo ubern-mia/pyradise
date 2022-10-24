@@ -75,20 +75,25 @@ Citation
 --------
 If you use PyRaDiSe in your research, please acknowledge it by citing our paper:
 
-BibTeX entry:
+.. note::
+    The article is currently under review. BibTeX entry will be made available once the article is published.
 
-.. code-block:: none
 
-    @article{Ruefenacht2022a,
-    author = {TO BE CHANGED},
-    doi = {TO BE CHANGED},
-    issn = {TO BE CHANGED},
-    journal = {TO BE CHANGED},
-    pages = {TO BE CHANGED},
-    title = {{PyRaDiSe: TO BE CHANGED}},
-    volume = {TO BE CHANGED},
-    year = {2022},
-    }
+..
+    BibTeX entry:
+
+    .. code-block:: none
+
+        @article{Ruefenacht2022a,
+        author = {TO BE CHANGED},
+        doi = {TO BE CHANGED},
+        issn = {TO BE CHANGED},
+        journal = {TO BE CHANGED},
+        pages = {TO BE CHANGED},
+        title = {{PyRaDiSe: TO BE CHANGED}},
+        volume = {TO BE CHANGED},
+        year = {2022},
+        }
 
 
 

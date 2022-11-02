@@ -1,7 +1,7 @@
 PyRaDiSe
 ========
 
-![PyRaDiSe](https://github.com/ubern-mia/pyradise/blob/main/PyRaDiSe_AxelMeme.jpg | width=800)
+![PyRaDiSe](https://github.com/ubern-mia/pyradise/blob/main/PyRaDiSe_AxelMeme.jpg = 800x)
 
 
 [![Documentation Status](https://readthedocs.org/projects/pyradise/badge/?version=latest)](https://pyradise.readthedocs.io/en/latest/?badge=latest)

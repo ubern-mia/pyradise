@@ -1,6 +1,9 @@
 PyRaDiSe
 ========
 
+![PyRaDiSe](https://github.com/ubern-mia/pyradise/blob/main/PyRaDiSe_AxelMeme.jpg)
+
+
 [![Documentation Status](https://readthedocs.org/projects/pyradise/badge/?version=latest)](https://pyradise.readthedocs.io/en/latest/?badge=latest)
 
 PyRaDiSe is an open-source Python (Py) package for developing deployable, radiotherapy-oriented (Ra), DICOM-based (Di) 

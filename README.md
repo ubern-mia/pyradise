@@ -1,9 +1,6 @@
 PyRaDiSe
 ========
 
-![PyRaDiSe](https://github.com/ubern-mia/pyradise/blob/main/PyRaDiSe_AxelMeme.jpg)
-
-
 [![Documentation Status](https://readthedocs.org/projects/pyradise/badge/?version=latest)](https://pyradise.readthedocs.io/en/latest/?badge=latest)
 
 PyRaDiSe is an open-source Python (Py) package for developing deployable, radiotherapy-oriented (Ra), DICOM-based (Di) 
@@ -14,6 +11,8 @@ a 3D-based conversion algorithm), invertible pre-processing, and post-processing
 auto-segmentation solutions, PyRaDiSe allows for converting and curating DICOM image series and DICOM-RTSS data to 
 simplify segmentation training dataset construction. Therefore, PyRaDiSe is highly flexible, allows for fast 
 prototyping, and facilitates a fast transition of data science research results into clinical radiotherapy research.
+
+<img alt="PyRaDiSe_Meme" src="https://github.com/ubern-mia/pyradise/blob/main/docs/_static/meme.jpg" width="300">
 
 Main Features
 -------------

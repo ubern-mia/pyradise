@@ -372,6 +372,10 @@ class SubjectDicomCrawler(Crawler):
         file_paths = []
         for root, _, files in os.walk(self.path):
             for file in files:
+
+                if file == 'DICOMDIR':
+                    continue
+
                 file_path = os.path.join(root, file)
                 if is_dicom_file(file_path):
                     file_paths.append(file_path)
@@ -740,6 +744,9 @@ class DatasetDicomCrawler(Crawler):
 
         for root, _, files in os.walk(path):
             for file in files:
+                if file == 'DICOMDIR':
+                    continue
+
                 file_path = os.path.join(root, file)
 
                 # check if file is a dicom file

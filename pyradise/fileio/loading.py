@@ -256,8 +256,14 @@ class SubjectLoader(ExplicitLoader):
         transform_uids = []
         for reg_info_entry in reg_info:
             reg_info_entry.update() if not reg_info_entry.is_updated() else None
-            identity_uids.append(reg_info_entry.referenced_series_instance_uid_identity)
-            transform_uids.append(reg_info_entry.referenced_series_instance_uid_transform)
+
+            identity = reg_info_entry.referenced_series_instance_uid_identity
+            if identity != '':
+                identity_uids.append(identity)
+
+            transform = reg_info_entry.referenced_series_instance_uid_transform
+            if transform != '':
+                transform_uids.append(transform)
 
         if is_image_info_available(identity_uids, image_info) and is_image_info_available(transform_uids, image_info):
             return True

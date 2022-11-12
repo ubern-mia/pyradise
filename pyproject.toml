@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyradise"
-version = "0.1.2"
+version = "0.1.3"
 authors = [
   { name="Elias Ruefenacht", email="elias.ruefenacht@unibe.ch" },
 ]
 description = "PyRaDiSe: A Python package for DICOM-RT-based auto-segmentation pipeline construction and DICOM-RT data conversion"
 readme = "README.md"
 requires-python = ">=3.8"
-license = "Apache-2.0"
+license = { text = "Apache-2.0" }
 classifiers = [
     'Development Status :: 3 - Alpha',
     'Intended Audience :: Developers',

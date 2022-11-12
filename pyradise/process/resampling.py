@@ -473,22 +473,28 @@ class ResampleFilter(Filter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Executes the inverse resampling filter procedure.
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
             transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance with inversely resampled
             :class:`~pyradise.data.image.IntensityImage` and :class:`~pyradise.data.image.SegmentationImage` instances.
         """
         for image in subject.intensity_images:
-            self._inverse_process_intensity_image(image, transform_info)
+            if target_image is None or image == target_image:
+                self._inverse_process_intensity_image(image, transform_info)
 
         for image in subject.segmentation_images:
-            self._inverse_process_segmentation_image(image, transform_info)
+            if target_image is None or image == target_image:
+                self._inverse_process_segmentation_image(image, transform_info)
 
         return subject

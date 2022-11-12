@@ -16,7 +16,7 @@ import numpy as np
 import SimpleITK as sitk
 import itk
 
-from pyradise.data import Subject, TransformInfo, ImageProperties, Image
+from pyradise.data import Subject, TransformInfo, ImageProperties, Image, IntensityImage, SegmentationImage
 
 __all__ = ['FilterParams', 'Filter', 'LoopEntryFilterParams', 'LoopEntryFilter', 'FilterPipeline']
 
@@ -165,7 +165,8 @@ class Filter(ABC):
         >>>
         >>>     def execute_inverse(self,
         >>>                         subject: Subject,
-        >>>                         transform_info: TransformInfo
+        >>>                         transform_info: TransformInfo,
+        >>>                         target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
         >>>                         ) -> Subject:
         >>>         # loop through the images
         >>>         for image in subject.get_images():
@@ -283,7 +284,8 @@ class Filter(ABC):
     @abstractmethod
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Execute the filter inversely if possible. Typically, this method gets a temporary subject which contains
         a single image because the recording of the transformations is image dependent and inappropriate inverse
@@ -298,6 +300,9 @@ class Filter(ABC):
         Args:
             subject (Subject): The subject to be processed.
             transform_info (TransformInfo): The :class:`~pyradise.data.taping.TransformInfo` instance.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The processed subject.
@@ -409,7 +414,8 @@ class LoopEntryFilter(Filter):
     @abstractmethod
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Execute the filter inversely if possible. Typically, this method gets a temporary subject which contains
         a single image because the recording of the transformations is image dependent and inappropriate inverse
@@ -424,6 +430,9 @@ class LoopEntryFilter(Filter):
         Args:
             subject (Subject): The subject to be processed.
             transform_info (TransformInfo): The :class:`~pyradise.data.taping.TransformInfo` instance.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The processed subject.

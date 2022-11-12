@@ -12,7 +12,7 @@ auto-segmentation solutions, PyRaDiSe allows for converting and curating DICOM i
 simplify segmentation training dataset construction. Therefore, PyRaDiSe is highly flexible, allows for fast 
 prototyping, and facilitates a fast transition of data science research results into clinical radiotherapy research.
 
-<img alt="PyRaDiSe_Meme" src="https://github.com/ubern-mia/pyradise/blob/main/docs/_static/meme.jpg" width="300">
+<!--- <img alt="PyRaDiSe_Meme" src="https://github.com/ubern-mia/pyradise/blob/main/docs/_static/meme.jpg" width="300"> -->
 
 Main Features
 -------------

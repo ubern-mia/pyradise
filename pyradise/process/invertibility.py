@@ -106,7 +106,7 @@ class PlaybackTransformTapeFilter(Filter):
                 if not filter_.is_invertible():
                     continue
 
-                temp_subject = filter_.execute_inverse(temp_subject, transform_info)
+                temp_subject = filter_.execute_inverse(temp_subject, transform_info, image)
 
             # collect the modified images
             changed_image_candidates = [img for img in temp_subject.get_images() if img == image]
@@ -123,7 +123,8 @@ class PlaybackTransformTapeFilter(Filter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Return the provided :class:`~pyradise.data.subject.Subject` instance without any processing because
         :class:`~pyradise.data.taping.TransformTape` playback is not invertible.
@@ -131,6 +132,9 @@ class PlaybackTransformTapeFilter(Filter):
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance.
             transform_info (TransformInfo): The :class:`~pyradise.data.taping.TransformInfo` instance.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The provided :class:`~pyradise.data.subject.Subject` instance.

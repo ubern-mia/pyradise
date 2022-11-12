@@ -4,15 +4,15 @@ from typing import (
     Optional)
 from copy import deepcopy
 
-import itk
 import numpy as np
 import SimpleITK as sitk
 
 from pyradise.data import (
     Subject,
-    Image,
     Organ,
-    SegmentationImage, TransformInfo)
+    IntensityImage,
+    SegmentationImage,
+    TransformInfo)
 from .base import (
     Filter,
     FilterParams)
@@ -58,139 +58,96 @@ class SingleConnectedComponentFilter(Filter):
         """
         return False
 
-    @staticmethod
-    def _is_binary_image(image: Union[itk.Image, SegmentationImage]) -> bool:
-        """Checks if an image is binary.
-
-        Args:
-            image (Union[itk.Image, SegmentationImage]): The image to analyze.
-
-        Returns:
-            bool: True if the image is binary otherwise False.
-        """
-        if isinstance(image, SegmentationImage):
-            itk_image = image.get_image_data(as_sitk=False)
-        else:
-            itk_image = image
-
-        np_image = itk.GetArrayFromImage(itk_image)
-        label_indexes = np.unique(np_image)
-
-        if len(label_indexes) > 2:
-            return False
-        return True
-
-    @staticmethod
-    def _get_single_label_images(image: Union[itk.Image, SegmentationImage]
-                                 ) -> Tuple[Tuple[itk.Image, ...], Tuple[int, ...]]:
+    def _get_single_label_images(self,
+                                 image: SegmentationImage,
+                                 ) -> Tuple[Tuple[sitk.Image, ...], Tuple[int, ...]]:
         """Splits a label image into multiple single/binary label images.
 
         Args:
-            image (Union[itk.Image, SegmentationImage]): The image to separate into binary images.
+            image (SegmentationImage): The image to separate into binary images.
 
         Returns:
-            Tuple[Tuple[itk.Image, ...], Tuple[int, ...]]: Returns the binary images and the original label indexes.
+            Tuple[Tuple[sitk.Image, ...], Tuple[int, ...]]: Returns the binary images and the original label indexes.
         """
-        if isinstance(image, SegmentationImage):
-            itk_image = image.get_image_data(as_sitk=False)
-        else:
-            itk_image = image
+        sitk_image = image.get_image_data()
+        np_image = sitk.GetArrayFromImage(sitk_image)
 
-        np_image = itk.GetArrayFromImage(itk_image)
-        contained_labels = list(np.unique(np_image))
-        contained_labels.remove(0)
+        labels = self._get_unique_labels(sitk_image)
 
-        single_label_images = []
-        single_label_labels = []
+        unique_images = []
+        unique_labels = []
+        for label in labels:
+            np_image_ = deepcopy(np_image)
+            np_image_[np_image_ != label] = 0
+            np_image_[np_image_ == label] = 1
 
-        for label_index in contained_labels:
-            np_image_label = deepcopy(np_image)
+            sitk_image_ = sitk.GetImageFromArray(np_image_)
+            sitk_image_.CopyInformation(sitk_image)
+            unique_images.append(sitk_image_)
 
-            np_image_label[np_image_label != label_index] = 0
-            itk_image_label = itk.GetImageFromArray(np_image_label)
-            itk_image_label.CopyInformation(itk_image)
+            unique_labels.append(label)
 
-            single_label_images.append(itk_image_label)
-            single_label_labels.append(label_index)
-
-        return tuple(single_label_images), tuple(single_label_labels)
+        return tuple(unique_images), tuple(unique_labels)
 
     @staticmethod
-    def _combine_images(images: Tuple[itk.Image, ...]) -> itk.Image:
+    def _combine_images(images: Tuple[sitk.Image, ...]) -> sitk.Image:
         """Combines multiple label images to one image.
 
         Args:
-            images (Tuple[itk.Image, ...]): The images to combine.
+            images (Tuple[sitk.Image, ...]): The images to combine.
 
         Returns:
-            itk.Image: The combined image.
+            sitk.Image: The combined image.
         """
         if len(images) == 1:
             return images[0]
 
-        base_np_image = itk.GetArrayFromImage(images[0])
-
+        final = sitk.GetArrayFromImage(images[0])
         for i in range(1, len(images)):
-            np_image = itk.GetArrayFromImage(images[i])
-            np.putmask(base_np_image, np_image != 0, np_image)
+            np_image = sitk.GetArrayFromImage(images[i])
+            np.putmask(final, np_image != 0, np_image)
 
-        combined_itk_image = itk.GetImageFromArray(base_np_image)
-        combined_itk_image.CopyInformation(images[0])
+        combined = sitk.GetImageFromArray(final)
+        combined.CopyInformation(images[0])
 
-        return combined_itk_image
+        return combined
 
     @staticmethod
-    def _get_single_connected_component_image(image: Union[itk.Image, SegmentationImage],
-                                              organ: Union[Organ, int]
-                                              ) -> itk.Image:
-        """Removes all connected components except for the largest.
+    def _get_single_connected_component_image(image: SegmentationImage,
+                                              label: int
+                                              ) -> sitk.Image:
+        """Removes all connected components except for the largest and adjusts the label index.
 
         Args:
-            image (Union[itk.Image, SegmentationImage]): The image to process.
-            organ (Union[Organ, int]): The label index of the output image.
+            image (sitk.Image): The image to process.
+            label (int): The label index of the output image.
 
         Returns:
-            itk.Image: The image with only one single connected component.
+            sitk.Image: The image with only one single connected component.
         """
+        original_image = image.get_image_data()
+        cc_filter = sitk.ConnectedComponentImageFilter()
+        cc_filter.SetFullyConnected(True)
+        sitk_image = cc_filter.Execute(original_image)
+        sitk_image = sitk.RelabelComponent(sitk_image, sortByObjectSize=True)
+        sitk_image = sitk.BinaryThreshold(sitk_image, 1, 1)
 
-        if isinstance(image, SegmentationImage):
-            itk_image = image.get_image_data(as_sitk=False)
-            itk_image_type = image.get_image_itk_type()
-        else:
-            itk_image = image
-            itk_image_type = itk.template(image)[1]
+        np_image = sitk.GetArrayFromImage(sitk_image)
+        np_image[np_image == 1] = label
+        sitk_image = sitk.GetImageFromArray(np_image)
+        sitk_image.CopyInformation(original_image)
 
-        cc_image_type = itk.Image[itk.UL, itk_image.GetImageDimension()]
+        return sitk_image
 
-        cc_filter = itk.ConnectedComponentImageFilter[itk_image_type, cc_image_type].New()
-        cc_filter.SetInput(itk_image)
-        cc_filter.Update()
+    @staticmethod
+    def _get_unique_labels(image: sitk.Image, exclude_bg: bool = True) -> Tuple[int, ...]:
+        image_np = sitk.GetArrayFromImage(image)
+        unique_labels = np.unique(image_np)
 
-        if cc_filter.GetObjectCount() == 1:
-            return itk_image
+        if exclude_bg:
+            unique_labels = unique_labels[unique_labels != 0]
 
-        cc_itk_image = cc_filter.GetOutput()
-        casted_itk_image = Image.cast(cc_itk_image, itk.template(itk_image_type)[1][0], as_sitk=False)
-
-        ko_filter = itk.LabelShapeKeepNObjectsImageFilter[itk_image_type].New()
-        ko_filter.SetInput(casted_itk_image)
-        ko_filter.SetBackgroundValue(0)
-        ko_filter.SetNumberOfObjects(1)
-        ko_filter.Update()
-        single_cc_itk_image = ko_filter.GetOutput()
-
-        if isinstance(organ, Organ):
-            organ_id = organ.index
-        else:
-            organ_id = organ
-
-        single_cc_np_image = itk.GetArrayFromImage(single_cc_itk_image)
-        single_cc_np_image[single_cc_np_image != 0] = organ_id
-
-        correct_label_itk_image = itk.GetImageFromArray(single_cc_np_image)
-        correct_label_itk_image.CopyInformation(single_cc_itk_image)
-
-        return correct_label_itk_image
+        return tuple(unique_labels)
 
     def execute(self,
                 subject: Subject,
@@ -212,20 +169,9 @@ class SingleConnectedComponentFilter(Filter):
                 continue
 
             image_sitk = image.get_image_data()
-            if self._is_binary_image(image):
+            if image.is_binary():
                 single_label_images = (image,)
-
-                image_np = sitk.GetArrayFromImage(image_sitk)
-                unique_labels = list(np.unique(image_np))
-
-                if 0 in unique_labels:
-                    unique_labels.remove(0)
-
-                if not unique_labels:
-                    labels = tuple()
-                else:
-                    labels = (unique_labels[0],)
-
+                labels = self._get_unique_labels(image_sitk)
             else:
                 single_label_images, labels = self._get_single_label_images(image)
 
@@ -236,6 +182,7 @@ class SingleConnectedComponentFilter(Filter):
 
             if cc_images:
                 cc_image = self._combine_images(tuple(cc_images))
+                cc_image = sitk.Cast(cc_image, sitk.sitkUInt8)
 
                 image.set_image_data(cc_image)
 
@@ -245,7 +192,8 @@ class SingleConnectedComponentFilter(Filter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Return the provided :class:`~pyradise.data.subject.Subject` instance without any processing because
         the single connected component filtering procedure is not invertible.
@@ -253,6 +201,9 @@ class SingleConnectedComponentFilter(Filter):
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be returned.
             transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The provided :class:`~pyradise.data.subject.Subject` instance.
@@ -314,7 +265,8 @@ class AlphabeticOrganSortingFilter(Filter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Return the provided image without any processing because the alphabetical sorting procedure is not
         invertible.
@@ -322,6 +274,9 @@ class AlphabeticOrganSortingFilter(Filter):
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be returned.
             transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The provided :class:`~pyradise.data.subject.Subject` instance.

@@ -15,6 +15,7 @@ import warnings
 
 import vtkmodules.vtkFiltersCore as vtk_fcore
 import vtkmodules.vtkCommonDataModel as vtk_dm
+import vtkmodules.vtkFiltersHybrid as vtk_fhybrid
 import vtkmodules.vtkImagingGeneral as vtk_igen
 import vtkmodules.vtkImagingCore as vtk_icore
 import vtkmodules.vtkFiltersModeling as vtk_fmodel
@@ -61,9 +62,7 @@ __all__ = ['Converter', 'DicomImageSeriesConverter', 'DicomRTSSSeriesConverter',
            'RTSSToSegmentConverter', 'SegmentToRTSSConverter2D', 'SegmentToRTSSConverter3D', 'RTSSMetaData',
            'RTSSConverter2DConfiguration', 'RTSSConverter3DConfiguration']
 
-
 ROI_GENERATION_ALGORITHMS = ['AUTOMATIC', 'SEMIAUTOMATIC', 'MANUAL']
-
 
 COLOR_PALETTE = [[255, 0, 255],
                  [0, 235, 235],
@@ -748,7 +747,7 @@ class RTSSMetaData:
 
     Note:
         For some attributes, the value must follow the value representation of the DICOM standard. For example, the
-        ``PatientSex`` attribute must be either ``'M'``, ``'F'`` or ``'O'``. For more information, we refer to the
+        ``PatientSex`` attribute must be either ``'M'``, ``'F'``, or ``'O'``. For more information, we refer to the
         `DICOM standard part 5 chapter 6.2 <https://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html>`_.
 
     Args:
@@ -793,7 +792,6 @@ class RTSSMetaData:
     approval_status: str = 'UNAPPROVED'
     roi_gen_algorithm: str = 'AUTOMATIC'
 
-
     def __post_init__(self) -> None:
         # validate entries
         criteria = (isinstance(self.patient_name, str) or self.patient_name is None,
@@ -822,7 +820,6 @@ class RTSSMetaData:
 
         if not all(criteria):
             raise ValueError('The RTSS meta data is not valid! Please check the input values.')
-
 
 
 class RTSSConverterConfiguration(ABC):
@@ -937,7 +934,6 @@ class RTSSConverter2DConfiguration(RTSSConverterConfiguration):
 
         self.set_general_params(smoothing, smoothing_sigma, smoothing_kernel_size)
 
-
     @staticmethod
     def _validate_entries(smoothing: bool,
                           smoothing_sigma: float,
@@ -1041,6 +1037,9 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
       value is to zero (e.g., 0.001) the stronger the smoothing is. The higher the value (e.g., 0.4) the less the
       smoothing is.
 
+    * ``min_segment_lines``: The minimum number of lines that a segment must have to be considered for the RTSS. All
+      segments smaller than this value are discarded.
+
 
     Args:
         image_smoothing (bool): Whether to smooth the image before 3D model construction or not (default: True).
@@ -1056,6 +1055,8 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
         model_smoothing_iterations (int): The number of 3D smoothing steps (typically 15 - 20 steps) (default: 15).
         model_smoothing_pass_band (bool): The strength of the 3D smoothing (0.001 - 0.1 = strong smoothing,
          0.5 - 1 = almost no smoothing) (default: 0.002).
+        min_segment_lines (int): The minimum number of lines that a segment must have to be considered for the RTSS
+         (default: 0).
     """
 
     def __init__(self,
@@ -1066,7 +1067,8 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
                  decimate_reduction: float = 0.2,
                  decimate_threshold: float = 500.,
                  model_smoothing_iterations: int = 15,
-                 model_smoothing_pass_band: float = 0.002
+                 model_smoothing_pass_band: float = 0.002,
+                 min_segment_lines: int = 0,
                  ) -> None:
         super().__init__()
 
@@ -1077,7 +1079,8 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
                                 decimate_reduction,
                                 decimate_threshold,
                                 model_smoothing_iterations,
-                                model_smoothing_pass_band)
+                                model_smoothing_pass_band,
+                                min_segment_lines)
 
     @staticmethod
     def _validate_entries(image_smoothing: bool,
@@ -1087,7 +1090,8 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
                           decimate_reduction: float,
                           decimate_threshold: float,
                           model_smoothing_iterations: int,
-                          model_smoothing_pass_band: float
+                          model_smoothing_pass_band: float,
+                          min_segment_lines: int
                           ) -> None:
         """Validate the entries of the configuration.
 
@@ -1105,6 +1109,7 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
             model_smoothing_iterations (int): The number of 3D smoothing steps (typically 15 - 20 steps).
             model_smoothing_pass_band (float): The strength of the 3D smoothing (0.001 - 0.1 = strong smoothing,
              0.5 - 1 = almost no smoothing).
+            min_segment_lines (int): The minimum number of lines that a segment must have to be considered for the RTSS.
 
         Raises:
             ValueError: If the entries are not valid.
@@ -1119,7 +1124,8 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
                     isinstance(decimate_reduction, float) and 0 < decimate_reduction < 0.99,
                     isinstance(decimate_threshold, (float, int)) and decimate_threshold >= 0,
                     isinstance(model_smoothing_iterations, int) and model_smoothing_iterations >= 0,
-                    isinstance(model_smoothing_pass_band, float))
+                    isinstance(model_smoothing_pass_band, float),
+                    isinstance(min_segment_lines, int))
 
         if not all(criteria):
             raise ValueError('The RTSS converter configuration is not valid! Please check the input values.')
@@ -1132,7 +1138,8 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
                            decimate_reduction: float,
                            decimate_threshold: float,
                            model_smoothing_iterations: int,
-                           model_smoothing_pass_band: float
+                           model_smoothing_pass_band: float,
+                           min_segment_lines: int
                            ) -> None:
         """Set the general parameters for all images except those that have specific parameters.
 
@@ -1150,6 +1157,7 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
             model_smoothing_iterations (int): The number of 3D smoothing steps (typically 15 - 20 steps).
             model_smoothing_pass_band (bool): The strength of the 3D smoothing (0.001 - 0.1 = strong smoothing,
              0.5 - 1 = almost no smoothing).
+            min_segment_lines (int): The minimum number of lines that a segment must have to be considered for the RTSS.
 
         Returns:
             None
@@ -1161,7 +1169,8 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
                                decimate_reduction,
                                decimate_threshold,
                                model_smoothing_iterations,
-                               model_smoothing_pass_band)
+                               model_smoothing_pass_band,
+                               min_segment_lines)
 
         self.general_params['image_smoothing'] = image_smoothing
         self.general_params['image_smoothing_sigma'] = image_smoothing_sigma
@@ -1171,6 +1180,7 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
         self.general_params['decimate_threshold'] = decimate_threshold
         self.general_params['model_smoothing_iterations'] = model_smoothing_iterations
         self.general_params['model_smoothing_pass_band'] = model_smoothing_pass_band
+        self.general_params['min_segment_lines'] = min_segment_lines
 
     def set_image_params(self,
                          image_identifier: str,
@@ -1181,7 +1191,8 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
                          decimate_reduction: float,
                          decimate_threshold: float,
                          model_smoothing_iterations: int,
-                         model_smoothing_pass_band: float
+                         model_smoothing_pass_band: float,
+                         min_segment_lines: int
                          ) -> None:
         """Set the parameters of the converter for a specific image using an identifier.
 
@@ -1200,6 +1211,7 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
             model_smoothing_iterations (int): The number of 3D smoothing steps (typically 15 - 20 steps).
             model_smoothing_pass_band (bool): The strength of the 3D smoothing (0.001 - 0.1 = strong smoothing,
              0.5 - 1 = almost no smoothing).
+            min_segment_lines (int): The minimum number of lines that a segment must have to be considered for the RTSS.
 
         Returns:
             None
@@ -1212,7 +1224,8 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
                                decimate_reduction,
                                decimate_threshold,
                                model_smoothing_iterations,
-                               model_smoothing_pass_band)
+                               model_smoothing_pass_band,
+                               min_segment_lines)
 
         self.image_specific_params[image_identifier] = {'image_smoothing': image_smoothing,
                                                         'image_smoothing_sigma': image_smoothing_sigma,
@@ -1221,7 +1234,8 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
                                                         'decimate_reduction': decimate_reduction,
                                                         'decimate_threshold': decimate_threshold,
                                                         'model_smoothing_iterations': model_smoothing_iterations,
-                                                        'model_smoothing_pass_band': model_smoothing_pass_band}
+                                                        'model_smoothing_pass_band': model_smoothing_pass_band,
+                                                        'min_segment_lines': min_segment_lines}
 
 
 class SegmentToRTSSConverterBase(Converter):
@@ -1237,7 +1251,6 @@ class SegmentToRTSSConverterBase(Converter):
         colors (Optional[Tuple[Tuple[int, int, int], ...]]): The colors which will be assigned to the ROIs.
         meta_data (RTSSMetaData): The configuration to specify certain DICOM attributes (default: RTSSMetaData()).
     """
-
 
     def __init__(self,
                  label_images: Union[Tuple[str, ...], Tuple[sitk.Image, ...]],
@@ -1256,6 +1269,7 @@ class SegmentToRTSSConverterBase(Converter):
         # get or load the reference image datasets
         self.image_datasets: Tuple[Dataset, ...] = ref_image_datasets if isinstance(ref_image_datasets[0], Dataset) \
             else load_datasets(ref_image_datasets)
+        self.image_datasets = self._sort_datasets(self.image_datasets)
 
         # get the ROI names
         if isinstance(roi_names, dict):
@@ -1285,6 +1299,27 @@ class SegmentToRTSSConverterBase(Converter):
         # get the configuration
         self.config = config
 
+    @staticmethod
+    def _sort_datasets(datasets: Tuple[Dataset, ...]) -> Tuple[Dataset, ...]:
+        """Sort the datasets by their patient image position.
+
+        Args:
+            datasets (Tuple[Dataset, ...]): The datasets to sort.
+
+        Returns:
+            Tuple[Dataset, ...]: The sorted datasets.
+        """
+        # get the principal axes of the image orientation
+        direction = np.array(get_slice_direction(datasets[0]))[2]
+
+        principal_component = np.argmax(np.abs(direction))
+        principal_direction = np.sign(direction[principal_component])
+
+        datasets_ = tuple(sorted(datasets,
+                                 key=lambda dataset: float(datasets[0].ImagePositionPatient[principal_component]),
+                                 reverse=principal_direction < 0))
+        return datasets_
+
     def _validate_label_images(self) -> None:
         """Validate the label images.
 
@@ -1298,7 +1333,6 @@ class SegmentToRTSSConverterBase(Converter):
 
             if 'float' in image.GetPixelIDTypeAsString():
                 raise ValueError('The label images must have an integer pixel type!')
-
 
     def _generate_basic_rtss(self) -> FileDataset:
         """Generate the basic RTSS skeleton.
@@ -1437,7 +1471,6 @@ class SegmentToRTSSConverterBase(Converter):
 
         return rtss
 
-
     @staticmethod
     def _append_rt_roi_observation(roi_number: int,
                                    rtss: Dataset
@@ -1489,7 +1522,6 @@ class SegmentToRTSSConverterBase(Converter):
 
         # add the StructureSetROISequence entry to the RTSS
         rtss.StructureSetROISequence.append(structure_set_roi)
-
 
     @abstractmethod
     def convert(self) -> Any:
@@ -1802,7 +1834,6 @@ class SegmentToRTSSConverter2D(SegmentToRTSSConverterBase):
 
         return label_image_1
 
-
     @staticmethod
     def _smooth_label_image(label_image: sitk.Image,
                             kernel_size: int,
@@ -1914,6 +1945,21 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
         self.config = config
         self._validate_label_images()
 
+    @staticmethod
+    def _has_foreground_on_borders(image: sitk.Image):
+        """Check if the provided image has foreground pixels on the borders.
+
+        Args:
+            image (sitk.Image): The image to check.
+
+        Returns:
+            bool: True if the image has foreground pixels on the borders, False otherwise.
+        """
+        image_array = sitk.GetArrayFromImage(image)
+
+        return any((np.any(image_array[0, :, :]), np.any(image_array[-1, :, :]),
+                    np.any(image_array[:, 0, :]), np.any(image_array[:, -1, :]),
+                    np.any(image_array[:, :, 0]), np.any(image_array[:, :, -1])))
 
     def preprocess_image(self, image_sitk: sitk.Image) -> sitk.Image:
         """Preprocess the provided :class:`SimpleITK.Image` instance such that the image has the same properties as
@@ -1955,8 +2001,8 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
 
         return image_sitk
 
-    @staticmethod
-    def _get_3d_model(sitk_image: sitk.Image,
+    def _get_3d_model(self,
+                      sitk_image: sitk.Image,
                       image_smoothing: bool,
                       smooth_sigma: float,
                       smooth_radius: float,
@@ -1989,14 +2035,24 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
         # set the direction matrix
         vtk_image.SetDirectionMatrix(sitk_image.GetDirection())
 
-        # pad the image to avoid boundary effects
-        extent = vtk_image.GetExtent()
-        new_extent = (extent[0] - 5, extent[1] + 5, extent[2] - 5, extent[3] + 5, extent[4] - 5, extent[5] + 5)
-        padder = vtk_icore.vtkImageConstantPad()
-        padder.SetInputDataObject(0, vtk_image)
-        padder.SetOutputWholeExtent(new_extent)
-        padder.Update(0)
-        vtk_image = padder.GetOutput()
+        # pad the image to avoid boundary effects if necessary
+        if self._has_foreground_on_borders(sitk_image):
+            margin = 10
+            extent = vtk_image.GetExtent()
+            new_extent = (extent[0] - margin, extent[1] + margin,
+                          extent[2] - margin, extent[3] + margin,
+                          extent[4] - margin, extent[5] + margin)
+            padder = vtk_icore.vtkImageConstantPad()
+            padder.SetConstant(0)
+            padder.SetInputDataObject(0, vtk_image)
+            padder.SetOutputWholeExtent(new_extent)
+            padder.Update(0)
+            vtk_image = padder.GetOutput()
+
+            # update the image properties
+            vtk_image.SetDirectionMatrix(sitk_image.GetDirection())
+            vtk_image.SetOrigin(sitk_image.GetOrigin())
+            vtk_image.SetSpacing(sitk_image.GetSpacing())
 
         # apply gaussian smoothing
         foreground_amount = sitk.GetArrayFromImage(sitk_image).sum() / 255
@@ -2007,6 +2063,11 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
             gaussian.SetRadiusFactor(smooth_radius)
             gaussian.Update(0)
             vtk_image = gaussian.GetOutputDataObject(0)
+
+            # update the image properties
+            vtk_image.SetDirectionMatrix(sitk_image.GetDirection())
+            vtk_image.SetOrigin(sitk_image.GetOrigin())
+            vtk_image.SetSpacing(sitk_image.GetSpacing())
 
         # apply flying edges
         flying_edges = vtk_fcore.vtkFlyingEdges3D()
@@ -2057,16 +2118,21 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
 
         return stripped
 
-    def _get_2d_contours(self, polydata: vtk_dm.vtkPolyData) -> List[List[List[List[float]]]]:
+    def _get_2d_contours(self,
+                         polydata: vtk_dm.vtkPolyData,
+                         min_segment_lines: int = 0
+                         ) -> List[Optional[List[List[List[float]]]]]:
         """Get the 2D contours of the provided :class:`vtk.vtkPolyData` instance that correspond with the referenced
         DICOM image series.
 
         Args:
             polydata (vtk.vtkPolyData): The :class:`vtk.vtkPolyData` instance to get the 2D contours for.
+            min_segment_lines (int): The minimum number of lines that a contour segment must have to be considered
+             (default: 0).
 
         Returns:
-            List[List[List[List[float]]]]: The 2D contours of the provided :class:`vtk.vtkPolyData` instance that
-            correspond with the referenced DICOM image series.
+            List[Optional[List[List[List[float]]]]]: The 2D contours of the provided :class:`vtk.vtkPolyData` instance
+            that correspond with the referenced DICOM image series.
         """
         origin = self.image_datasets[0].ImagePositionPatient
         origin = [float(val) for val in origin]
@@ -2104,38 +2170,63 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
         loop.Update(0)
         looped = loop.GetOutput()
 
+        # sort the polydata
+        sorter = vtk_fhybrid.vtkDepthSortPolyData()
+        sorter.SetInputDataObject(0, looped)
+        sorter.SetVector(*tuple(np.array(normal) * -1))
+        sorter.SetOrigin(*origin)
+        sorter.SetSortScalars(True)
+        sorter.SetDirectionToSpecifiedVector()
+        sorter.Update(0)
+        looped = sorter.GetOutput()
+
         # get the polylines for each slice if there are any
         cells = looped.GetLines()
         points = looped.GetPoints()
-        contours_points = []
 
         indices = vtk_ccore.vtkIdList()
         cell_indicator = cells.GetNextCell(indices)
 
+        # if there are no cells return an empty list
+        if cell_indicator == 0:
+            return [None for _ in range(len(self.image_datasets))]
+
+        # get the slice planes
+        slice_planes = {}
         for slice_idx, dataset in enumerate(self.image_datasets):
             slice_plane = vtk_dm.vtkPlane()
             slice_plane.SetOrigin(*dataset.ImagePositionPatient)
             slice_plane.SetNormal(*normal)
 
-            if cell_indicator:
-                point = points.GetPoint(indices.GetId(0))
-                distance = slice_plane.DistanceToPlane(point)
-            else:
-                distance = 2 * slice_spacing
+            slice_planes.update({slice_idx: slice_plane})
 
-            if distance <= slice_spacing and cell_indicator == 1:
-                contour_points = []
-                for i in range(indices.GetNumberOfIds()):
-                    point = list(points.GetPoint(indices.GetId(i)))
-                    contour_points.append(point)
-                contours_points.append(contour_points)
+        # get the contours for the appropriate slices
+        contours_points: List[Optional[List[List[float]]]] = [None for _ in range(len(self.image_datasets))]
+        while cell_indicator == 1:
+            if indices.GetNumberOfIds() <= min_segment_lines:
                 cell_indicator = cells.GetNextCell(indices)
+                continue
 
-            else:
-                contours_points.append(None)
+            reference_point = points.GetPoint(indices.GetId(0))
+
+            for slice_idx, slice_plane in slice_planes.items():
+                distance = slice_plane.DistanceToPlane(reference_point)
+
+                if distance <= slice_spacing * 0.5:
+                    contour_points = []
+
+                    for idx in range(indices.GetNumberOfIds()):
+                        contour_points.append(points.GetPoint(indices.GetId(idx)))
+
+                    if isinstance(contours_points[slice_idx], list):
+                        contours_points[slice_idx].append(contour_points)
+                    else:
+                        contours_points[slice_idx] = [contour_points]
+
+                    cell_indicator = cells.GetNextCell(indices)
+                    break
 
         return contours_points
-
 
     def _append_roi_contour_sequence_entry(self,
                                            contours: List[List[List[List[float]]]],
@@ -2164,21 +2255,22 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
             if slice_coords is None:
                 continue
 
-            # create the contour image sequence
-            contour_image = Dataset()
-            contour_image.ReferencedSOPClassUID = str(slice_dataset.file_meta.MediaStorageSOPClassUID)
-            contour_image.ReferencedSOPInstanceUID = str(slice_dataset.SOPInstanceUID)
+            for slice_coord_set in slice_coords:
+                # create the contour image sequence
+                contour_image = Dataset()
+                contour_image.ReferencedSOPClassUID = str(slice_dataset.file_meta.MediaStorageSOPClassUID)
+                contour_image.ReferencedSOPInstanceUID = str(slice_dataset.SOPInstanceUID)
 
-            contour_image_sequence = Sequence()
-            contour_image_sequence.append(contour_image)
+                contour_image_sequence = Sequence()
+                contour_image_sequence.append(contour_image)
 
-            # append to the contour sequence
-            contour = Dataset()
-            contour.ContourImageSequence = contour_image_sequence
-            contour.ContourGeometricType = 'CLOSED_PLANAR'
-            contour.NumberOfContourPoints = len(slice_coords)
-            contour.ContourData = [coord for point in slice_coords for coord in point]
-            contour_sequence.append(contour)
+                # append to the contour sequence
+                contour = Dataset()
+                contour.ContourImageSequence = contour_image_sequence
+                contour.ContourGeometricType = 'CLOSED_PLANAR'
+                contour.NumberOfContourPoints = len(slice_coord_set)
+                contour.ContourData = [coord for point in slice_coord_set for coord in point]
+                contour_sequence.append(contour)
 
         roi_contour.ContourSequence = contour_sequence
 
@@ -2213,6 +2305,7 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
                 decimate_threshold = image_params.get('decimate_threshold')
                 model_smoothing_iter = image_params.get('model_smoothing_iterations')
                 model_smoothing_pass_band = image_params.get('model_smoothing_pass_band')
+                min_segment_lines = image_params.get('min_segment_lines')
             else:
                 image_params = self.config.get_general_params()
                 image_smooth = image_params.get('image_smoothing')
@@ -2223,7 +2316,7 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
                 decimate_threshold = image_params.get('decimate_threshold')
                 model_smoothing_iter = image_params.get('model_smoothing_iterations')
                 model_smoothing_pass_band = image_params.get('model_smoothing_pass_band')
-
+                min_segment_lines = image_params.get('min_segment_lines')
 
             # preprocess the image
             label = self.preprocess_image(label)
@@ -2240,7 +2333,7 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
                                           model_smoothing_pass_band)
 
             # Get the contour data
-            contours = self._get_2d_contours(polydata)
+            contours = self._get_2d_contours(polydata, min_segment_lines)
 
             # enhance the rtss with the data
             self._append_structure_set_roi_sequence_entry(name, idx + 1, rtss)
@@ -2656,7 +2749,6 @@ class SubjectToRTSSConverter(Converter):
             raise ValueError(f'Invalid configuration type: {type(self.config)}!')
 
         return rtss
-
 
 # def show_polydata(polydata: vtk_dm.vtkPolyData) -> None:
 #     import vtkmodules.vtkInteractionStyle

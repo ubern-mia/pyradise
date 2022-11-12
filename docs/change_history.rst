@@ -4,14 +4,15 @@
 Change History
 ==============
 
-0.1.3 (TBD)
------------
+0.1.3 (12.11.2022)
+------------------
 
-* Added a meme in the README file (thanks to Mauricio Reyes).
 * Added a bugfix for DICOMDIR file parsing.
-* Added a support for DICOM registration files that do not contain references to the identity transformed DICOM image series.
-
-
+* Added a support for DICOM registration files that do not contain bi-directional references to DICOM image series.
+* Optimized :class:`~pyradise.process.postprocess.SingleConnectedComponentFilter` for faster processing.
+* Optimized :class:`~pyradise.process.base.Filter` and :class:`~pyradise.process.invertibility.PlaybackTransformTapeFilter` for faster inversion.
+* Fixed and optimized :class:`~pyradise.fileio.dicom_conversion.SegmentToRTSSConverter3D`.
+* Updated documentation.
 
 0.1.2 (24.10.2022)
 ------------------

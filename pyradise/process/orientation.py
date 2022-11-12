@@ -1,11 +1,15 @@
 from enum import Enum
-from typing import Union
+from typing import (
+    Union,
+    Optional)
 
 import SimpleITK as sitk
 
 from pyradise.data import (
     Subject,
-    TransformInfo)
+    TransformInfo,
+    IntensityImage,
+    SegmentationImage)
 from .base import (
     Filter,
     FilterParams)
@@ -391,19 +395,26 @@ class OrientationFilter(Filter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Execute the inverse image reorientation procedure.
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
-            transform_info (TransformInfo): The :class:`~pyradise.data.taping.TransformInfo` instance
+            transform_info (TransformInfo): The :class:`~pyradise.data.taping.TransformInfo` instance.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance with reoriented
             :class:`~pyradise.data.image.IntensityImage` and :class:`~pyradise.data.image.SegmentationImage` instances.
         """
         for image in subject.get_images():
+
+            if target_image is not None and image != target_image:
+                continue
 
             # get the original orientation
             original_orient = transform_info.get_data('original_orientation')

@@ -16,6 +16,7 @@ import SimpleITK as sitk
 from pyradise.data import (
     Subject,
     SegmentationImage,
+    IntensityImage,
     Modality,
     Organ,
     Annotator,
@@ -595,7 +596,8 @@ class InferenceFilter(Filter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Return the provided :class:`~pyradise.data.subject.Subject` instance without any processing because
         the inference of a DL-model is typically not invertible.
@@ -603,6 +605,9 @@ class InferenceFilter(Filter):
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be returned.
             transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The provided :class:`~pyradise.data.subject.Subject` instance.

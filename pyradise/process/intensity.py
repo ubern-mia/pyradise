@@ -2,7 +2,6 @@ from abc import abstractmethod
 from typing import (
     Any,
     Tuple,
-    List,
     Union,
     Optional)
 from warnings import warn
@@ -14,6 +13,7 @@ from pyradise.data import (
     Subject,
     Modality,
     IntensityImage,
+    SegmentationImage,
     TransformInfo,
     seq_to_modalities)
 from .base import (
@@ -198,19 +198,27 @@ class IntensityFilter(Filter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Execute the inverse intensity modifying procedure.
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
             transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance with processed
             :class:`~pyradise.data.image.IntensityImage` instances.
         """
         for image in subject.get_images():
+
+            if target_image is not None and image != target_image:
+                continue
+
             if isinstance(image, IntensityImage):
 
                 if transform_info.params.modalities is not None and \
@@ -424,19 +432,27 @@ class IntensityLoopFilter(LoopEntryFilter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Execute the inverse intensity modifying procedure.
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
             transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance with processed
             :class:`~pyradise.data.image.IntensityImage` instances.
         """
         for image in subject.get_images():
+
+            if target_image is not None and image != target_image:
+                continue
+
             if isinstance(image, IntensityImage):
 
                 if transform_info.params.modalities is not None and \
@@ -567,13 +583,17 @@ class ZScoreNormFilter(IntensityLoopFilter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Execute the inverse z-score normalization procedure.
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
             transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance with denormalized
@@ -697,13 +717,17 @@ class ZeroOneNormFilter(IntensityLoopFilter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Execute the inverse zero-one normalization procedure.
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
             transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance with denormalized
@@ -894,13 +918,17 @@ class RescaleIntensityFilter(IntensityFilter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Execute the inverse rescaling procedure.
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be inversely rescaled.
             transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance with inversely rescaled
@@ -1027,13 +1055,17 @@ class ClipIntensityFilter(IntensityFilter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Return the provided subject without any processing because the clipping procedure is not invertible.
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be returned.
             transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The provided :class:`~pyradise.data.subject.Subject` instance.
@@ -1161,7 +1193,8 @@ class GaussianFilter(IntensityFilter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Return the provided subject without any processing because the Gaussian filtering procedure is not
         invertible.
@@ -1169,6 +1202,9 @@ class GaussianFilter(IntensityFilter):
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be returned.
             transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The provided :class:`~pyradise.data.subject.Subject` instance.
@@ -1281,7 +1317,8 @@ class MedianFilter(IntensityFilter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Return the provided subject without any processing because the median filtering procedure is not
         invertible.
@@ -1289,6 +1326,9 @@ class MedianFilter(IntensityFilter):
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be returned.
             transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The provided :class:`~pyradise.data.subject.Subject` instance.
@@ -1394,7 +1434,8 @@ class LaplacianFilter(IntensityFilter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Return the provided subject without any processing because the Laplace filtering procedure is not
         invertible.
@@ -1402,6 +1443,9 @@ class LaplacianFilter(IntensityFilter):
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be returned.
             transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The provided :class:`~pyradise.data.subject.Subject` instance.

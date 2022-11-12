@@ -340,13 +340,17 @@ class IntraSubjectRegistrationFilter(Filter):
     # noinspection DuplicatedCode
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Execute the inverse of the intra-subject registration procedure.
 
         Args:
             subject: The :class:`~pyradise.data.subject.Subject` instance to be processed.
             transform_info: The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance with unregistered
@@ -366,6 +370,10 @@ class IntraSubjectRegistrationFilter(Filter):
 
         # perform the inverse registration
         for image in subject.get_images():
+
+            if target_image is not None and image != target_image:
+                continue
+
             if isinstance(image, IntensityImage):
                 if image.get_modality() == transform_info.params.reference_modality:
                     continue
@@ -508,12 +516,16 @@ class InterSubjectRegistrationFilter(Filter):
     @staticmethod
     def _apply_inverse_transform(subject: Subject,
                                  transform_info: TransformInfo,
+                                 target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
                                  ) -> Subject:
         """Apply the inverse transformation to the subject.
 
         Args:
             subject (Subject): The subject.
             transform_info (TransformInfo): The transformation information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance with back-transformed
@@ -533,6 +545,10 @@ class InterSubjectRegistrationFilter(Filter):
 
         # transform and resample the images
         for image in subject.get_images():
+
+            if target_image is not None and image != target_image:
+                continue
+
             # get the image data and cast if necessary
             image_sitk = image.get_image_data()
             if isinstance(image, IntensityImage):
@@ -613,18 +629,22 @@ class InterSubjectRegistrationFilter(Filter):
 
     def execute_inverse(self,
                         subject: Subject,
-                        transform_info: TransformInfo
+                        transform_info: TransformInfo,
+                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
                         ) -> Subject:
         """Execute the inverse of the inter-subject registration procedure.
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
             transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
 
         Returns:
             Subject: The :class:`~pyradise.data.subject.Subject` instance with unregistered
             :class:`~pyradise.data.image.IntensityImage` instances.
         """
-        subject = self._apply_inverse_transform(subject, transform_info)
+        subject = self._apply_inverse_transform(subject, transform_info, target_image)
 
         return subject

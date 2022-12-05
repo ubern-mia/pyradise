@@ -40,7 +40,7 @@ keywords = [
 dependencies = [
     'pydicom',
     'numpy',
-    'itk>=5.3rc4.post3',
+    'itk>=5.3',
     'SimpleITK',
     'opencv-python',
     'scipy',

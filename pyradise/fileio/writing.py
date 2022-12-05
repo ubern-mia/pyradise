@@ -9,6 +9,7 @@ from pathlib import Path
 from shutil import copy2
 from zipfile import ZipFile
 from io import BytesIO
+from distutils.dir_util import copy_tree
 
 import SimpleITK as sitk
 import itk
@@ -545,13 +546,7 @@ class DirectorySubjectWriter:
 
         # copy the files
         if copy_dir_path:
-            for root, dirs, files in os.walk(copy_dir_path, topdown=True):
-                for dir_ in dirs:
-                    os.mkdir(os.path.join(output_dir_path, dir_))
-                for file in files:
-                    sub_dir_path = root.replace(copy_dir_path, "")[1:]
-                    target_path = os.path.join(output_dir_path, sub_dir_path, file)
-                    copy2(os.path.join(root, file), target_path)
+            copy_tree(copy_dir_path, output_dir_path, preserve_mode=True, preserve_times=True)
 
         # write the datasets
         if datasets:

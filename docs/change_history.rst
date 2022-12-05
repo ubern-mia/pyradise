@@ -4,6 +4,12 @@
 Change History
 ==============
 
+0.1.4 (TBD)
+------------------
+
+* Added support for converting empty segmentation masks to an RTSS.
+* Optimized the writing of directory hierarchies to circumvent issues during copying of multi-level hierarchies.
+
 0.1.3 (12.11.2022)
 ------------------
 

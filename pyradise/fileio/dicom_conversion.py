@@ -1577,7 +1577,6 @@ class SegmentToRTSSConverter2D(SegmentToRTSSConverterBase):
         super().__init__(label_images, ref_image_datasets, roi_names, colors, config, meta_data)
 
         self.config = config
-        self._validate_label_images()
 
     @staticmethod
     def _append_roi_contour(mask: np.ndarray,
@@ -1643,7 +1642,6 @@ class SegmentToRTSSConverter2D(SegmentToRTSSConverterBase):
 
         Returns:
             List[List[List[float]]]: The contour coordinates for each slice of the mask.
-
         """
         transform_matrix = SegmentToRTSSConverter2D._get_pixel_to_patient_transformation_matrix(image_datasets)
 
@@ -1943,7 +1941,6 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
         super().__init__(label_images, ref_image_datasets, roi_names, colors, config, meta_data)
 
         self.config = config
-        self._validate_label_images()
 
     @staticmethod
     def _has_foreground_on_borders(image: sitk.Image):
@@ -2291,49 +2288,50 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
             # check if the image is empty
             label_image_np = sitk.GetArrayFromImage(label)
             if np.sum(label_image_np) == 0:
-                warnings.warn(f'The label image {name} is empty and will be skipped from RTSS construction')
-                continue
+                contours = [None for _ in range(len(self.image_datasets))]
 
-            # check if specific parameters are given for this ROI
-            if self.config.get_image_params(name) is not None:
-                image_params = self.config.get_image_params(name)
-                image_smooth = image_params.get('image_smoothing')
-                image_smooth_sigma = image_params.get('image_smoothing_sigma')
-                image_smooth_radius = image_params.get('image_smoothing_radius')
-                image_threshold = image_params.get('image_smoothing_threshold')
-                decimate_reduction = image_params.get('decimate_reduction')
-                decimate_threshold = image_params.get('decimate_threshold')
-                model_smoothing_iter = image_params.get('model_smoothing_iterations')
-                model_smoothing_pass_band = image_params.get('model_smoothing_pass_band')
-                min_segment_lines = image_params.get('min_segment_lines')
             else:
-                image_params = self.config.get_general_params()
-                image_smooth = image_params.get('image_smoothing')
-                image_smooth_sigma = image_params.get('image_smoothing_sigma')
-                image_smooth_radius = image_params.get('image_smoothing_radius')
-                image_threshold = image_params.get('image_smoothing_threshold')
-                decimate_reduction = image_params.get('decimate_reduction')
-                decimate_threshold = image_params.get('decimate_threshold')
-                model_smoothing_iter = image_params.get('model_smoothing_iterations')
-                model_smoothing_pass_band = image_params.get('model_smoothing_pass_band')
-                min_segment_lines = image_params.get('min_segment_lines')
 
-            # preprocess the image
-            label = self.preprocess_image(label)
+                # check if specific parameters are given for this ROI
+                if self.config.get_image_params(name) is not None:
+                    image_params = self.config.get_image_params(name)
+                    image_smooth = image_params.get('image_smoothing')
+                    image_smooth_sigma = image_params.get('image_smoothing_sigma')
+                    image_smooth_radius = image_params.get('image_smoothing_radius')
+                    image_threshold = image_params.get('image_smoothing_threshold')
+                    decimate_reduction = image_params.get('decimate_reduction')
+                    decimate_threshold = image_params.get('decimate_threshold')
+                    model_smoothing_iter = image_params.get('model_smoothing_iterations')
+                    model_smoothing_pass_band = image_params.get('model_smoothing_pass_band')
+                    min_segment_lines = image_params.get('min_segment_lines')
+                else:
+                    image_params = self.config.get_general_params()
+                    image_smooth = image_params.get('image_smoothing')
+                    image_smooth_sigma = image_params.get('image_smoothing_sigma')
+                    image_smooth_radius = image_params.get('image_smoothing_radius')
+                    image_threshold = image_params.get('image_smoothing_threshold')
+                    decimate_reduction = image_params.get('decimate_reduction')
+                    decimate_threshold = image_params.get('decimate_threshold')
+                    model_smoothing_iter = image_params.get('model_smoothing_iterations')
+                    model_smoothing_pass_band = image_params.get('model_smoothing_pass_band')
+                    min_segment_lines = image_params.get('min_segment_lines')
 
-            # Get polydata
-            polydata = self._get_3d_model(label,
-                                          image_smooth,
-                                          image_smooth_sigma,
-                                          image_smooth_radius,
-                                          image_threshold,
-                                          decimate_reduction,
-                                          decimate_threshold,
-                                          model_smoothing_iter,
-                                          model_smoothing_pass_band)
+                # preprocess the image
+                label = self.preprocess_image(label)
 
-            # Get the contour data
-            contours = self._get_2d_contours(polydata, min_segment_lines)
+                # Get polydata
+                polydata = self._get_3d_model(label,
+                                              image_smooth,
+                                              image_smooth_sigma,
+                                              image_smooth_radius,
+                                              image_threshold,
+                                              decimate_reduction,
+                                              decimate_threshold,
+                                              model_smoothing_iter,
+                                              model_smoothing_pass_band)
+
+                # Get the contour data
+                contours = self._get_2d_contours(polydata, min_segment_lines)
 
             # enhance the rtss with the data
             self._append_structure_set_roi_sequence_entry(name, idx + 1, rtss)
@@ -2697,12 +2695,6 @@ class SubjectToRTSSConverter(Converter):
         self.image_info = image_infos[0]
         self.ref_modality = reference_modality_
 
-        # check if all segmentation images are binary
-        for image in subject.segmentation_images:
-            if not image.is_binary():
-                raise ValueError(f'The segmentation image of organ {image.get_organ(True)} and '
-                                 f'annotator {image.get_annotator(True)} is not binary or empty!')
-
         if not isinstance(config, (RTSSConverter2DConfiguration, RTSSConverter3DConfiguration)):
             raise ValueError(f'The config type {type(config)} is not supported!')
 
@@ -2722,6 +2714,14 @@ class SubjectToRTSSConverter(Converter):
         label_names = []
         for image in self.subject.segmentation_images:
             sitk_image = image.get_image_data()
+            if 'int' not in sitk_image.GetPixelIDTypeAsString():
+                try:
+                    sitk_image = sitk.Cast(sitk_image, sitk.sitkUInt8)
+                except Exception:  # noqa
+                    warnings.warn(f'Could not cast SegmentationImage for organ {image.get_organ(True)} to an integer '
+                                  'type. The SegmentationImage will be skipped!')
+                    continue
+
             sitk_images.append(sitk_image)
             label_names.append(image.get_organ(as_str=True))
 

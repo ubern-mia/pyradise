@@ -1177,7 +1177,7 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
         criteria = (isinstance(image_smoothing, bool),
                     isinstance(image_smoothing_sigma, float) and image_smoothing_sigma > 0,
                     isinstance(image_smoothing_radius, float) and image_smoothing_radius > 0,
-                    isinstance(image_smoothing_threshold, (float, int)) and image_smoothing_threshold > 0,
+                    isinstance(image_smoothing_threshold, (float, int)) and image_smoothing_threshold >= 0,
                     isinstance(decimate_reduction, float) and 0 < decimate_reduction < 0.99,
                     isinstance(decimate_threshold, (float, int)) and decimate_threshold >= 0,
                     isinstance(model_smoothing_iterations, int) and model_smoothing_iterations >= 0,

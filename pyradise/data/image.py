@@ -3,11 +3,13 @@ from abc import (
     abstractmethod)
 from typing import (
     Any,
+    Dict,
     Tuple,
     Union,
     Optional,
     TypeVar)
 from copy import deepcopy
+import warnings
 
 import SimpleITK as sitk
 import itk
@@ -149,16 +151,32 @@ class Image(ABC):
     """
 
     def __init__(self,
-                 image: Union[sitk.Image, itk.Image]
+                 image: Union[sitk.Image, itk.Image],
+                 data: Optional[Dict[str, Any]] = None
                  ) -> None:
         super().__init__()
 
+        # set the image
         if isinstance(image, sitk.Image):
             self.image: sitk.Image = image
         else:
             self.image: sitk.Image = convert_to_sitk_image(image)
 
+        # initialize the transform tape
         self.transform_tape = TransformTape()
+
+        # check validity of the additional data
+        if data is not None:
+            if not isinstance(data, dict):
+                raise TypeError('Additional data must be of type dict with the key providing an identifier for '
+                                'data retrieval.')
+            if not all(isinstance(key, str) for key in data.keys()):
+                raise TypeError('Additional data keys must be of type str because they are used as an identifier for'
+                                'data retrieval!')
+        else:
+            data = {}
+
+        self.data: Dict[str, Any] = data
 
     @staticmethod
     def _return_image_as(image: Union[sitk.Image, itk.Image],
@@ -184,6 +202,86 @@ class Image(ABC):
             return convert_to_sitk_image(image)
 
         return image
+
+    def add_data(self, data: Dict[str, Any]) -> None:
+        """Add additional data to the image.
+
+        Args:
+            data (Dict[str, Any]): The additional data.
+
+        Returns:
+            None
+        """
+        self.data.update(data)
+
+    def add_data_by_key(self, key: str, data: Any) -> None:
+        """Add additional data by key to the image.
+
+        Args:
+            key (str): The key of the additional data.
+            data (Any): The additional data.
+
+        Returns:
+            None
+        """
+        self.data[key] = data
+
+    def get_data(self) -> Dict[str, Any]:
+        """Get the additional data associated with the image.
+
+        Returns:
+            Dict[str, Any]: The additional data associated with the subject.
+        """
+        return self.data
+
+    def get_data_by_key(self, key: str) -> Any:
+        """Get additional data by key or :data:`None` if the key is not existing.
+
+        Args:
+            key (str): The key of the specific additional data.
+
+        Returns:
+            Any: The data or :data:`None`.
+        """
+        return self.data.get(key, None)
+
+    def replace_data(self, key: str, new_data: Any, add_if_missing: bool = False) -> bool:
+        """Replace data by a new value.
+
+        Args:
+            key (str): The key of the additional data.
+            new_data (Any): The new additional data.
+            add_if_missing (bool): If True, the additional data will be added if the key is not existing
+             (default: False).
+
+        Returns:
+            bool: True if the additional data is replaced successfully, False otherwise.
+        """
+        if key not in self.data.keys() and not add_if_missing:
+            warnings.warn(f'The key {key} is not contained in the additional data. No replacement will be performed.')
+            return False
+
+        self.data[key] = new_data
+        return True
+
+    def remove_additional_data(self) -> None:
+        """Remove all additional data from the image.
+
+        Returns:
+            None
+        """
+        self.data.clear()
+
+    def remove_additional_data_by_key(self, key: str) -> bool:
+        """Remove additional data by a key from the image.
+
+        Args:
+            key (str): The key of the additional data.
+
+        Returns:
+            bool: True when the removal procedure was successful otherwise False.
+        """
+        return self.data.pop(key, None) is not None
 
     @staticmethod
     def cast(image: Union[sitk.Image, itk.Image],

@@ -11,6 +11,7 @@ from typing import (
 from copy import deepcopy
 from datetime import datetime
 from dataclasses import dataclass
+import itertools
 import warnings
 
 import vtkmodules.vtkFiltersCore as vtk_fcore
@@ -24,6 +25,7 @@ import itk
 import numpy as np
 import cv2 as cv
 import SimpleITK as sitk
+import scipy
 from pydicom import (
     Dataset,
     FileDataset,
@@ -126,12 +128,16 @@ class RTSSToSegmentConverter(Converter):
         registration_dataset (Union[str, Dataset, None]): The path to a DICOM registration file or a DICOM
          registration :class:`~pydicom.dataset.Dataset` entry which contains a reference to the DICOM image
          (default: None).
+        fill_hole_search_distance (int): The search distance for the hole filling algorithm. If the search distance is
+         set to zero the hole filling algorithm is omitted. The search distance must be an odd number larger than 1
+         (default: 0).
     """
 
     def __init__(self,
                  rtss_dataset: Union[str, Dataset],
                  image_datasets: Union[Tuple[str], Tuple[Dataset]],
-                 registration_dataset: Union[str, Dataset, None] = None
+                 registration_dataset: Union[str, Dataset, None] = None,
+                 fill_hole_search_distance: int = 0
                  ) -> None:
         super().__init__()
 
@@ -156,6 +162,16 @@ class RTSSToSegmentConverter(Converter):
         elif isinstance(registration_dataset, Dataset):
             self.reg_dataset: Optional[Dataset] = registration_dataset
         self.reg_image_datasets = self._get_image_datasets_for_reg(image_datasets, self.reg_dataset)
+
+        # store the fill hole search distance
+        if fill_hole_search_distance == 0:
+            self.fill_hole_distance = 0
+        elif fill_hole_search_distance % 2 == 0:
+            raise ValueError('The fill hole search distance must be an odd number.')
+        elif fill_hole_search_distance == 1:
+            raise ValueError('The fill hole search distance must be larger than 1.')
+        else:
+            self.fill_hole_distance = fill_hole_search_distance
 
         # validate the loaded data
         self._validate_rtss_dataset(self.rtss_dataset)
@@ -455,31 +471,6 @@ class RTSSToSegmentConverter(Converter):
         return vec.dot(transformation_matrix.T)[:, :3]
 
     @staticmethod
-    def _get_contour_fill_mask(series_slice: Dataset,
-                               contour_coords: List[float],
-                               transformation_matrix: np.ndarray
-                               ) -> np.ndarray:
-        """Get the mask with the filled contour.
-
-        Args:
-            series_slice (Dataset): The corresponding slice dataset.
-            contour_coords (List[float]): The contour points.
-            transformation_matrix (np.ndarray): The transformation matrix.
-
-        Returns:
-            np.ndarray: The mask with the filled contour.
-        """
-        reshaped_contour_data = np.reshape(contour_coords, [len(contour_coords) // 3, 3])
-        translated_contour_data = RTSSToSegmentConverter._apply_transformation_to_3d_points(reshaped_contour_data,
-                                                                                            transformation_matrix)
-        polygon = [np.around([translated_contour_data[:, :2]]).astype(np.int32)]
-
-        # Create mask for the region. Fill with 1 for ROI
-        fill_mask = RTSSToSegmentConverter._create_empty_slice_mask(series_slice)
-        cv.fillPoly(img=fill_mask, pts=polygon, color=1)
-        return fill_mask
-
-    @staticmethod
     def _get_patient_to_pixel_transformation_matrix(image_datasets: Tuple[Dataset, ...]) -> np.ndarray:
         """Get the patient to pixel transformation matrix from the first image dataset.
 
@@ -495,8 +486,8 @@ class RTSSToSegmentConverter(Converter):
         row_direction, column_direction, slice_direction = get_slice_direction(image_datasets[0])
 
         linear = np.identity(3, dtype=np.float32)
-        linear[0, :3] = column_direction / column_spacing
-        linear[1, :3] = row_direction / row_spacing
+        linear[0, :3] = row_direction / row_spacing
+        linear[1, :3] = column_direction / column_spacing
         linear[2, :3] = slice_direction / slice_spacing
 
         mat = np.identity(4, dtype=np.float32)
@@ -542,13 +533,18 @@ class RTSSToSegmentConverter(Converter):
         Returns:
             np.ndarray: The discrete slice mask.
         """
-        slice_mask = RTSSToSegmentConverter._create_empty_slice_mask(image_dataset)
-
+        raw_polygons = []
         for contour_coords in contour_data:
-            fill_mask = RTSSToSegmentConverter._get_contour_fill_mask(image_dataset, contour_coords,
-                                                                      transformation_matrix)
-            slice_mask[fill_mask == 1] = np.invert(slice_mask[fill_mask == 1])
+            reshaped_contour_data = np.reshape(contour_coords, [len(contour_coords) // 3, 3])
+            translated_contour_data = RTSSToSegmentConverter._apply_transformation_to_3d_points(reshaped_contour_data,
+                                                                                                transformation_matrix)
+            polygon = [np.around([translated_contour_data[:, :2]]).astype(np.int32)]
+            polygon = np.array(polygon).squeeze()
+            if polygon.shape[0] > 2:
+                raw_polygons.append(polygon.astype(np.int32))
 
+        slice_mask = RTSSToSegmentConverter._create_empty_slice_mask(image_dataset)
+        cv.fillPoly(img=slice_mask, pts=raw_polygons, color=1)
         return slice_mask
 
     @staticmethod
@@ -589,7 +585,8 @@ class RTSSToSegmentConverter(Converter):
         Returns:
             sitk.Image: The image generated.
         """
-        mask = np.swapaxes(mask, 0, -1)
+        mask = np.swapaxes(mask, 0, 2)
+        mask = np.swapaxes(mask, 1, 2)
 
         image = sitk.GetImageFromArray(mask.astype(np.uint8))
         image = sitk.Cast(image, sitk.sitkUInt8)
@@ -600,7 +597,8 @@ class RTSSToSegmentConverter(Converter):
         slice_spacing = get_spacing_between_slices(image_datasets)
         image.SetSpacing((float(row_spacing), float(column_spacing), float(slice_spacing)))
 
-        slice_direction = np.stack(get_slice_direction(image_datasets[0]), axis=0).T.flatten().tolist()
+        slice_direction = np.stack(get_slice_direction(image_datasets[0]), axis=0).astype(np.float32).T.flatten()
+        slice_direction = slice_direction.tolist()
         image.SetDirection(slice_direction)
 
         return image
@@ -698,6 +696,58 @@ class RTSSToSegmentConverter(Converter):
 
         return dataset
 
+    @staticmethod
+    def _fill_holes_in_mask(mask: np.ndarray,
+                            search_radius: int = 5,
+                            ) -> np.ndarray:
+        """Fill holes in a binary mask using morphological closing.
+
+        Args:
+            mask (np.ndarray): The mask to fill holes in.
+            search_radius (int): The radius to search for holes.
+
+        Returns:
+            np.ndarray: The mask with filled holes.
+        """
+
+        # get the bounding box of the mask
+        bb = []
+        for ax in itertools.combinations(reversed(range(mask.ndim)), mask.ndim - 1):
+            nonzero = np.any(mask, axis=ax)
+            bb.extend(np.where(nonzero)[0][[0, -1]])
+
+        # extend the bounding box by the search radius
+        bb = np.array(bb)
+        bb[::2] = np.maximum(bb[::2] - search_radius, 0)
+        bb[1::2] = np.minimum(bb[1::2] + search_radius, mask.shape)
+
+        if mask.ndim == 3:
+            inner_mask = mask[bb[0]:bb[1], bb[2]:bb[3], bb[4]:bb[5]]
+        else:
+            inner_mask = mask[bb[0]:bb[1], bb[2]:bb[3]]
+
+        # fill the holes in the inner mask
+        structure = np.ones(tuple([search_radius for _ in range(mask.ndim)]), dtype=np.int)
+        inner_mask = scipy.ndimage.binary_fill_holes(inner_mask, structure).astype(np.bool)
+
+        # remove additional unconnected single voxel segmentations
+        inner_mask2 = np.copy(inner_mask).astype(np.uint8)
+        id_regions, num_ids = scipy.ndimage.label(inner_mask,
+                                                  structure=np.ones(tuple([3 for _ in range(mask.ndim)])))
+        id_sizes = np.array(scipy.ndimage.sum(inner_mask, id_regions, range(num_ids + 1)))
+        area_mask = (id_sizes == 1)
+        inner_mask2[area_mask[id_regions]] = 0
+        inner_mask = inner_mask2.astype(np.bool)
+
+        # insert the inner mask into the original mask
+        new_mask = np.zeros_like(mask, dtype=np.uint8)
+        if mask.ndim == 3:
+            new_mask[bb[0]:bb[1], bb[2]:bb[3], bb[4]:bb[5]] = inner_mask
+        else:
+            new_mask[bb[0]:bb[1], bb[2]:bb[3]] = inner_mask
+
+        return new_mask
+
     def convert(self) -> Dict[str, sitk.Image]:
         """Convert a DICOM-RTSS :class:`~pydicom.dataset.Dataset` instance into a dict of binary
         :class:`SimpleITK.Image` instances including their associated ROINames as a key in the dict.
@@ -730,7 +780,14 @@ class RTSSToSegmentConverter(Converter):
             if contour_sequence is None:
                 continue
 
+            # create the mask from the contours
             mask = self._create_mask_from_contour_sequence(image_datasets, contour_sequence)
+
+            # fill holes in the mask
+            if self.fill_hole_distance > 0:
+                mask = self._fill_holes_in_mask(mask, search_radius=5)
+
+            # create the image from the mask
             image = self._create_image_from_mask(image_datasets, mask)
             converted_images.update({roi_name: image})
 
@@ -1031,7 +1088,7 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
       deletion.
 
     * ``model_smoothing_iterations``: The number of iterations for the smoothing of the 3D model (Sinc-Filter).
-      Typically, 15 to 20 iterations are sufficient for smoothing.
+      Typically, 10 to 20 iterations are sufficient for smoothing.
 
     * ``model_smoothing_pass_band``: The pass band for the smoothing of the 3D model (Sinc-Filter). The closer this
       value is to zero (e.g., 0.001) the stronger the smoothing is. The higher the value (e.g., 0.4) the less the
@@ -1042,32 +1099,32 @@ class RTSSConverter3DConfiguration(RTSSConverterConfiguration):
 
 
     Args:
-        image_smoothing (bool): Whether to smooth the image before 3D model construction or not (default: True).
+        image_smoothing (bool): Whether to smooth the image before 3D model construction or not (default: False).
         image_smoothing_sigma (float): The standard deviation of the Gaussian smoothing before 3D model construction
          (default: 2.).
         image_smoothing_radius (float): The radius of the Gaussian smoothing before 3D model construction (default: 1.).
         image_smoothing_threshold (float): The minimum number of foreground voxels that must be contained in the
-         segmentation mask to trigger Gaussian smoothing (default: 500).
+         segmentation mask to trigger Gaussian smoothing (default: 0).
         decimate_reduction (float): The reduction factor for the 3D decimation. The decimation factor is valid
-         between 0 and 1 and the lower it is the more smoothing is applied (default: 0.2).
+         between 0 and 1 and the lower it is the more smoothing is applied (default: 0.5).
         decimate_threshold (float): The minimum number of foreground voxels that must be contained in the
-         segmentation mask to trigger 3D decimation (default: 500).
-        model_smoothing_iterations (int): The number of 3D smoothing steps (typically 15 - 20 steps) (default: 15).
+         segmentation mask to trigger 3D decimation (default: 0).
+        model_smoothing_iterations (int): The number of 3D smoothing steps (typically 10 - 20 steps) (default: 10).
         model_smoothing_pass_band (bool): The strength of the 3D smoothing (0.001 - 0.1 = strong smoothing,
-         0.5 - 1 = almost no smoothing) (default: 0.002).
+         0.1 - 0.5 = intermediate smoothing, 0.5 - 1 = almost no smoothing) (default: 0.25).
         min_segment_lines (int): The minimum number of lines that a segment must have to be considered for the RTSS
          (default: 0).
     """
 
     def __init__(self,
-                 image_smoothing: bool = True,
+                 image_smoothing: bool = False,
                  image_smoothing_sigma: float = 2.,
                  image_smoothing_radius: float = 1.,
-                 image_smoothing_threshold: float = 500.,
-                 decimate_reduction: float = 0.2,
-                 decimate_threshold: float = 500.,
-                 model_smoothing_iterations: int = 15,
-                 model_smoothing_pass_band: float = 0.002,
+                 image_smoothing_threshold: float = 0.,
+                 decimate_reduction: float = 0.5,
+                 decimate_threshold: float = 0.,
+                 model_smoothing_iterations: int = 10,
+                 model_smoothing_pass_band: float = 0.25,
                  min_segment_lines: int = 0,
                  ) -> None:
         super().__init__()
@@ -1596,7 +1653,7 @@ class SegmentToRTSSConverter2D(SegmentToRTSSConverterBase):
             None
         """
         roi_contour = Dataset()
-        roi_contour.ROIDisplayColor = roi_color
+        roi_contour.ROIDisplayColor = [str(color) for color in roi_color]
         roi_contour.ContourSequence = SegmentToRTSSConverter2D._create_contour_sequence(mask, image_datasets)
         roi_contour.ReferencedROINumber = str(roi_number)
 
@@ -1797,8 +1854,8 @@ class SegmentToRTSSConverter2D(SegmentToRTSSConverterBase):
         # compute the direction from the DICOM datasets
         vec_0 = image_datasets[0].ImageOrientationPatient[:3]
         vec_1 = image_datasets[0].ImageOrientationPatient[3:]
-        vec_2 = np.cross(np.array(vec_0), np.array(vec_1))
-        dicom_direction = np.stack((vec_0, vec_1, vec_2)).T.reshape(-1).tolist()
+        vec_2 = np.cross(np.array(vec_0, dtype=np.float32), np.array(vec_1, dtype=np.float32))
+        dicom_direction = np.stack((vec_0, vec_1, vec_2)).astype(np.float32).T.reshape(-1).tolist()
 
         # compute the origin from the DICOM datasets
         dicom_origin = image_datasets[0].ImagePositionPatient
@@ -1821,15 +1878,29 @@ class SegmentToRTSSConverter2D(SegmentToRTSSConverterBase):
         reference_image_sitk.SetOrigin(dicom_origin)
         reference_image_sitk.SetSpacing(dicom_spacing)
 
-        # orient the label image to LPS (DICOM standard)
-        label_image_0 = sitk.DICOMOrient(label_image, 'LPS')
+        # orient the label image according to the reference image
+        reference_orientation = sitk.DICOMOrientImageFilter_GetOrientationFromDirectionCosines(
+            reference_image_sitk.GetDirection())
+        label_image_0 = sitk.DICOMOrient(label_image, reference_orientation)
+
+        criteria = []
+        criteria.extend([reference_image_sitk.GetSpacing()[i] == label_image_0.GetSpacing()[i]
+                         for i in range(label_image.GetDimension())])
+        criteria.extend([reference_image_sitk.GetOrigin()[i] == label_image_0.GetOrigin()[i]
+                         for i in range(label_image.GetDimension())])
+        criteria.extend([reference_image_sitk.GetDirection()[i] == label_image_0.GetDirection()[i]
+                         for i in range(label_image.GetDimension())])
+        criteria.extend([reference_image_sitk.GetSize()[i] == label_image_0.GetSize()[i]
+                         for i in range(label_image.GetDimension())])
+
+        if all(criteria):
+            return label_image_0
 
         # resample the oriented label image to the reference image
         label_image_1 = sitk.Resample(label_image_0,
                                       reference_image_sitk,
                                       sitk.Transform(),
                                       sitk.sitkNearestNeighbor, 0.0, sitk.sitkUInt8)
-
         return label_image_1
 
     @staticmethod
@@ -2061,6 +2132,15 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
             gaussian.Update(0)
             vtk_image = gaussian.GetOutputDataObject(0)
 
+            # apply the thresholding
+            image_threshold = vtk_icore.vtkImageThreshold()
+            image_threshold.ThresholdByUpper(127.5)
+            image_threshold.SetInValue(255)
+            image_threshold.SetOutValue(0)
+            image_threshold.SetInputDataObject(0, vtk_image)
+            image_threshold.Update(0)
+            vtk_image = image_threshold.GetOutputDataObject(0)
+
             # update the image properties
             vtk_image.SetDirectionMatrix(sitk_image.GetDirection())
             vtk_image.SetOrigin(sitk_image.GetOrigin())
@@ -2069,7 +2149,7 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
         # apply flying edges
         flying_edges = vtk_fcore.vtkFlyingEdges3D()
         flying_edges.SetInputDataObject(0, vtk_image)
-        flying_edges.SetValue(0, 127.5)
+        flying_edges.SetValue(0, 255)
         flying_edges.ComputeGradientsOff()
         flying_edges.ComputeNormalsOff()
         flying_edges.Update(0)
@@ -2097,7 +2177,7 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
             smoother.SetFeatureAngle(60.0)
             smoother.SetPassBand(model_smooth_pass_band)
             smoother.NonManifoldSmoothingOn()
-            smoother.NormalizeCoordinatesOff()
+            smoother.NormalizeCoordinatesOn()
             smoother.Update(0)
             model = smoother.GetOutputDataObject(0)
 
@@ -2243,7 +2323,7 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
             None
         """
         roi_contour = Dataset()
-        roi_contour.ROIDisplayColor = list(color)
+        roi_contour.ROIDisplayColor = [str(color_) for color_ in color]
         roi_contour.ReferencedROINumber = str(roi_number)
 
         # create the contour sequence
@@ -2496,7 +2576,9 @@ class DicomImageSeriesConverter(Converter):
 
             # if no registration info is available, the image is added as is
             if reg_info is None:
-                images.append(IntensityImage(image, info.modality))
+                image_ = IntensityImage(image, info.modality)
+                image_.add_data({'SeriesInstanceUID': info.series_instance_uid})
+                images.append(image_)
 
             # else the image is transformed
             else:
@@ -2508,8 +2590,9 @@ class DicomImageSeriesConverter(Converter):
                                      f'is missing for the registration!')
 
                 image = self._transform_image(image, reg_info.transform, is_intensity=True)
-
-                images.append(IntensityImage(image, info.modality))
+                image_ = IntensityImage(image, info.modality)
+                image_.add_data({'SeriesInstanceUID': info.series_instance_uid})
+                images.append(image_)
 
         return tuple(images)
 
@@ -2533,12 +2616,16 @@ class DicomRTSSSeriesConverter(Converter):
         registration_infos (Optional[Tuple[DicomSeriesRegistrationInfo, ...]]): The
          :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entries referencing the DICOM image or
          DICOM-RTSS.
+        fill_hole_search_distance (int): The search distance for the hole filling algorithm. If the search distance is
+         set to zero the hole filling algorithm is omitted. The search distance must be an odd number larger than 1
+         (default: 0).
     """
 
     def __init__(self,
                  rtss_infos: Union[DicomSeriesRTSSInfo, Tuple[DicomSeriesRTSSInfo, ...]],
                  image_infos: Tuple[DicomSeriesImageInfo, ...],
-                 registration_infos: Optional[Tuple[DicomSeriesRegistrationInfo, ...]]
+                 registration_infos: Optional[Tuple[DicomSeriesRegistrationInfo, ...]],
+                 fill_hole_search_distance: int = 0,
                  ) -> None:
         super().__init__()
 
@@ -2549,6 +2636,16 @@ class DicomRTSSSeriesConverter(Converter):
 
         self.image_infos = image_infos
         self.reg_infos = registration_infos
+
+        # store the fill hole search distance
+        if fill_hole_search_distance == 0:
+            self.fill_hole_distance = 0
+        elif fill_hole_search_distance % 2 == 0:
+            raise ValueError('The fill hole search distance must be an odd number.')
+        elif fill_hole_search_distance == 1:
+            raise ValueError('The fill hole search distance must be larger than 1.')
+        else:
+            self.fill_hole_distance = fill_hole_search_distance
 
     def _get_referenced_image_info(self, rtss_info: DicomSeriesRTSSInfo) -> Optional[DicomSeriesImageInfo]:
         """Get the :class:`DicomSeriesImageInfo` which is referenced by the provided :class:`DicomSeriesRTSSInfo`.
@@ -2629,10 +2726,16 @@ class DicomRTSSSeriesConverter(Converter):
                 reg_dataset = None
 
             dataset = load_dataset(rtss_info.get_path()[0])
-            structures = RTSSToSegmentConverter(dataset, ref_image_info.path, reg_dataset).convert()
+            structures = RTSSToSegmentConverter(dataset,
+                                                ref_image_info.path,
+                                                reg_dataset,
+                                                self.fill_hole_distance).convert()
 
             for roi_name, segmentation_image in structures.items():
-                images.append(SegmentationImage(segmentation_image, Organ(roi_name), rtss_info.get_annotator()))
+                segmentation = SegmentationImage(segmentation_image, Organ(roi_name), rtss_info.get_annotator())
+                segmentation.add_data({'SeriesInstanceUID': rtss_info.referenced_instance_uid,
+                                       'ROINames': rtss_info.roi_names})
+                images.append(segmentation)
 
         return tuple(images)
 
@@ -2668,7 +2771,8 @@ class SubjectToRTSSConverter(Converter):
          procedure. The type of conversion configuration determines also the conversion algorithm (2D or 3D) that is
          used.
         meta_data (RTSSMetaData): The configuration to specify certain DICOM attributes (default: RTSSMetaData()).
-        config (Union[RTSS
+        colors (Optional[Tuple[Tuple[int, int, int], ...]]): The colors to be used for the segmentation masks. If None,
+         the default colors will be used (default: None).
     """
 
     def __init__(self,
@@ -2677,6 +2781,7 @@ class SubjectToRTSSConverter(Converter):
                  reference_modality: Union[Modality, str],
                  config: Union[RTSSConverter2DConfiguration, RTSSConverter3DConfiguration],
                  meta_data: RTSSMetaData = RTSSMetaData(),
+                 colors: Optional[Tuple[Tuple[int, int, int], ...]] = None,
                  ) -> None:
         super().__init__()
 
@@ -2700,6 +2805,33 @@ class SubjectToRTSSConverter(Converter):
 
         self.config: Union[RTSSConverter2DConfiguration, RTSSConverter3DConfiguration] = config
         self.meta_data = meta_data
+
+        self._validate_colors(colors)
+        self.colors = colors
+
+    @staticmethod
+    def _validate_colors(colors: Optional[Tuple[Tuple[int, int, int], ...]]) -> None:
+        """Validate the provided colors.
+
+        Args:
+            colors (Optional[Tuple[Tuple[int, int, int], ...]]): The colors to be validated.
+
+        Raises:
+            ValueError: If the provided colors are not valid.
+
+        Returns:
+            None: If the provided colors are valid.
+        """
+        if not colors:
+            return
+
+        for color in colors:
+            if len(color) != 3:
+                raise ValueError(f'The color {color} is not valid!')
+
+            for value in color:
+                if not isinstance(value, int) or value < 0 or value > 255:
+                    raise ValueError(f'The color {color} is not valid!')
 
     def convert(self) -> Dataset:
         """Convert a :class:`~pyradise.data.subject.Subject` instance to a DICOM-RTSS :class:`~pydicom.dataset.Dataset`
@@ -2733,7 +2865,7 @@ class SubjectToRTSSConverter(Converter):
             rtss = SegmentToRTSSConverter2D(label_images=tuple(sitk_images),
                                             ref_image_datasets=image_datasets,
                                             roi_names=tuple(label_names),
-                                            colors=None,
+                                            colors=self.colors,
                                             meta_data=self.meta_data,
                                             config=self.config).convert()
 
@@ -2741,7 +2873,7 @@ class SubjectToRTSSConverter(Converter):
             rtss = SegmentToRTSSConverter3D(label_images=tuple(sitk_images),
                                             ref_image_datasets=image_datasets,
                                             roi_names=tuple(label_names),
-                                            colors=None,
+                                            colors=self.colors,
                                             meta_data=self.meta_data,
                                             config=self.config).convert()
 

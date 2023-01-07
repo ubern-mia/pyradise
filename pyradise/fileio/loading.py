@@ -148,17 +148,31 @@ class SubjectLoader(ExplicitLoader):
          files (default: sitk.sitkFloat32).
         segmentation_pixel_value_type (int): The pixel value type of the segmentation images when loading discrete
          files (default: sitk.sitkUInt8).
+        fill_hole_search_distance (int): The search distance for the hole filling algorithm. If the search distance is
+         set to zero the hole filling algorithm is omitted. The search distance must be an odd number larger than 1
+         (default: 0).
 
     """
 
     def __init__(self,
                  intensity_pixel_value_type: int = sitk.sitkFloat32,
-                 segmentation_pixel_value_type: int = sitk.sitkUInt8
+                 segmentation_pixel_value_type: int = sitk.sitkUInt8,
+                 fill_hole_search_distance: int = 0,
                  ) -> None:
         super().__init__()
 
         self.intensity_pixel_type = intensity_pixel_value_type
         self.segmentation_pixel_type = segmentation_pixel_value_type
+
+        # store the fill hole search distance
+        if fill_hole_search_distance == 0:
+            self.fill_hole_distance = 0
+        elif fill_hole_search_distance % 2 == 0:
+            raise ValueError('The fill hole search distance must be an odd number.')
+        elif fill_hole_search_distance == 1:
+            raise ValueError('The fill hole search distance must be larger than 1.')
+        else:
+            self.fill_hole_distance = fill_hole_search_distance
 
     @staticmethod
     def _load_intensity_images(info: Tuple[IntensityFileSeriesInfo],
@@ -360,7 +374,10 @@ class SubjectLoader(ExplicitLoader):
             subject.add_images(dicom_images)
 
         if dicom_rtss_info:
-            dicom_segmentations = DicomRTSSSeriesConverter(dicom_rtss_info, dicom_image_info, dicom_reg_info).convert()
+            dicom_segmentations = DicomRTSSSeriesConverter(dicom_rtss_info,
+                                                           dicom_image_info,
+                                                           dicom_reg_info,
+                                                           self.fill_hole_distance).convert()
             subject.add_images(dicom_segmentations, force=True)
 
         intensity_images = self._load_intensity_images(intensity_image_info, self.intensity_pixel_type)
@@ -393,6 +410,9 @@ class IterableSubjectLoader(Loader):
          files (default: sitk.sitkFloat32).
         segmentation_pixel_value_type (int): The pixel value type of the segmentation images when loading discrete
          files (default: sitk.sitkUInt8).
+        fill_hole_search_distance (int): The search distance for the hole filling algorithm. If the search distance is
+         set to zero the hole filling algorithm is omitted. The search distance must be an odd number larger than 1
+         (default: 0).
 
     Examples:
 
@@ -442,7 +462,8 @@ class IterableSubjectLoader(Loader):
     def __init__(self,
                  info: Tuple[Tuple[SeriesInfo, ...], ...],
                  intensity_pixel_value_type: int = sitk.sitkFloat32,
-                 segmentation_pixel_value_type: int = sitk.sitkUInt8
+                 segmentation_pixel_value_type: int = sitk.sitkUInt8,
+                 fill_hole_search_distance: int = 0,
                  ):
         super().__init__()
 
@@ -456,6 +477,16 @@ class IterableSubjectLoader(Loader):
         self.intensity_pixel_type = intensity_pixel_value_type
         self.segmentation_pixel_type = segmentation_pixel_value_type
 
+        # store the fill hole search distance
+        if fill_hole_search_distance == 0:
+            self.fill_hole_distance = 0
+        elif fill_hole_search_distance % 2 == 0:
+            raise ValueError('The fill hole search distance must be an odd number.')
+        elif fill_hole_search_distance == 1:
+            raise ValueError('The fill hole search distance must be larger than 1.')
+        else:
+            self.fill_hole_distance = fill_hole_search_distance
+
         self.current_idx = 0
         self.num_subjects = len(self.info)
 
@@ -465,7 +496,7 @@ class IterableSubjectLoader(Loader):
 
     def __next__(self) -> Subject:
         if self.current_idx < self.num_subjects:
-            loader = SubjectLoader(self.intensity_pixel_type, self.segmentation_pixel_type)
+            loader = SubjectLoader(self.intensity_pixel_type, self.segmentation_pixel_type, self.fill_hole_distance)
             subject = loader.load(self.info[self.current_idx])
             self.current_idx += 1
             return subject

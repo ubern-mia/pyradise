@@ -193,11 +193,19 @@ class Filter(ABC):
         >>>
         >>>         return subject
 
+    Args:
+        warning_on_non_invertible (bool): If True, a warning is printed to the console if a filter is called to
+         execute the invertible process but is not invertible (default: False).
 
     """
 
-    def __init__(self):
+    def __init__(self,
+                 warning_on_non_invertible: bool = False
+                 ) -> None:
         super().__init__()
+
+        self.warn_on_non_invertible = warning_on_non_invertible
+
         self.verbose = False
 
         # register here all filter arguments such that the filter can be reconstructed
@@ -226,6 +234,18 @@ class Filter(ABC):
             None
         """
         self.verbose = verbose
+
+    def set_warning_on_non_invertible(self, warn: bool) -> None:
+        """Set the warning state.
+
+        Args:
+            warn (bool): If True, the filter outputs a warning if the filter is called and is not invertible,
+             otherwise not.
+
+        Returns:
+            None
+        """
+        self.warn_on_non_invertible = warn
 
     def _register_tracked_data(self,
                                image: Image,
@@ -448,16 +468,20 @@ class FilterPipeline:
     Args:
         filters (Optional[Tuple[Filter, ...]]): The filters of the pipeline (default: None).
         params (Optional[Tuple[FilterParams, ...]]): The parameters for the filters in the pipeline.
+        warning_on_non_invertible (bool): If True, a warning is printed to the console if a filter is called to
+         execute the invertible process but is not invertible (default: False).
     """
 
     def __init__(self,
                  filters: Optional[Tuple[Filter, ...]] = None,
-                 params: Optional[Tuple[FilterParams, ...]] = None
+                 params: Optional[Tuple[FilterParams, ...]] = None,
+                 warning_on_non_invertible: bool = False
                  ) -> None:
         super().__init__()
 
         self.filters: List[Filter, ...] = []
         self.params: List[FilterParams, ...] = []
+        self.warn_on_non_invertible = warning_on_non_invertible
 
         if filters:
             if not params:
@@ -550,6 +574,12 @@ class FilterPipeline:
         for filter_, param in zip(self.filters, self.params):
             if self.logger:
                 self.logger.info(f'{subject.get_name()}: Pipeline executing {filter_.__class__.__name__}...')
+
+            # set the warning on and off
+            if self.warn_on_non_invertible:
+                filter_.set_warning_on_non_invertible(True)
+            else:
+                filter_.set_warning_on_non_invertible(False)
 
             subject = filter_.execute(subject, param)
 

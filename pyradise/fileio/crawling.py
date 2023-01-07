@@ -606,13 +606,16 @@ class SubjectDicomCrawler(Crawler):
                                      'This will cause ambiguity when loading the DICOM series. Use either a modality '
                                      'configuration file or a modality extractor to resolve this issue.')
 
-                if config.has_default_modalities() and self.write_config is False:
+                if config.has_default_modalities() and self.write_config is False and len(config.configuration) > 1:
                     raise ValueError('The extracted modalities contain at least one default modality. '
                                      'This will cause ambiguity when loading the DICOM series. Use either a modality '
                                      'configuration file or a modality extractor to resolve this issue.')
 
                 if self.write_config:
                     config.to_file(os.path.join(self.path, self.config_file_name))
+                    return
+
+                if not config.has_duplicate_modalities():
                     return
 
                 raise ValueError('The modality configuration file could not be found '

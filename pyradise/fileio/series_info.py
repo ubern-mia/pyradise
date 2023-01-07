@@ -9,6 +9,7 @@ from typing import (
     Optional)
 from dataclasses import dataclass
 import re
+import warnings
 
 import numpy as np
 import SimpleITK as sitk
@@ -714,7 +715,7 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
                                                           all(is_ident(registration_info.transform_parameters))))
 
         if len(combined_info) > 2:
-            raise ValueError('There are more than two DICOM images assigned to this registration!')
+            warnings.warn('There are more than two DICOM images assigned to a registration!')
 
         return tuple(combined_info)
 
@@ -794,6 +795,7 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
         self.dataset: Optional[Dataset] = None
         self.annotator: Annotator = Annotator.get_default()
         self.referenced_instance_uid = ''
+        self.roi_names = []
 
         super().__init__(path)
 
@@ -813,7 +815,8 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
         additional_tags_ = [Tag(0x3006, 0x0002),    # StructureSetLabel
                             Tag(0x0008, 0x1070),    # OperatorName
                             Tag(0x3006, 0x0010),    # ReferencedFrameOfReferenceSequence
-                            Tag(0x3006, 0x0080)]    # RTROIObservationsSequence
+                            Tag(0x3006, 0x0080),    # RTROIObservationsSequence
+                            Tag(0x3006, 0x0020)]    # StructureSetROISequence
 
         if additional_tags:
             additional_tags_.extend(additional_tags)
@@ -822,6 +825,7 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
 
         self.annotator = self._get_annotator_from_dicom(self.dataset)
         self.referenced_instance_uid = self._get_referenced_series_instance_uid(self.dataset)
+        self.roi_names = self._get_roi_names()
 
         self._is_updated = True
 
@@ -888,6 +892,20 @@ class DicomSeriesRTSSInfo(DicomSeriesInfo):
                              f'SeriesInstanceUIDs, but only one is allowed!')
 
         return referenced_series_instance_uids[0]
+
+    def _get_roi_names(self) -> List[str]:
+        """Get the ROI names from the dataset.
+
+        Returns:
+            List[str]: The ROI names.
+        """
+        roi_names = []
+
+        roi_sq = self.dataset.get('StructureSetROISequence', [])
+        for roi_item in roi_sq:
+            roi_names.append(str(roi_item.get('ROIName')))
+
+        return roi_names
 
     # pylint: disable=unnecessary-pass
     def update(self) -> None:

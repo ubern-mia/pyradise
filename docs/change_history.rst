@@ -4,11 +4,21 @@
 Change History
 ==============
 
-0.1.4 (TBD)
+0.2.0 (07.01.2023)
 ------------------
 
 * Added support for converting empty segmentation masks to an RTSS.
+* Added support for color selection in :class:`~pyradise.fileio.dicom_conversion.SubjectToRTSSConverter`.
+* Added a data field to each :class:`~pyradise.data.image.Image` sub-class to store additional information.
+* Added an additional mechanism to all :class:`~pyradise.process.base.Filter` sub-classes to raise warnings when a non-invertible filter's operation is inverted.
+* Added a hole filling algorithm to the classes for loading DICOM-RTSS files to circumvent issues with unexpected small holes in the resulting segmentation masks.
+* Extended the :class:`~pyradise.fileio.modality_config.ModalityConfiguration` class to support manual addition of modality configuration entries.
+* General optimization of the converter classes.
 * Optimized the writing of directory hierarchies to circumvent issues during copying of multi-level hierarchies.
+* Relaxed exception handling in :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` to allow for more flexible handling of non-compliant DICOM registration files.
+* Fixed the crawling procedure to circumvent issues with single DICOM image series loading.
+* Minor updates to the documentation.
+
 
 0.1.3 (12.11.2022)
 ------------------

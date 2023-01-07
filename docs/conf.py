@@ -116,10 +116,15 @@ html_logo = None
 # The static path for HTML output
 html_static_path = ['_static']
 
+# Custom template styling
+html_css_files = [
+    'css/custom.css',
+]
+
 # Theme options
 html_theme_options = {"collapse_navigation": True,
                       "show_toc_level": 2,
-                      "page_sidebar_items": ["page-toc",]
+                      "secondary_sidebar_items": ["page-toc", ]
                       }
 
 

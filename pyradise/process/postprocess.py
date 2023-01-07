@@ -3,6 +3,7 @@ from typing import (
     Union,
     Optional)
 from copy import deepcopy
+import warnings
 
 import numpy as np
 import SimpleITK as sitk
@@ -208,6 +209,14 @@ class SingleConnectedComponentFilter(Filter):
         Returns:
             Subject: The provided :class:`~pyradise.data.subject.Subject` instance.
         """
+
+        # potentially warn the user that the operation is not invertible
+        if self.warn_on_non_invertible and not self.is_invertible():
+            warnings.warn('WARNING: '
+                          f'The {self.__class__.__name__} is called to invert its operation for the following image: \n'
+                          f'\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject '
+                          'is returned without modification.')
+
         return subject
 
 
@@ -281,4 +290,12 @@ class AlphabeticOrganSortingFilter(Filter):
         Returns:
             Subject: The provided :class:`~pyradise.data.subject.Subject` instance.
         """
+
+        # potentially warn the user that the operation is not invertible
+        if self.warn_on_non_invertible and not self.is_invertible():
+            warnings.warn('WARNING: '
+                          f'The {self.__class__.__name__} is called to invert its operation for the following image: \n'
+                          f'\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject '
+                          'is returned without modification.')
+
         return subject

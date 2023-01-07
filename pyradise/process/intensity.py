@@ -214,6 +214,14 @@ class IntensityFilter(Filter):
             Subject: The :class:`~pyradise.data.subject.Subject` instance with processed
             :class:`~pyradise.data.image.IntensityImage` instances.
         """
+
+        # potentially warn the user that the operation is not invertible
+        if self.warn_on_non_invertible and not self.is_invertible():
+            warn('WARNING: '
+                 f'The {self.__class__.__name__} is called to invert its operation for the following image: \n'
+                 f'\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject '
+                 'is returned without modification.')
+
         for image in subject.get_images():
 
             if target_image is not None and image != target_image:
@@ -1070,6 +1078,7 @@ class ClipIntensityFilter(IntensityFilter):
         Returns:
             Subject: The provided :class:`~pyradise.data.subject.Subject` instance.
         """
+
         return super().execute_inverse(subject, transform_info)
 
 

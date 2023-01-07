@@ -1,0 +1,7 @@
+@import "../basic.css";
+
+.bd-content {
+  flex-grow: 1;
+  min-width: 120%;
+  max-width: 150%;
+}

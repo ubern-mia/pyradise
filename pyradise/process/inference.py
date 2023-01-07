@@ -9,6 +9,7 @@ from typing import (
     Tuple,
     Union)
 from copy import deepcopy
+import warnings
 
 import numpy as np
 import SimpleITK as sitk
@@ -612,4 +613,10 @@ class InferenceFilter(Filter):
         Returns:
             Subject: The provided :class:`~pyradise.data.subject.Subject` instance.
         """
+
+        # potentially warn the user that the operation is not invertible
+        if self.warn_on_non_invertible:
+            warnings.warn(f'The {self.__class__.__name__} filter is called but is not invertible. '
+                          'The provided subject is returned without modification.')
+
         return subject

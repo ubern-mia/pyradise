@@ -3,6 +3,7 @@ from typing import (
     Tuple,
     Union)
 from copy import deepcopy
+import warnings
 
 from pyradise.data import (
     Subject,
@@ -103,8 +104,10 @@ class PlaybackTransformTapeFilter(Filter):
             # play back the transform tape
             for transform_info in transform_infos:
                 filter_ = transform_info.get_filter()
-                if not filter_.is_invertible():
-                    continue
+
+                # activate warnings if the filter is not invertible
+                if self.warn_on_non_invertible:
+                    filter_.set_warning_on_non_invertible(True)
 
                 temp_subject = filter_.execute_inverse(temp_subject, transform_info, image)
 
@@ -139,4 +142,12 @@ class PlaybackTransformTapeFilter(Filter):
         Returns:
             Subject: The provided :class:`~pyradise.data.subject.Subject` instance.
         """
+
+        # potentially warn the user that the operation is not invertible
+        if self.warn_on_non_invertible and not self.is_invertible():
+            warnings.warn('WARNING: '
+                          f'The {self.__class__.__name__} is called to invert its operation for the following image: \n'
+                          f'\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject '
+                          'is returned without modification.')
+
         return subject

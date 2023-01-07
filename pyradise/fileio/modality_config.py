@@ -2,7 +2,8 @@ from typing import (
     Tuple,
     List,
     NamedTuple,
-    Optional)
+    Optional,
+    Union)
 import os
 import json
 
@@ -301,6 +302,42 @@ class ModalityConfiguration:
             None
         """
         _ = tuple(map(self.add_modality_to_info, infos))
+
+    def add_modality_entry(self,
+                           sop_class_uid: str,
+                           study_instance_uid: str,
+                           series_instance_uid: str,
+                           series_description: str,
+                           series_number: str,
+                           dicom_modality: str,
+                           modality: Union[Modality, str]
+                           ) -> None:
+        """Add a modality configuration entry to the current modality configuration.
+
+        Args:
+            sop_class_uid (str): The SOP Class UID of the DICOM image series.
+            study_instance_uid (str): The Study Instance UID of the DICOM image series.
+            series_instance_uid (str): The Series Instance UID of the DICOM image series.
+            series_description (str): The Series Description of the DICOM image series.
+            series_number (str): The Series Number of the DICOM image series.
+            dicom_modality (str): The DICOM Modality of the DICOM image series that is retrieved from the DICOM file.
+            modality (Union[Modality, str]): The user-defined modality of the DICOM image series.
+
+        Returns:
+            None
+        """
+
+        if isinstance(modality, str):
+            modality = Modality(modality)
+
+        config_entry = ModalityConfigurationEntry(SOPClassUID=sop_class_uid,
+                                                  StudyInstanceUID=study_instance_uid,
+                                                  SeriesInstanceUID=series_instance_uid,
+                                                  SeriesDescription=series_description,
+                                                  SeriesNumber=series_number,
+                                                  DICOM_Modality=dicom_modality,
+                                                  Modality=modality)
+        self.configuration.append(config_entry)
 
     def _get_modality_for_series_instance_uid(self,
                                               series_instance_uid: str,

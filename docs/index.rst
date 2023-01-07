@@ -5,6 +5,7 @@
 
    installation
    examples
+   tutorials
    api
    change_history
    acknowledgment

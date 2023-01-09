@@ -2,6 +2,6 @@
 
 .bd-content {
   flex-grow: 1;
-  min-width: 120%;
+  min-width: 100%;
   max-width: 150%;
 }

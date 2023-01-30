@@ -634,16 +634,16 @@ class SegmentationImage(Image):
 
         return self.organ
 
-    def set_organ(self, organ: Optional[Annotator]) -> None:
+    def set_organ(self, organ: Organ) -> None:
         """Set the :class:`~pyradise.data.organ.Organ`.
 
         Args:
-            organ (Optional[Annotator]): The :class:`~pyradise.data.organ.Organ`.
+            organ (Organ): The :class:`~pyradise.data.organ.Organ`.
 
         Returns:
             None
         """
-        self.organ: Optional[Annotator] = organ
+        self.organ: Organ = organ
 
     def get_annotator(self, as_str: bool = False) -> Union[Annotator, str]:
         """Get the :class:`~pyradise.data.annotator.Annotator`.

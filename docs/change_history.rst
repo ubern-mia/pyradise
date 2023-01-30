@@ -4,6 +4,13 @@
 Change History
 ==============
 
+0.2.1 (30.01.2023)
+------------------
+
+* Added meme to README
+* Minor bugfix on :class:`~pyradise.data.image.Image` class
+
+
 0.2.0 (07.01.2023)
 ------------------
 

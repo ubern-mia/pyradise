@@ -12,7 +12,7 @@ auto-segmentation solutions, PyRaDiSe allows for converting and curating DICOM i
 simplify segmentation training dataset construction. Therefore, PyRaDiSe is highly flexible, allows for fast 
 prototyping, and facilitates a fast transition of data science research results into clinical radiotherapy research.
 
-<!--- <img alt="PyRaDiSe_Meme" src="https://github.com/ubern-mia/pyradise/blob/main/docs/_static/meme.jpg" width="300"> -->
+<img alt="PyRaDiSe_Meme" src="https://github.com/ubern-mia/pyradise/raw/main/docs/_static/meme.jpg" width="300">
 
 Main Features
 -------------
@@ -67,13 +67,11 @@ If you use PyRaDiSe for your research, please acknowledge it accordingly by citi
 
 BibTeX entry:
 
-    @article{Ruefenacht2022a,
-    author = {TO BE CHANGED},
-    doi = {TO BE CHANGED},
-    issn = {TO BE CHANGED},
-    journal = {TO BE CHANGED},
-    pages = {TO BE CHANGED},
-    title = {{PyRaDiSe: TO BE CHANGED}},
-    volume = {TO BE CHANGED},
-    year = {2022},
+    @article{Ruefenacht2023,
+    author = {Rüfenacht, Elias and Kamath, Amith and Suter, Yannick and Poel, Robert and Ermis, Ekin and Scheib, Stefan and Reyes, Mauricio},
+    title = {{PyRaDiSe: A Python package for DICOM-RT-based auto-segmentation pipeline construction and DICOM-RT data conversion}},
+    journal = {Computer Methods and Programs in Biomedicine},
+    doi = {10.1016/j.cmpb.2023.107374},
+    issn = {0169-2607},
+    year = {2023}
     }

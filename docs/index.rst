@@ -76,23 +76,19 @@ Citation
 --------
 If you use PyRaDiSe in your research, please acknowledge it by citing our paper:
 
-.. note::
-    The article is currently under review. BibTeX entry will be made available once the article is published.
 
+BibTeX entry:
 
-..
-    BibTeX entry:
+.. code-block:: none
 
-    .. code-block:: none
-
-        @article{Ruefenacht2023,
-        author = {Rüfenacht, Elias and Kamath, Amith and Suter, Yannick and Poel, Robert and Ermis, Ekin and Scheib, Stefan and Reyes, Mauricio},
-        title = {{PyRaDiSe: A Python package for DICOM-RT-based auto-segmentation pipeline construction and DICOM-RT data conversion}},
-        journal = {Computer Methods and Programs in Biomedicine},
-        doi = {10.1016/j.cmpb.2023.107374},
-        issn = {0169-2607},
-        year = {2023}
-        }
+    @article{Ruefenacht2023,
+    author = {Rüfenacht, Elias and Kamath, Amith and Suter, Yannick and Poel, Robert and Ermis, Ekin and Scheib, Stefan and Reyes, Mauricio},
+    title = {{PyRaDiSe: A Python package for DICOM-RT-based auto-segmentation pipeline construction and DICOM-RT data conversion}},
+    journal = {Computer Methods and Programs in Biomedicine},
+    doi = {10.1016/j.cmpb.2023.107374},
+    issn = {0169-2607},
+    year = {2023}
+    }
 
 
 

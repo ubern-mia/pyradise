@@ -1,29 +1,25 @@
-from typing import (
-    Tuple,
-    List,
-    NamedTuple,
-    Optional,
-    Union)
-import os
 import json
+import os
+from typing import List, NamedTuple, Optional, Tuple, Union
 
 from pyradise.data import Modality
 from pyradise.utils import is_file_and_exists
-from .series_info import (
-    DicomSeriesInfo,
-    DicomSeriesImageInfo)
 
-__all__ = ['ModalityConfiguration']
+from .series_info import DicomSeriesImageInfo, DicomSeriesInfo
+
+__all__ = ["ModalityConfiguration"]
 
 
-ModalityConfigurationEntry = NamedTuple('ModalityConfigurationEntry',
-                                        SOPClassUID=str,
-                                        StudyInstanceUID=str,
-                                        SeriesInstanceUID=str,
-                                        SeriesDescription=str,
-                                        SeriesNumber=str,
-                                        DICOM_Modality=str,
-                                        Modality=Modality)
+ModalityConfigurationEntry = NamedTuple(
+    "ModalityConfigurationEntry",
+    SOPClassUID=str,
+    StudyInstanceUID=str,
+    SeriesInstanceUID=str,
+    SeriesDescription=str,
+    SeriesNumber=str,
+    DICOM_Modality=str,
+    Modality=Modality,
+)
 
 
 class ModalityConfiguration:
@@ -125,7 +121,7 @@ class ModalityConfiguration:
         >>> if __name__ == '__main__':
         >>>     load_data('path/to/dataset')
 
-     """
+    """
 
     def __init__(self) -> None:
         super().__init__()
@@ -145,10 +141,7 @@ class ModalityConfiguration:
         config._load_modality_file(path, False)
         return config
 
-    def _load_modality_file(self,
-                            path: str,
-                            append: bool = False
-                            ) -> None:
+    def _load_modality_file(self, path: str, append: bool = False) -> None:
         """Load a modality file.
 
         Args:
@@ -164,26 +157,30 @@ class ModalityConfiguration:
         if not append:
             self.configuration = []
 
-        with open(path, 'r') as file:
+        with open(path, "r") as file:
             data = json.load(file)
 
         for entry in data:
-            series_instance_uid = entry.get('SeriesInstanceUID', '')
-            series_description = entry.get('SeriesDescription', '')
-            modality = Modality(entry.get('Modality', ''))
+            series_instance_uid = entry.get("SeriesInstanceUID", "")
+            series_description = entry.get("SeriesDescription", "")
+            modality = Modality(entry.get("Modality", ""))
 
             if modality.is_default():
-                print(f'The modality for SeriesInstanceUID {series_instance_uid} and SeriesDescription '
-                      f'{series_description} could not be detected from the ModalityConfiguration!')
+                print(
+                    f"The modality for SeriesInstanceUID {series_instance_uid} and SeriesDescription "
+                    f"{series_description} could not be detected from the ModalityConfiguration!"
+                )
 
             # pylint: disable=not-callable
-            config_entry = ModalityConfigurationEntry(SOPClassUID=entry.get('SOPClassUID', ''),
-                                                      StudyInstanceUID=entry.get('StudyInstanceUID', ''),
-                                                      SeriesInstanceUID=series_instance_uid,
-                                                      SeriesDescription=series_description,
-                                                      SeriesNumber=entry.get('SeriesNumber', ''),
-                                                      DICOM_Modality=entry.get('DICOM_Modality', ''),
-                                                      Modality=modality)
+            config_entry = ModalityConfigurationEntry(
+                SOPClassUID=entry.get("SOPClassUID", ""),
+                StudyInstanceUID=entry.get("StudyInstanceUID", ""),
+                SeriesInstanceUID=series_instance_uid,
+                SeriesDescription=series_description,
+                SeriesNumber=entry.get("SeriesNumber", ""),
+                DICOM_Modality=entry.get("DICOM_Modality", ""),
+                Modality=modality,
+            )
 
             self.configuration.append(config_entry)
 
@@ -203,11 +200,9 @@ class ModalityConfiguration:
         config._generate_from_dicom_info(dicom_infos, False, False)
         return config
 
-    def _generate_from_dicom_info(self,
-                                  dicom_infos: Tuple[DicomSeriesInfo],
-                                  update_infos: bool = False,
-                                  append: bool = False
-                                  ) -> None:
+    def _generate_from_dicom_info(
+        self, dicom_infos: Tuple[DicomSeriesInfo], update_infos: bool = False, append: bool = False
+    ) -> None:
         """Generates the modality information entries for multiple DICOM image series.
 
         Args:
@@ -224,28 +219,25 @@ class ModalityConfiguration:
             self.configuration = []
 
         for info in dicom_infos:
-
             if update_infos:
                 info.update()
 
-            modality = info.get_modality() if isinstance(info, DicomSeriesImageInfo) else \
-                Modality.get_default()
+            modality = info.get_modality() if isinstance(info, DicomSeriesImageInfo) else Modality.get_default()
 
             # pylint: disable=not-callable
-            config_entry = ModalityConfigurationEntry(SOPClassUID=info.sop_class_uid,
-                                                      StudyInstanceUID=info.study_instance_uid,
-                                                      SeriesInstanceUID=info.series_instance_uid,
-                                                      SeriesDescription=info.series_description,
-                                                      SeriesNumber=info.series_number,
-                                                      DICOM_Modality=info.dicom_modality,
-                                                      Modality=modality)
+            config_entry = ModalityConfigurationEntry(
+                SOPClassUID=info.sop_class_uid,
+                StudyInstanceUID=info.study_instance_uid,
+                SeriesInstanceUID=info.series_instance_uid,
+                SeriesDescription=info.series_description,
+                SeriesNumber=info.series_number,
+                DICOM_Modality=info.dicom_modality,
+                Modality=modality,
+            )
 
             self.configuration.append(config_entry)
 
-    def to_file(self,
-                path: str,
-                override: bool = False
-                ) -> None:
+    def to_file(self, path: str, override: bool = False) -> None:
         """Write the current modality configuration to a modality configuration file.
 
         Args:
@@ -262,18 +254,18 @@ class ModalityConfiguration:
             if override:
                 os.remove(path)
             else:
-                raise FileExistsError(f'A modality configuration file already exists ({path}).')
+                raise FileExistsError(f"A modality configuration file already exists ({path}).")
 
-        if not path.endswith('.json'):
-            path += '.json'
+        if not path.endswith(".json"):
+            path += ".json"
 
         data = []
         for entry in self.configuration:
             dict_data = entry._asdict()
-            dict_data['Modality'] = dict_data.get('Modality').name
+            dict_data["Modality"] = dict_data.get("Modality").name
             data.append(dict_data)
 
-        with open(path, 'w') as file:
+        with open(path, "w") as file:
             json.dump(data, file, indent=4)
 
     def add_modality_to_info(self, info: DicomSeriesImageInfo) -> None:
@@ -303,15 +295,16 @@ class ModalityConfiguration:
         """
         _ = tuple(map(self.add_modality_to_info, infos))
 
-    def add_modality_entry(self,
-                           sop_class_uid: str,
-                           study_instance_uid: str,
-                           series_instance_uid: str,
-                           series_description: str,
-                           series_number: str,
-                           dicom_modality: str,
-                           modality: Union[Modality, str]
-                           ) -> None:
+    def add_modality_entry(
+        self,
+        sop_class_uid: str,
+        study_instance_uid: str,
+        series_instance_uid: str,
+        series_description: str,
+        series_number: str,
+        dicom_modality: str,
+        modality: Union[Modality, str],
+    ) -> None:
         """Add a modality configuration entry to the current modality configuration.
 
         Args:
@@ -330,19 +323,20 @@ class ModalityConfiguration:
         if isinstance(modality, str):
             modality = Modality(modality)
 
-        config_entry = ModalityConfigurationEntry(SOPClassUID=sop_class_uid,
-                                                  StudyInstanceUID=study_instance_uid,
-                                                  SeriesInstanceUID=series_instance_uid,
-                                                  SeriesDescription=series_description,
-                                                  SeriesNumber=series_number,
-                                                  DICOM_Modality=dicom_modality,
-                                                  Modality=modality)
+        config_entry = ModalityConfigurationEntry(
+            SOPClassUID=sop_class_uid,
+            StudyInstanceUID=study_instance_uid,
+            SeriesInstanceUID=series_instance_uid,
+            SeriesDescription=series_description,
+            SeriesNumber=series_number,
+            DICOM_Modality=dicom_modality,
+            Modality=modality,
+        )
         self.configuration.append(config_entry)
 
-    def _get_modality_for_series_instance_uid(self,
-                                              series_instance_uid: str,
-                                              force: bool = False
-                                              ) -> Tuple[Optional[Modality], bool]:
+    def _get_modality_for_series_instance_uid(
+        self, series_instance_uid: str, force: bool = False
+    ) -> Tuple[Optional[Modality], bool]:
         """Get the modality information for the specified SeriesInstanceUID if it is available in the configuration.
 
         Args:

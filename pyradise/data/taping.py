@@ -1,34 +1,25 @@
-from abc import (
-    ABC,
-    abstractmethod)
-from typing import (
-    Any,
-    TypeVar,
-    Dict,
-    Tuple,
-    Optional)
+from abc import ABC, abstractmethod
+from typing import Any, Dict, Optional, Tuple, TypeVar
 
-import SimpleITK as sitk
 import numpy as np
+import SimpleITK as sitk
 
-
-__all__ = ['Tape', 'TransformTape', 'TransformInfo']
+__all__ = ["Tape", "TransformTape", "TransformInfo"]
 
 # pylint: disable=no-member
 
 # Forward declaration of image types
-Image = TypeVar('Image')
-IntensityImage = TypeVar('IntensityImage')
-SegmentationImage = TypeVar('SegmentationImage')
-Filter = TypeVar('Filter')
-FilterParameters = TypeVar('FilterParameters')
-ImageProperties = TypeVar('ImageProperties')
-Subject = TypeVar('Subject')
+Image = TypeVar("Image")
+IntensityImage = TypeVar("IntensityImage")
+SegmentationImage = TypeVar("SegmentationImage")
+Filter = TypeVar("Filter")
+FilterParameters = TypeVar("FilterParameters")
+ImageProperties = TypeVar("ImageProperties")
+Subject = TypeVar("Subject")
 
 
 class Tape(ABC):
-    """An abstract class for a tape which records defined elements and can replay them upon request.
-    """
+    """An abstract class for a tape which records defined elements and can replay them upon request."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -60,9 +51,7 @@ class Tape(ABC):
         """
         raise NotImplementedError()
 
-    def get_recorded_elements(self,
-                              reverse: bool = False
-                              ) -> Tuple[Any, ...]:
+    def get_recorded_elements(self, reverse: bool = False) -> Tuple[Any, ...]:
         """Get the recorded elements on the :class:`Tape`.
 
         Args:
@@ -87,31 +76,32 @@ class Tape(ABC):
 
 class TransformInfo:
     """A class to store information about a data transformation performed via a :class:`~pyradise.process.base.Filter`.
-     This class is used in combination with a :class:`~pyradise.data.taping.TransformTape` instance to keep track
-     of data transformations and to render invertibility feasible for invertible filters operations.
+    This class is used in combination with a :class:`~pyradise.data.taping.TransformTape` instance to keep track
+    of data transformations and to render invertibility feasible for invertible filters operations.
 
-     Args:
-         name (str): The name of the filter which performed the data transformation.
-         params (Optional[FilterParameters]): The filter parameters which parameterize the data transformation.
-         pre_transform_image_properties (ImageProperties): The image properties before the data transformation.
-         post_transform_image_properties (ImageProperties): The image properties after the data transformation.
-         filter_args (Optional[Dict[str, Any]]): The filter arguments passed via the constructor of the filter
-          (default: None).
-         additional_data (Optional[Dict[str, Any]]): Additional data which is required the data transformation or to
-          inverse it (default: None).
-         transform (Optional[sitk.Transform]): A SimpleITK transform which may be used for the data transformation
-          (default: None).
+    Args:
+        name (str): The name of the filter which performed the data transformation.
+        params (Optional[FilterParameters]): The filter parameters which parameterize the data transformation.
+        pre_transform_image_properties (ImageProperties): The image properties before the data transformation.
+        post_transform_image_properties (ImageProperties): The image properties after the data transformation.
+        filter_args (Optional[Dict[str, Any]]): The filter arguments passed via the constructor of the filter
+         (default: None).
+        additional_data (Optional[Dict[str, Any]]): Additional data which is required the data transformation or to
+         inverse it (default: None).
+        transform (Optional[sitk.Transform]): A SimpleITK transform which may be used for the data transformation
+         (default: None).
     """
 
-    def __init__(self,
-                 name: str,
-                 params: Optional[FilterParameters],
-                 pre_transform_image_properties: ImageProperties,
-                 post_transform_image_properties: ImageProperties,
-                 filter_args: Optional[Dict[str, Any]] = None,
-                 additional_data: Optional[Dict[str, Any]] = None,
-                 transform: Optional[sitk.Transform] = None
-                 ) -> None:
+    def __init__(
+        self,
+        name: str,
+        params: Optional[FilterParameters],
+        pre_transform_image_properties: ImageProperties,
+        post_transform_image_properties: ImageProperties,
+        filter_args: Optional[Dict[str, Any]] = None,
+        additional_data: Optional[Dict[str, Any]] = None,
+        transform: Optional[sitk.Transform] = None,
+    ) -> None:
         super().__init__()
 
         self.name = name
@@ -145,6 +135,7 @@ class TransformInfo:
             Filter: The filter used for the data transformation.
         """
         from pyradise.process import Filter
+
         subclasses = self._get_subclasses(Filter)
         return subclasses.get(self.name)(**self.filter_args)
 
@@ -290,7 +281,7 @@ class TransformTape(Tape):
         from pyradise.data import Subject
 
         # create a temporary subject to store the image
-        subject = Subject('temporary_playback_subject', data)
+        subject = Subject("temporary_playback_subject", data)
 
         # playback the transformations
         for transform_info in data.get_transform_tape().get_recorded_elements(reverse=True):

@@ -1,27 +1,17 @@
-from abc import (ABC, abstractmethod)
-from typing import (
-    Tuple,
-    List,
-    Sequence)
+from abc import ABC, abstractmethod
+from typing import List, Sequence, Tuple
 
 import SimpleITK as sitk
 
-from pyradise.data import (
-    Subject,
-    IntensityImage,
-    SegmentationImage)
-from .series_info import (
-    SeriesInfo,
-    IntensityFileSeriesInfo,
-    SegmentationFileSeriesInfo,
-    DicomSeriesImageInfo,
-    DicomSeriesRTSSInfo,
-    DicomSeriesRegistrationInfo)
-from .dicom_conversion import (
-    DicomImageSeriesConverter,
-    DicomRTSSSeriesConverter)
+from pyradise.data import IntensityImage, SegmentationImage, Subject
 
-__all__ = ['Loader', 'ExplicitLoader', 'SubjectLoader', 'IterableSubjectLoader']
+from .dicom_conversion import (DicomImageSeriesConverter,
+                               DicomRTSSSeriesConverter)
+from .series_info import (DicomSeriesImageInfo, DicomSeriesRegistrationInfo,
+                          DicomSeriesRTSSInfo, IntensityFileSeriesInfo,
+                          SegmentationFileSeriesInfo, SeriesInfo)
+
+__all__ = ["Loader", "ExplicitLoader", "SubjectLoader", "IterableSubjectLoader"]
 
 
 class Loader(ABC):
@@ -33,9 +23,7 @@ class Loader(ABC):
     """
 
     @staticmethod
-    def _extract_info_by_type(info: Sequence[SeriesInfo],
-                              type_: type
-                              ) -> Tuple:
+    def _extract_info_by_type(info: Sequence[SeriesInfo], type_: type) -> Tuple:
         """Extract all :class:`~pyradise.fileio.series_info.SeriesInfo` entries of the specified type from the
         provided sequence of :class:`~pyradise.fileio.series_info.SeriesInfo`.
 
@@ -55,9 +43,7 @@ class ExplicitLoader(Loader, ABC):
     :class:`~pyradise.fileio.series_info.SeriesInfo` entries can be loaded with the same :class:`Loader` instance."""
 
     @abstractmethod
-    def load(self,
-             info: Tuple[SeriesInfo, ...]
-             ) -> Subject:
+    def load(self, info: Tuple[SeriesInfo, ...]) -> Subject:
         """Load the :class:`~pyradise.data.subject.Subject`.
 
         Args:
@@ -154,11 +140,12 @@ class SubjectLoader(ExplicitLoader):
 
     """
 
-    def __init__(self,
-                 intensity_pixel_value_type: int = sitk.sitkFloat32,
-                 segmentation_pixel_value_type: int = sitk.sitkUInt8,
-                 fill_hole_search_distance: int = 0,
-                 ) -> None:
+    def __init__(
+        self,
+        intensity_pixel_value_type: int = sitk.sitkFloat32,
+        segmentation_pixel_value_type: int = sitk.sitkUInt8,
+        fill_hole_search_distance: int = 0,
+    ) -> None:
         super().__init__()
 
         self.intensity_pixel_type = intensity_pixel_value_type
@@ -168,16 +155,16 @@ class SubjectLoader(ExplicitLoader):
         if fill_hole_search_distance == 0:
             self.fill_hole_distance = 0
         elif fill_hole_search_distance % 2 == 0:
-            raise ValueError('The fill hole search distance must be an odd number.')
+            raise ValueError("The fill hole search distance must be an odd number.")
         elif fill_hole_search_distance == 1:
-            raise ValueError('The fill hole search distance must be larger than 1.')
+            raise ValueError("The fill hole search distance must be larger than 1.")
         else:
             self.fill_hole_distance = fill_hole_search_distance
 
     @staticmethod
-    def _load_intensity_images(info: Tuple[IntensityFileSeriesInfo],
-                               pixel_value_type: sitk.sitkFloat32
-                               ) -> Tuple[IntensityImage]:
+    def _load_intensity_images(
+        info: Tuple[IntensityFileSeriesInfo], pixel_value_type: sitk.sitkFloat32
+    ) -> Tuple[IntensityImage]:
         """Load the :class:`~pyradise.data.image.IntensityImage` s.
 
         Args:
@@ -196,9 +183,9 @@ class SubjectLoader(ExplicitLoader):
         return tuple(images)
 
     @staticmethod
-    def _load_segmentation_images(info: Tuple[SegmentationFileSeriesInfo],
-                                  pixel_value_type: sitk.sitkUInt8
-                                  ) -> Tuple[SegmentationImage]:
+    def _load_segmentation_images(
+        info: Tuple[SegmentationFileSeriesInfo], pixel_value_type: sitk.sitkUInt8
+    ) -> Tuple[SegmentationImage]:
         """Load the :class:`~pyradise.data.image.SegmentationImage` s.
 
         Args:
@@ -236,9 +223,9 @@ class SubjectLoader(ExplicitLoader):
         return all(name == names[0] for name in names) and all(id_ == ids[0] for id_ in ids)
 
     @staticmethod
-    def _validate_registration(reg_info: Tuple[DicomSeriesRegistrationInfo],
-                               image_info: Tuple[DicomSeriesImageInfo]
-                               ) -> bool:
+    def _validate_registration(
+        reg_info: Tuple[DicomSeriesRegistrationInfo], image_info: Tuple[DicomSeriesImageInfo]
+    ) -> bool:
         """Validate the ReferencedSeriesInstanceUIDs of the provided
         :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entries by checking if the referenced DICOM
         image data is provided.
@@ -254,9 +241,7 @@ class SubjectLoader(ExplicitLoader):
 
         """
 
-        def is_image_info_available(instance_uids: List[str],
-                                    image_info_: Tuple[DicomSeriesImageInfo]
-                                    ) -> bool:
+        def is_image_info_available(instance_uids: List[str], image_info_: Tuple[DicomSeriesImageInfo]) -> bool:
             comparison = [[info.series_instance_uid == uid for info in image_info_] for uid in instance_uids]
             return all(any(comparison_) for comparison_ in comparison)
 
@@ -272,11 +257,11 @@ class SubjectLoader(ExplicitLoader):
             reg_info_entry.update() if not reg_info_entry.is_updated() else None
 
             identity = reg_info_entry.referenced_series_instance_uid_identity
-            if identity != '':
+            if identity != "":
                 identity_uids.append(identity)
 
             transform = reg_info_entry.referenced_series_instance_uid_transform
-            if transform != '':
+            if transform != "":
                 transform_uids.append(transform)
 
         if is_image_info_available(identity_uids, image_info) and is_image_info_available(transform_uids, image_info):
@@ -285,9 +270,7 @@ class SubjectLoader(ExplicitLoader):
         return False
 
     @staticmethod
-    def _validate_rtss_info(rtss_info: Tuple[DicomSeriesRTSSInfo],
-                            image_info: Tuple[DicomSeriesImageInfo]
-                            ) -> bool:
+    def _validate_rtss_info(rtss_info: Tuple[DicomSeriesRTSSInfo], image_info: Tuple[DicomSeriesImageInfo]) -> bool:
         """Validate if all SeriesInstanceUIDs referenced in the DICOM-RTSSs are provided.
 
         Args:
@@ -305,8 +288,10 @@ class SubjectLoader(ExplicitLoader):
         if not image_info:
             return False
 
-        comparison = [any(info.series_instance_uid == rtss_info_entry.referenced_instance_uid for info in image_info) 
-                      for rtss_info_entry in rtss_info]
+        comparison = [
+            any(info.series_instance_uid == rtss_info_entry.referenced_instance_uid for info in image_info)
+            for rtss_info_entry in rtss_info
+        ]
 
         return all(comparison)
 
@@ -334,11 +319,13 @@ class SubjectLoader(ExplicitLoader):
         """
         # check if the info entries have the correct structure
         if not info:
-            raise ValueError('The provided info entries are empty.')
+            raise ValueError("The provided info entries are empty.")
 
         if not all(isinstance(entry, SeriesInfo) for entry in info):
-            raise ValueError('The provided info entries are not of type SeriesInfo. '
-                             'Make sure to provide a tuple of SeriesInfo entries.')
+            raise ValueError(
+                "The provided info entries are not of type SeriesInfo. "
+                "Make sure to provide a tuple of SeriesInfo entries."
+            )
 
         # separate the info entries
         dicom_image_info = self._extract_info_by_type(info, DicomSeriesImageInfo)
@@ -349,13 +336,13 @@ class SubjectLoader(ExplicitLoader):
 
         # validate the info entries
         if not self._validate_patient_identification(info):
-            raise ValueError('The patient identification (patient_name and patient_id) is not unique!')
-        
+            raise ValueError("The patient identification (patient_name and patient_id) is not unique!")
+
         if not self._validate_registration(dicom_reg_info, dicom_image_info):
-            raise ValueError('At least one referenced image in the registration is missing!')
-        
+            raise ValueError("At least one referenced image in the registration is missing!")
+
         if not self._validate_rtss_info(dicom_rtss_info, dicom_image_info):
-            raise ValueError('The referenced image in the RTSS is not available!')
+            raise ValueError("The referenced image in the RTSS is not available!")
 
         # create the subject
         if dicom_image_info:
@@ -365,19 +352,17 @@ class SubjectLoader(ExplicitLoader):
         elif segmentation_image_info:
             subject = Subject(segmentation_image_info[0].get_patient_name())
         else:
-            raise ValueError('Subject can not be constructed because a subject name is missing!')
+            raise ValueError("Subject can not be constructed because a subject name is missing!")
 
-        
         # load the images and add them to the subject
         if dicom_image_info:
             dicom_images = DicomImageSeriesConverter(dicom_image_info, dicom_reg_info).convert()
             subject.add_images(dicom_images)
 
         if dicom_rtss_info:
-            dicom_segmentations = DicomRTSSSeriesConverter(dicom_rtss_info,
-                                                           dicom_image_info,
-                                                           dicom_reg_info,
-                                                           self.fill_hole_distance).convert()
+            dicom_segmentations = DicomRTSSSeriesConverter(
+                dicom_rtss_info, dicom_image_info, dicom_reg_info, self.fill_hole_distance
+            ).convert()
             subject.add_images(dicom_segmentations, force=True)
 
         intensity_images = self._load_intensity_images(intensity_image_info, self.intensity_pixel_type)
@@ -459,19 +444,22 @@ class IterableSubjectLoader(Loader):
         >>>     main(args.input_path, args.output_path)
     """
 
-    def __init__(self,
-                 info: Tuple[Tuple[SeriesInfo, ...], ...],
-                 intensity_pixel_value_type: int = sitk.sitkFloat32,
-                 segmentation_pixel_value_type: int = sitk.sitkUInt8,
-                 fill_hole_search_distance: int = 0,
-                 ):
+    def __init__(
+        self,
+        info: Tuple[Tuple[SeriesInfo, ...], ...],
+        intensity_pixel_value_type: int = sitk.sitkFloat32,
+        segmentation_pixel_value_type: int = sitk.sitkUInt8,
+        fill_hole_search_distance: int = 0,
+    ):
         super().__init__()
 
         if not info:
-            raise ValueError('The provided infos are empty.')
+            raise ValueError("The provided infos are empty.")
         if not all(isinstance(entry, tuple) for entry in info):
-            raise ValueError('The provided first level info entries are not of type tuple. '
-                             'Make sure that the info is a tuple of tuples.')
+            raise ValueError(
+                "The provided first level info entries are not of type tuple. "
+                "Make sure that the info is a tuple of tuples."
+            )
         self.info = info
 
         self.intensity_pixel_type = intensity_pixel_value_type
@@ -481,9 +469,9 @@ class IterableSubjectLoader(Loader):
         if fill_hole_search_distance == 0:
             self.fill_hole_distance = 0
         elif fill_hole_search_distance % 2 == 0:
-            raise ValueError('The fill hole search distance must be an odd number.')
+            raise ValueError("The fill hole search distance must be an odd number.")
         elif fill_hole_search_distance == 1:
-            raise ValueError('The fill hole search distance must be larger than 1.')
+            raise ValueError("The fill hole search distance must be larger than 1.")
         else:
             self.fill_hole_distance = fill_hole_search_distance
 

@@ -1,25 +1,21 @@
-from typing import (
-    Tuple,
-    Union,
-    Optional)
-from copy import deepcopy
 import warnings
+from copy import deepcopy
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import SimpleITK as sitk
 
-from pyradise.data import (
-    Subject,
-    Organ,
-    IntensityImage,
-    SegmentationImage,
-    TransformInfo)
-from .base import (
-    Filter,
-    FilterParams)
+from pyradise.data import (IntensityImage, Organ, SegmentationImage, Subject,
+                           TransformInfo)
 
-__all__ = ['SingleConnectedComponentFilterParams', 'SingleConnectedComponentFilter',
-           'AlphabeticOrganSortingFilterParams', 'AlphabeticOrganSortingFilter']
+from .base import Filter, FilterParams
+
+__all__ = [
+    "SingleConnectedComponentFilterParams",
+    "SingleConnectedComponentFilter",
+    "AlphabeticOrganSortingFilterParams",
+    "AlphabeticOrganSortingFilter",
+]
 
 
 # pylint: disable = too-few-public-methods
@@ -32,9 +28,7 @@ class SingleConnectedComponentFilterParams(FilterParams):
          filtered.
     """
 
-    def __init__(self,
-                 excluded_organs: Optional[Union[Organ, Tuple[Organ, ...]]] = None
-                 ) -> None:
+    def __init__(self, excluded_organs: Optional[Union[Organ, Tuple[Organ, ...]]] = None) -> None:
         if isinstance(excluded_organs, Organ):
             self.excluded_organs = (excluded_organs,)
         elif excluded_organs is None:
@@ -59,9 +53,10 @@ class SingleConnectedComponentFilter(Filter):
         """
         return False
 
-    def _get_single_label_images(self,
-                                 image: SegmentationImage,
-                                 ) -> Tuple[Tuple[sitk.Image, ...], Tuple[int, ...]]:
+    def _get_single_label_images(
+        self,
+        image: SegmentationImage,
+    ) -> Tuple[Tuple[sitk.Image, ...], Tuple[int, ...]]:
         """Splits a label image into multiple single/binary label images.
 
         Args:
@@ -114,9 +109,7 @@ class SingleConnectedComponentFilter(Filter):
         return combined
 
     @staticmethod
-    def _get_single_connected_component_image(image: SegmentationImage,
-                                              label: int
-                                              ) -> sitk.Image:
+    def _get_single_connected_component_image(image: SegmentationImage, label: int) -> sitk.Image:
         """Removes all connected components except for the largest and adjusts the label index.
 
         Args:
@@ -150,10 +143,7 @@ class SingleConnectedComponentFilter(Filter):
 
         return tuple(unique_labels)
 
-    def execute(self,
-                subject: Subject,
-                params: SingleConnectedComponentFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: SingleConnectedComponentFilterParams) -> Subject:
         """Execute the single connected component filter procedure.
 
         Args:
@@ -165,7 +155,6 @@ class SingleConnectedComponentFilter(Filter):
             :class:`~pyradise.data.image.SegmentationImage` instances.
         """
         for image in subject.segmentation_images:
-
             if image.get_organ() in params.excluded_organs:
                 continue
 
@@ -191,11 +180,12 @@ class SingleConnectedComponentFilter(Filter):
 
         return subject
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Return the provided :class:`~pyradise.data.subject.Subject` instance without any processing because
         the single connected component filtering procedure is not invertible.
 
@@ -212,10 +202,12 @@ class SingleConnectedComponentFilter(Filter):
 
         # potentially warn the user that the operation is not invertible
         if self.warn_on_non_invertible and not self.is_invertible():
-            warnings.warn('WARNING: '
-                          f'The {self.__class__.__name__} is called to invert its operation for the following image: \n'
-                          f'\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject '
-                          'is returned without modification.')
+            warnings.warn(
+                "WARNING: "
+                f"The {self.__class__.__name__} is called to invert its operation for the following image: \n"
+                f"\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject "
+                "is returned without modification."
+            )
 
         return subject
 
@@ -250,10 +242,7 @@ class AlphabeticOrganSortingFilter(Filter):
         """
         return False
 
-    def execute(self,
-                subject: Subject,
-                params: AlphabeticOrganSortingFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: AlphabeticOrganSortingFilterParams) -> Subject:
         """Execute the alphabetical sorting of the :class:`~pyradise.data.image.SegmentationImage` instances according
         to their associated :class:`~pyradise.data.organ.Organ` instances.
 
@@ -272,11 +261,12 @@ class AlphabeticOrganSortingFilter(Filter):
 
         return subject
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Return the provided image without any processing because the alphabetical sorting procedure is not
         invertible.
 
@@ -293,9 +283,11 @@ class AlphabeticOrganSortingFilter(Filter):
 
         # potentially warn the user that the operation is not invertible
         if self.warn_on_non_invertible and not self.is_invertible():
-            warnings.warn('WARNING: '
-                          f'The {self.__class__.__name__} is called to invert its operation for the following image: \n'
-                          f'\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject '
-                          'is returned without modification.')
+            warnings.warn(
+                "WARNING: "
+                f"The {self.__class__.__name__} is called to invert its operation for the following image: \n"
+                f"\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject "
+                "is returned without modification."
+            )
 
         return subject

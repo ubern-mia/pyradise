@@ -1,32 +1,22 @@
-from abc import (
-    ABC,
-    abstractmethod)
-from typing import (
-    Any,
-    Dict,
-    Tuple,
-    Union,
-    Optional,
-    TypeVar)
-from copy import deepcopy
 import warnings
+from abc import ABC, abstractmethod
+from copy import deepcopy
+from typing import Any, Dict, Optional, Tuple, TypeVar, Union
 
-import SimpleITK as sitk
 import itk
 import numpy as np
+import SimpleITK as sitk
 
-from .modality import Modality
-from .organ import (
-    Organ,
-    OrganAnnotatorCombination)
+from ..utils import convert_to_itk_image, convert_to_sitk_image
 from .annotator import Annotator
+from .modality import Modality
+from .organ import Organ, OrganAnnotatorCombination
 from .taping import TransformTape
-from .utils import (str_to_organ, str_to_annotator, str_to_modality)
-from ..utils import (convert_to_itk_image, convert_to_sitk_image)
+from .utils import str_to_annotator, str_to_modality, str_to_organ
 
-TransformInfo = TypeVar('TransformInfo')
+TransformInfo = TypeVar("TransformInfo")
 
-__all__ = ['Image', 'IntensityImage', 'SegmentationImage', 'ImageProperties']
+__all__ = ["Image", "IntensityImage", "SegmentationImage", "ImageProperties"]
 
 
 class ImageProperties:
@@ -39,15 +29,13 @@ class ImageProperties:
         **kwargs: Additional information.
     """
 
-    def __init__(self,
-                 image: Union[sitk.Image],
-                 **kwargs):
+    def __init__(self, image: Union[sitk.Image, itk.Image], **kwargs):
         if isinstance(image, sitk.Image):
             image_ = image
         elif isinstance(image, itk.Image):
             image_ = convert_to_sitk_image(image)
         else:
-            raise TypeError('Image must be of type SimpleITK.Image or itk.Image')
+            raise TypeError("Image must be of type SimpleITK.Image or itk.Image")
 
         self._spacing = image_.GetSpacing()
         self._origin = image_.GetOrigin()
@@ -77,7 +65,7 @@ class ImageProperties:
             None
         """
         if key in self.kwargs.keys():
-            raise ValueError(f'Key {key} already exists.')
+            raise ValueError(f"Key {key} already exists.")
 
         self.kwargs[key] = value
 
@@ -117,7 +105,7 @@ class ImageProperties:
         """
         return self._size
 
-    def has_equal_origin_direction(self, other: 'ImageProperties') -> bool:
+    def has_equal_origin_direction(self, other: "ImageProperties") -> bool:
         """Check if the origin and direction of another :class:`ImageProperties` instance is equal.
 
         Args:
@@ -126,16 +114,17 @@ class ImageProperties:
         Returns:
             bool: True if the origin and direction are equal, False otherwise.
         """
-        return (self._origin == other._origin and
-                self._direction == other._direction)
+        return self._origin == other._origin and self._direction == other._direction
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, ImageProperties):
             return False
-        return (self._origin == other._origin and
-                self._spacing == other._spacing and
-                self._direction == other._direction and
-                self._size == other._size)
+        return (
+            self._origin == other._origin
+            and self._spacing == other._spacing
+            and self._direction == other._direction
+            and self._size == other._size
+        )
 
 
 class Image(ABC):
@@ -150,10 +139,7 @@ class Image(ABC):
         image (Union[sitk.Image, itk.Image]): The image data to be stored.
     """
 
-    def __init__(self,
-                 image: Union[sitk.Image, itk.Image],
-                 data: Optional[Dict[str, Any]] = None
-                 ) -> None:
+    def __init__(self, image: Union[sitk.Image, itk.Image], data: Optional[Dict[str, Any]] = None) -> None:
         super().__init__()
 
         # set the image
@@ -168,20 +154,21 @@ class Image(ABC):
         # check validity of the additional data
         if data is not None:
             if not isinstance(data, dict):
-                raise TypeError('Additional data must be of type dict with the key providing an identifier for '
-                                'data retrieval.')
+                raise TypeError(
+                    "Additional data must be of type dict with the key providing an identifier for " "data retrieval."
+                )
             if not all(isinstance(key, str) for key in data.keys()):
-                raise TypeError('Additional data keys must be of type str because they are used as an identifier for'
-                                'data retrieval!')
+                raise TypeError(
+                    "Additional data keys must be of type str because they are used as an identifier for"
+                    "data retrieval!"
+                )
         else:
             data = {}
 
         self.data: Dict[str, Any] = data
 
     @staticmethod
-    def _return_image_as(image: Union[sitk.Image, itk.Image],
-                         as_sitk: bool
-                         ) -> Union[sitk.Image, itk.Image]:
+    def _return_image_as(image: Union[sitk.Image, itk.Image], as_sitk: bool) -> Union[sitk.Image, itk.Image]:
         """Return the image as either a :class:`SimpleITK.Image` or :class:`itk.Image`.
 
         Args:
@@ -258,7 +245,7 @@ class Image(ABC):
             bool: True if the additional data is replaced successfully, False otherwise.
         """
         if key not in self.data.keys() and not add_if_missing:
-            warnings.warn(f'The key {key} is not contained in the additional data. No replacement will be performed.')
+            warnings.warn(f"The key {key} is not contained in the additional data. No replacement will be performed.")
             return False
 
         self.data[key] = new_data
@@ -284,10 +271,9 @@ class Image(ABC):
         return self.data.pop(key, None) is not None
 
     @staticmethod
-    def cast(image: Union[sitk.Image, itk.Image],
-             pixel_type: Union[itk.support.types.itkCType, int],
-             as_sitk: bool = True
-             ) -> Union[sitk.Image, itk.Image]:
+    def cast(
+        image: Union[sitk.Image, itk.Image], pixel_type: Union[itk.support.types.itkCType, int], as_sitk: bool = True
+    ) -> Union[sitk.Image, itk.Image]:
         """Cast an image to a certain pixel type and return it as either a :class:`itk.Image` or
         :class:`SimpleITK.Image`.
 
@@ -450,10 +436,7 @@ class Image(ABC):
         self.transform_tape.record(info)
 
     @abstractmethod
-    def copy_info(self,
-                  source: 'Image',
-                  include_transforms: bool = False
-                  ) -> None:
+    def copy_info(self, source: "Image", include_transforms: bool = False) -> None:
         """Copy the image information from another image.
 
         Args:
@@ -497,17 +480,12 @@ class IntensityImage(Image):
         modality (Union[Modality, str]): The image :class:`~pyradise.data.modality.Modality` or the modality's name.
     """
 
-    def __init__(self,
-                 image: Union[sitk.Image, itk.Image],
-                 modality: Union[Modality, str]
-                 ) -> None:
+    def __init__(self, image: Union[sitk.Image, itk.Image], modality: Union[Modality, str]) -> None:
         super().__init__(image)
 
         self.modality: Modality = str_to_modality(modality)
 
-    def get_modality(self,
-                     as_str: bool = False
-                     ) -> Union[Modality, str]:
+    def get_modality(self, as_str: bool = False) -> Union[Modality, str]:
         """Get the :class:`~pyradise.data.modality.Modality`.
 
         Args:
@@ -533,10 +511,7 @@ class IntensityImage(Image):
         """
         self.modality: Modality = modality
 
-    def copy_info(self,
-                  source: 'IntensityImage',
-                  include_transforms: bool = False
-                  ) -> None:
+    def copy_info(self, source: "IntensityImage", include_transforms: bool = False) -> None:
         """Copy the image information from another :class:`IntensityImage`.
 
         The copied information includes the following attributes:
@@ -556,7 +531,7 @@ class IntensityImage(Image):
             None
         """
         if not isinstance(source, IntensityImage):
-            raise TypeError('The source image must be an instance of IntensityImage.')
+            raise TypeError("The source image must be an instance of IntensityImage.")
 
         self.modality: Modality = deepcopy(source.get_modality())
 
@@ -588,7 +563,7 @@ class IntensityImage(Image):
         return self.modality == other.modality
 
     def __str__(self) -> str:
-        return f'Intensity image: {self.modality.name}'
+        return f"Intensity image: {self.modality.name}"
 
 
 class SegmentationImage(Image):
@@ -607,11 +582,12 @@ class SegmentationImage(Image):
          image or a string with the name of the annotator (default: Annotator.get_default()).
     """
 
-    def __init__(self,
-                 image: Union[sitk.Image, itk.Image],
-                 organ: Union[Organ, str],
-                 annotator: Optional[Union[Annotator, str]] = Annotator.get_default()
-                 ) -> None:
+    def __init__(
+        self,
+        image: Union[sitk.Image, itk.Image],
+        organ: Union[Organ, str],
+        annotator: Optional[Union[Annotator, str]] = Annotator.get_default(),
+    ) -> None:
         super().__init__(image)
         self.organ: Organ = str_to_organ(organ)
         if annotator is not None:
@@ -693,10 +669,7 @@ class SegmentationImage(Image):
         self.organ: Organ = organ_annotator_combination.organ
         self.annotator: Annotator = organ_annotator_combination.annotator
 
-    def copy_info(self,
-                  source: 'SegmentationImage',
-                  include_transforms: bool = False
-                  ) -> None:
+    def copy_info(self, source: "SegmentationImage", include_transforms: bool = False) -> None:
         """Copy the image information from another :class:`SegmentationImage`.
 
         The copied information includes the following attributes:
@@ -717,7 +690,7 @@ class SegmentationImage(Image):
             None
         """
         if not isinstance(source, SegmentationImage):
-            raise TypeError('The source image must be an instance of SegmentationImage.')
+            raise TypeError("The source image must be an instance of SegmentationImage.")
 
         self.organ: Organ = deepcopy(source.get_organ())
         self.annotator: Annotator = deepcopy(source.get_annotator())
@@ -764,6 +737,71 @@ class SegmentationImage(Image):
 
     def __str__(self) -> str:
         if not self.annotator:
-            return f'SegmentationImage: {self.organ.get_name()}'
+            return f"SegmentationImage: {self.organ.get_name()}"
 
-        return f'SegmentationImage: {self.organ.get_name()} / {self.annotator.get_name()}'
+        return f"SegmentationImage: {self.organ.get_name()} / {self.annotator.get_name()}"
+
+
+# Preparation for next release
+# class DoseImage(Image):
+#     """A dose image class including a :class:`~pyradise.data.taping.TransformTape`.
+#
+#     Args:
+#         image (Union[sitk.Image, itk.Image]): The image data as :class:`itk.Image` or :class:`SimpleITK.Image`.
+#         data (Optional[Dict[str, Any]], optional): Additional data. Defaults to None.
+#     """
+#     def __init__(self,
+#                  image: Union[sitk.Image, itk.Image],
+#                  data: Optional[Dict[str, Any]] = None,
+#                  ) -> None:
+#         super().__init__(image, data)
+#
+#     def copy_info(self,
+#                   source: 'DoseImage',
+#                   include_transforms: bool = False
+#                   ) -> None:
+#         """Copy the image information from another :class:`DoseImage`.
+#
+#         The copied information includes the following attributes:
+#
+#             - :class:`~pyradise.data.taping.TransformTape` (optional)
+#
+#         Raises:
+#             ValueError: If the source image is not an instance of :class:`DoseImage`.
+#
+#         Args:
+#             source (DoseImage): The source image.
+#             include_transforms (bool): If True the :class:`~pyradise.data.taping.TransformTape` is copied,
+#              otherwise not.
+#
+#         Returns:
+#             None
+#         """
+#         if not isinstance(source, IntensityImage):
+#             raise TypeError('The source image must be an instance of DoseImage.')
+#
+#         if include_transforms:
+#             self.transform_tape = deepcopy(source.get_transform_tape())
+#
+#     def is_intensity_image(self) -> bool:
+#         """If the image is an instance of :class:`IntensityImage` this function returns True otherwise False.
+#
+#         Returns:
+#             bool: False
+#         """
+#         return False
+#
+#     def __eq__(self, other: object):
+#         """Check if the provided instance is of the same type and has the same image content.
+#
+#         Args:
+#             other (object): The object to be checked.
+#
+#         Returns:
+#             bool: True if the object is an :class:`DoseImage` and possess the same identification.
+#
+#         """
+#         if not isinstance(other, DoseImage):
+#             return False
+#
+#         return self.image == other.image

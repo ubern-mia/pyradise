@@ -1,38 +1,30 @@
-from typing import (
-    Optional,
-    Tuple,
-    Sequence,
-    Union
-)
-from copy import deepcopy
 import warnings
+from copy import deepcopy
+from typing import Optional, Sequence, Tuple, Union
 
-from pyradise.data import (
-    Subject,
-    IntensityImage,
-    SegmentationImage,
-    TransformInfo,
-    Modality,
-    Organ,
-    Annotator,
-    seq_to_modalities,
-    seq_to_organs,
-    seq_to_annotators,
-    str_to_organ,
-    str_to_annotator)
-from .orientation import SpatialOrientation
-from .base import (
-    Filter,
-    FilterParams)
-
-import SimpleITK as sitk
 import numpy as np
+import SimpleITK as sitk
 
-__all__ = ['AddImageFilterParams', 'AddImageFilter',
-           'RemoveImageByOrganFilterParams', 'RemoveImageByOrganFilter',
-           'RemoveImageByAnnotatorFilterParams', 'RemoveImageByAnnotatorFilter',
-           'RemoveImageByModalityFilterParams', 'RemoveImageByModalityFilter',
-           'MergeSegmentationFilterParams', 'MergeSegmentationFilter']
+from pyradise.data import (Annotator, IntensityImage, Modality, Organ,
+                           SegmentationImage, Subject, TransformInfo,
+                           seq_to_annotators, seq_to_modalities, seq_to_organs,
+                           str_to_annotator, str_to_organ)
+
+from .base import Filter, FilterParams
+from .orientation import SpatialOrientation
+
+__all__ = [
+    "AddImageFilterParams",
+    "AddImageFilter",
+    "RemoveImageByOrganFilterParams",
+    "RemoveImageByOrganFilter",
+    "RemoveImageByAnnotatorFilterParams",
+    "RemoveImageByAnnotatorFilter",
+    "RemoveImageByModalityFilterParams",
+    "RemoveImageByModalityFilter",
+    "MergeSegmentationFilterParams",
+    "MergeSegmentationFilter",
+]
 
 
 class AddImageFilterParams(FilterParams):
@@ -44,9 +36,9 @@ class AddImageFilterParams(FilterParams):
          instance.
     """
 
-    def __init__(self, images: Union[IntensityImage, SegmentationImage,
-                                     Tuple[Union[IntensityImage, SegmentationImage], ...]]
-                 ) -> None:
+    def __init__(
+        self, images: Union[IntensityImage, SegmentationImage, Tuple[Union[IntensityImage, SegmentationImage], ...]]
+    ) -> None:
         if isinstance(images, tuple):
             self.images: Tuple[Union[IntensityImage, SegmentationImage], ...] = images
         else:
@@ -76,10 +68,7 @@ class AddImageFilter(Filter):
         """
         return False
 
-    def execute(self,
-                subject: Subject,
-                params: AddImageFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: AddImageFilterParams) -> Subject:
         """Execute the addition procedure.
 
         Args:
@@ -97,17 +86,18 @@ class AddImageFilter(Filter):
 
             # track the necessary information
             image_sitk = image.get_image_data()
-            self.tracking_data['organ'] = deepcopy(image.get_organ())
-            self.tracking_data['annotator'] = deepcopy(image.get_annotator())
+            self.tracking_data["organ"] = deepcopy(image.get_organ())
+            self.tracking_data["annotator"] = deepcopy(image.get_annotator())
             self._register_tracked_data(image, image_sitk, image_sitk, params)
 
         return subject
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Return the provided subject without any processing because the inverse addition procedure (the removal)
         is currently not supported.
 
@@ -124,10 +114,12 @@ class AddImageFilter(Filter):
 
         # potentially warn the user that the operation is not invertible
         if self.warn_on_non_invertible and not self.is_invertible():
-            warnings.warn('WARNING: '
-                          f'The {self.__class__.__name__} is called to invert its operation for the following image: \n'
-                          f'\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject '
-                          'is returned without modification.')
+            warnings.warn(
+                "WARNING: "
+                f"The {self.__class__.__name__} is called to invert its operation for the following image: \n"
+                f"\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject "
+                "is returned without modification."
+            )
 
         return subject
 
@@ -164,10 +156,7 @@ class RemoveImageByOrganFilter(Filter):
         """
         return False
 
-    def execute(self,
-                subject: Subject,
-                params: RemoveImageByOrganFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: RemoveImageByOrganFilterParams) -> Subject:
         """Execute the removal procedure.
 
         Args:
@@ -186,11 +175,12 @@ class RemoveImageByOrganFilter(Filter):
             # --> do not track the removal of entities
         return subject
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Return the provided subject without any processing because the removal procedure is not invertible.
 
         Args:
@@ -206,10 +196,12 @@ class RemoveImageByOrganFilter(Filter):
 
         # potentially warn the user that the operation is not invertible
         if self.warn_on_non_invertible and not self.is_invertible():
-            warnings.warn('WARNING: '
-                          f'The {self.__class__.__name__} is called to invert its operation for the following image: \n'
-                          f'\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject '
-                          'is returned without modification.')
+            warnings.warn(
+                "WARNING: "
+                f"The {self.__class__.__name__} is called to invert its operation for the following image: \n"
+                f"\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject "
+                "is returned without modification."
+            )
 
         return subject
 
@@ -247,10 +239,7 @@ class RemoveImageByAnnotatorFilter(Filter):
         """
         return False
 
-    def execute(self,
-                subject: Subject,
-                params: RemoveImageByAnnotatorFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: RemoveImageByAnnotatorFilterParams) -> Subject:
         """Execute the removal procedure.
 
         Args:
@@ -269,11 +258,12 @@ class RemoveImageByAnnotatorFilter(Filter):
             # --> do not track the removal of entities
         return subject
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Return the provided subject without any processing because the removal procedure is not invertible.
 
         Args:
@@ -289,10 +279,12 @@ class RemoveImageByAnnotatorFilter(Filter):
 
         # potentially warn the user that the operation is not invertible
         if self.warn_on_non_invertible and not self.is_invertible():
-            warnings.warn('WARNING: '
-                          f'The {self.__class__.__name__} is called to invert its operation for the following image: \n'
-                          f'\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject '
-                          'is returned without modification.')
+            warnings.warn(
+                "WARNING: "
+                f"The {self.__class__.__name__} is called to invert its operation for the following image: \n"
+                f"\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject "
+                "is returned without modification."
+            )
 
         return subject
 
@@ -330,10 +322,7 @@ class RemoveImageByModalityFilter(Filter):
         """
         return False
 
-    def execute(self,
-                subject: Subject,
-                params: RemoveImageByModalityFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: RemoveImageByModalityFilterParams) -> Subject:
         """Execute the removal procedure.
 
         Args:
@@ -352,11 +341,12 @@ class RemoveImageByModalityFilter(Filter):
             # --> do not track the removal of entities
         return subject
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Return the provided subject without any processing because the removal procedure is not invertible.
 
         Args:
@@ -372,10 +362,12 @@ class RemoveImageByModalityFilter(Filter):
 
         # potentially warn the user that the operation is not invertible
         if self.warn_on_non_invertible and not self.is_invertible():
-            warnings.warn('WARNING: '
-                          f'The {self.__class__.__name__} is called to invert its operation for the following image: \n'
-                          f'\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject '
-                          'is returned without modification.')
+            warnings.warn(
+                "WARNING: "
+                f"The {self.__class__.__name__} is called to invert its operation for the following image: \n"
+                f"\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject "
+                "is returned without modification."
+            )
 
         return subject
 
@@ -399,24 +391,24 @@ class MergeSegmentationFilterParams(FilterParams):
         output_orientation (Union[SpatialOrientation, str]): The orientation of the output segmentation (default: LPS).
     """
 
-    def __init__(self,
-                 organs: Sequence[Union[Organ, str]],
-                 output_organ_indexes: Optional[Sequence[int]],
-                 output_organ: Union[Organ, str],
-                 output_annotator: Union[Annotator, str],
-                 output_orientation: Union[SpatialOrientation, str] = SpatialOrientation.LPS
-                 ) -> None:
-
+    def __init__(
+        self,
+        organs: Sequence[Union[Organ, str]],
+        output_organ_indexes: Optional[Sequence[int]],
+        output_organ: Union[Organ, str],
+        output_annotator: Union[Annotator, str],
+        output_orientation: Union[SpatialOrientation, str] = SpatialOrientation.LPS,
+    ) -> None:
         self.organs: Tuple[Organ, ...] = seq_to_organs(organs)
 
         if output_organ_indexes is None:
             self.organ_indexes: Tuple[int, ...] = tuple(range(1, len(self.organs) + 1))
         else:
             if len(output_organ_indexes) != len(self.organs):
-                raise ValueError('The length of the provided organ indexes must be equal to the number of organs.')
+                raise ValueError("The length of the provided organ indexes must be equal to the number of organs.")
 
             if len(set(output_organ_indexes)) != len(output_organ_indexes):
-                raise ValueError('The provided organ indexes must be unique.')
+                raise ValueError("The provided organ indexes must be unique.")
 
             self.organ_indexes: Tuple[int, ...] = tuple(output_organ_indexes)
 
@@ -424,7 +416,7 @@ class MergeSegmentationFilterParams(FilterParams):
             try:
                 self.output_orientation: SpatialOrientation = SpatialOrientation[output_orientation]
             except KeyError:
-                raise ValueError(f'Invalid output orientation: {output_orientation}')
+                raise ValueError(f"Invalid output orientation: {output_orientation}")
         else:
             self.output_orientation: SpatialOrientation = output_orientation
 
@@ -465,13 +457,14 @@ class MergeSegmentationFilter(Filter):
         """
         return False
 
-    def _merge_segmentations(self,
-                             target_image: sitk.Image,
-                             images: Tuple[SegmentationImage, ...],
-                             images_sitk: Tuple[sitk.Image, ...],
-                             organs: Tuple[Organ, ...],
-                             params: MergeSegmentationFilterParams
-                             ) -> sitk.Image:
+    def _merge_segmentations(
+        self,
+        target_image: sitk.Image,
+        images: Tuple[SegmentationImage, ...],
+        images_sitk: Tuple[sitk.Image, ...],
+        organs: Tuple[Organ, ...],
+        params: MergeSegmentationFilterParams,
+    ) -> sitk.Image:
         """Merges the given segmentations into one segmentation.
 
         Args:
@@ -489,8 +482,9 @@ class MergeSegmentationFilter(Filter):
 
         for image, image_sitk, organ, organ_idx in zip(images, images_sitk, organs, params.organ_indexes):
             # resample the image to the empty image
-            resampled_image_sitk = sitk.Resample(image_sitk, target_image, sitk.Transform(), sitk.sitkNearestNeighbor,
-                                                 0.0, sitk.sitkUInt8)
+            resampled_image_sitk = sitk.Resample(
+                image_sitk, target_image, sitk.Transform(), sitk.sitkNearestNeighbor, 0.0, sitk.sitkUInt8
+            )
 
             # merge the resampled image into the empty image
             resampled_image_np = sitk.GetArrayFromImage(resampled_image_sitk)
@@ -504,7 +498,6 @@ class MergeSegmentationFilter(Filter):
         new_target_image.CopyInformation(target_image)
 
         return new_target_image
-
 
     @staticmethod
     def _get_empty_image(images: Tuple[sitk.Image, ...]) -> sitk.Image:
@@ -529,7 +522,7 @@ class MergeSegmentationFilter(Filter):
 
         # generate the empty numpy image
         min_spacing = np.min(spacings, axis=0)
-        shape = np.ceil((max_physical_coord - min_physical_coord) / min_spacing).astype(np.int)
+        shape = np.ceil((max_physical_coord - min_physical_coord) / min_spacing).astype(int)
         shape_np = shape[2], shape[0], shape[1]
         empty_image_np = np.zeros(shape_np, dtype=np.uint8)
 
@@ -541,10 +534,7 @@ class MergeSegmentationFilter(Filter):
 
         return empty_image_sitk
 
-    def execute(self,
-                subject: Subject,
-                params: MergeSegmentationFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: MergeSegmentationFilterParams) -> Subject:
         """Execute the merging procedure.
 
         Args:
@@ -594,8 +584,9 @@ class MergeSegmentationFilter(Filter):
         empty_image = self._get_empty_image(tuple(images_sitk))
 
         # merge the segmentations
-        merged_image = self._merge_segmentations(empty_image, tuple(sorted_images), tuple(sorted_images_sitk),
-                                                 tuple(sorted_organs), params)
+        merged_image = self._merge_segmentations(
+            empty_image, tuple(sorted_images), tuple(sorted_images_sitk), tuple(sorted_organs), params
+        )
 
         # create the new segmentation image
         merged_segmentation = SegmentationImage(merged_image, params.output_organ, params.output_annotator)
@@ -603,11 +594,12 @@ class MergeSegmentationFilter(Filter):
 
         return subject
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Return the provided subject without any processing because the merging procedure is not invertible.
 
         Args:
@@ -623,9 +615,11 @@ class MergeSegmentationFilter(Filter):
 
         # potentially warn the user that the operation is not invertible
         if self.warn_on_non_invertible and not self.is_invertible():
-            warnings.warn('WARNING: '
-                          f'The {self.__class__.__name__} is called to invert its operation for the following image: \n'
-                          f'\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject '
-                          'is returned without modification.')
+            warnings.warn(
+                "WARNING: "
+                f"The {self.__class__.__name__} is called to invert its operation for the following image: \n"
+                f"\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject "
+                "is returned without modification."
+            )
 
         return subject

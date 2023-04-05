@@ -1,24 +1,16 @@
 import logging
-from abc import (
-    ABC,
-    abstractmethod)
-from typing import (
-    Any,
-    Callable,
-    Optional,
-    Union,
-    Tuple,
-    Dict,
-    List)
+from abc import ABC, abstractmethod
 from copy import deepcopy
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+import itk
 import numpy as np
 import SimpleITK as sitk
-import itk
 
-from pyradise.data import Subject, TransformInfo, ImageProperties, Image, IntensityImage, SegmentationImage
+from pyradise.data import (Image, ImageProperties, IntensityImage,
+                           SegmentationImage, Subject, TransformInfo)
 
-__all__ = ['FilterParams', 'Filter', 'LoopEntryFilterParams', 'LoopEntryFilter', 'FilterPipeline']
+__all__ = ["FilterParams", "Filter", "LoopEntryFilterParams", "LoopEntryFilter", "FilterPipeline"]
 
 
 # pylint: disable=too-few-public-methods
@@ -199,9 +191,7 @@ class Filter(ABC):
 
     """
 
-    def __init__(self,
-                 warning_on_non_invertible: bool = False
-                 ) -> None:
+    def __init__(self, warning_on_non_invertible: bool = False) -> None:
         super().__init__()
 
         self.warn_on_non_invertible = warning_on_non_invertible
@@ -247,13 +237,14 @@ class Filter(ABC):
         """
         self.warn_on_non_invertible = warn
 
-    def _register_tracked_data(self,
-                               image: Image,
-                               pre_transform_image: Union[sitk.Image, itk.Image],
-                               post_transform_image: Union[sitk.Image, itk.Image],
-                               params: Optional[FilterParams],
-                               transform: Optional[sitk.Transform] = None
-                               ) -> None:
+    def _register_tracked_data(
+        self,
+        image: Image,
+        pre_transform_image: Union[sitk.Image, itk.Image],
+        post_transform_image: Union[sitk.Image, itk.Image],
+        params: Optional[FilterParams],
+        transform: Optional[sitk.Transform] = None,
+    ) -> None:
         """Create the :class:`~pyradise.data.taping.TransformInfo` instance which is used to store the information
         about the performed transformation.
 
@@ -269,17 +260,21 @@ class Filter(ABC):
         pre_image_props = ImageProperties(pre_transform_image)
         post_image_props = ImageProperties(post_transform_image)
 
-        transform_info = TransformInfo(self.__class__.__name__, params, pre_image_props, post_image_props,
-                                       deepcopy(filter_args_), deepcopy(additional_data_), deepcopy(transform))
+        transform_info = TransformInfo(
+            self.__class__.__name__,
+            params,
+            pre_image_props,
+            post_image_props,
+            deepcopy(filter_args_),
+            deepcopy(additional_data_),
+            deepcopy(transform),
+        )
         image.add_transform_info(transform_info)
 
         self.tracking_data.clear()
 
     @abstractmethod
-    def execute(self,
-                subject: Subject,
-                params: Optional[FilterParams]
-                ) -> Subject:
+    def execute(self, subject: Subject, params: Optional[FilterParams]) -> Subject:
         """Execute the filter on the provided :class:`~pyradise.data.subject.Subject` instance.
 
         Note:
@@ -302,11 +297,12 @@ class Filter(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Execute the filter inversely if possible. Typically, this method gets a temporary subject which contains
         a single image because the recording of the transformations is image dependent and inappropriate inverse
         transformations would be applied to the other images. However, this method can also be applied to a whole
@@ -345,9 +341,10 @@ class LoopEntryFilterParams(FilterParams):
         super().__init__()
 
         if loop_axis is not None:
-            assert loop_axis >= 0, 'The loop axis must be a non-negative integer.'
-            assert loop_axis < 3, 'The loop axis must be smaller than 3 because PyRaDiSe only supports 2D and ' \
-                                  '3D images.'
+            assert loop_axis >= 0, "The loop axis must be a non-negative integer."
+            assert loop_axis < 3, (
+                "The loop axis must be smaller than 3 because PyRaDiSe only supports 2D and " "3D images."
+            )
 
         self.loop_axis: Optional[int] = loop_axis
 
@@ -374,11 +371,9 @@ class LoopEntryFilter(Filter):
         raise NotImplementedError()
 
     @staticmethod
-    def loop_entries(data: np.ndarray,
-                     params: Any,
-                     filter_fn: Callable[[np.ndarray, Any], np.ndarray],
-                     loop_axis: Optional[int]
-                     ) -> np.ndarray:
+    def loop_entries(
+        data: np.ndarray, params: Any, filter_fn: Callable[[np.ndarray, Any], np.ndarray], loop_axis: Optional[int]
+    ) -> np.ndarray:
         """Apply the function :meth:`filter_fn` by looping over the image using the provided parameters
         (i.e. ``params``).
 
@@ -406,10 +401,7 @@ class LoopEntryFilter(Filter):
         return new_data
 
     @abstractmethod
-    def execute(self,
-                subject: Subject,
-                params: Optional[LoopEntryFilterParams]
-                ) -> Subject:
+    def execute(self, subject: Subject, params: Optional[LoopEntryFilterParams]) -> Subject:
         """Execute the filter on the provided :class:`~pyradise.data.subject.Subject` instance.
 
         Note:
@@ -432,11 +424,12 @@ class LoopEntryFilter(Filter):
         raise NotImplementedError()
 
     @abstractmethod
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Execute the filter inversely if possible. Typically, this method gets a temporary subject which contains
         a single image because the recording of the transformations is image dependent and inappropriate inverse
         transformations would be applied to the other images. However, this method can also be applied to a whole
@@ -472,11 +465,12 @@ class FilterPipeline:
          execute the invertible process but is not invertible (default: False).
     """
 
-    def __init__(self,
-                 filters: Optional[Tuple[Filter, ...]] = None,
-                 params: Optional[Tuple[FilterParams, ...]] = None,
-                 warning_on_non_invertible: bool = False
-                 ) -> None:
+    def __init__(
+        self,
+        filters: Optional[Tuple[Filter, ...]] = None,
+        params: Optional[Tuple[FilterParams, ...]] = None,
+        warning_on_non_invertible: bool = False,
+    ) -> None:
         super().__init__()
 
         self.filters: List[Filter, ...] = []
@@ -488,8 +482,10 @@ class FilterPipeline:
                 params = [None] * len(filters)
 
             else:
-                assert len(params) == len(filters), f'The number of filters ({len(filters)}) must be equal ' \
-                                                    f'to the number of filter parameters ({len(params)})!'
+                assert len(params) == len(filters), (
+                    f"The number of filters ({len(filters)}) must be equal "
+                    f"to the number of filter parameters ({len(params)})!"
+                )
 
             for filter_, param in zip(filters, params):
                 self.add_filter(filter_, param)
@@ -508,10 +504,7 @@ class FilterPipeline:
         for filter_ in self.filters:
             filter_.set_verbose(verbose)
 
-    def add_filter(self,
-                   filter_: Filter,
-                   params: Optional[FilterParams] = None
-                   ) -> None:
+    def add_filter(self, filter_: Filter, params: Optional[FilterParams] = None) -> None:
         """Add a :class:`~pyradise.process.base.Filter` instance and its corresponding
         :class:`~pyradise.process.base.FilterParams` to the pipeline.
 
@@ -526,10 +519,7 @@ class FilterPipeline:
         self.filters.append(filter_)
         self.params.append(params)
 
-    def set_param(self,
-                  params: FilterParams,
-                  filter_index: int
-                  ) -> None:
+    def set_param(self, params: FilterParams, filter_index: int) -> None:
         """Set the :class:`~pyradise.process.base.FilterParams` for a specific
         :class:`~pyradise.process.base.Filter` instance at index ``filter_index``.
 
@@ -567,13 +557,15 @@ class FilterPipeline:
         Returns:
             Subject: The processed subject.
         """
-        assert len(self.filters) == len(self.params), f'The filter pipeline can not be executed due to unequal ' \
-                                                      f'numbers of filters ({len(self.filters)}) and ' \
-                                                      f'parameters ({len(self.params)})!'
+        assert len(self.filters) == len(self.params), (
+            f"The filter pipeline can not be executed due to unequal "
+            f"numbers of filters ({len(self.filters)}) and "
+            f"parameters ({len(self.params)})!"
+        )
 
         for filter_, param in zip(self.filters, self.params):
             if self.logger:
-                self.logger.info(f'{subject.get_name()}: Pipeline executing {filter_.__class__.__name__}...')
+                self.logger.info(f"{subject.get_name()}: Pipeline executing {filter_.__class__.__name__}...")
 
             # set the warning on and off
             if self.warn_on_non_invertible:

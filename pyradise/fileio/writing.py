@@ -1,38 +1,32 @@
-from typing import (
-    Union,
-    Optional,
-    Tuple,
-    Callable)
 import os
+from distutils.dir_util import copy_tree
 from enum import Enum
+from io import BytesIO
 from pathlib import Path
 from shutil import copy2
+from typing import Callable, Optional, Tuple, Union
 from zipfile import ZipFile
-from io import BytesIO
-from distutils.dir_util import copy_tree
 
-import SimpleITK as sitk
 import itk
+import SimpleITK as sitk
 from pydicom import Dataset
 
-from pyradise.data import (
-    Subject,
-    IntensityImage,
-    SegmentationImage,
-    Annotator)
+from pyradise.data import Annotator, IntensityImage, SegmentationImage, Subject
 from pyradise.utils import remove_illegal_folder_chars
-from .series_info import (
-    SeriesInfo,
-    DicomSeriesInfo)
+
+from .series_info import DicomSeriesInfo, SeriesInfo
+
+__all__ = [
+    "SubjectWriter",
+    "DirectorySubjectWriter",
+    "DicomSeriesSubjectWriter",
+    "ImageFileFormat",
+    "default_intensity_file_name_fn",
+    "default_segmentation_file_name_fn",
+]
 
 
-__all__ = ['SubjectWriter', 'DirectorySubjectWriter', 'DicomSeriesSubjectWriter', 'ImageFileFormat',
-           'default_intensity_file_name_fn', 'default_segmentation_file_name_fn']
-
-
-def default_intensity_file_name_fn(subject: Subject,
-                                   image: IntensityImage
-                                   ) -> str:
+def default_intensity_file_name_fn(subject: Subject, image: IntensityImage) -> str:
     """The default intensity file name generation function.
 
     Important:
@@ -47,12 +41,10 @@ def default_intensity_file_name_fn(subject: Subject,
     """
     subject_name = remove_illegal_folder_chars(subject.name)
     modality = remove_illegal_folder_chars(image.get_modality(as_str=True))
-    return f'img_{subject_name}_{modality}'
+    return f"img_{subject_name}_{modality}"
 
 
-def default_segmentation_file_name_fn(subject: Subject,
-                                      image: SegmentationImage
-                                      ) -> str:
+def default_segmentation_file_name_fn(subject: Subject, image: SegmentationImage) -> str:
     """The default segmentation file name generation function.
 
     Important:
@@ -66,10 +58,13 @@ def default_segmentation_file_name_fn(subject: Subject,
         str: The file name.
     """
     subject_name = remove_illegal_folder_chars(subject.name)
-    annotator_name = remove_illegal_folder_chars(image.get_annotator(as_str=True)) \
-        if isinstance(image.get_annotator(), Annotator) else 'NA'
+    annotator_name = (
+        remove_illegal_folder_chars(image.get_annotator(as_str=True))
+        if isinstance(image.get_annotator(), Annotator)
+        else "NA"
+    )
     organ_name = remove_illegal_folder_chars(image.get_organ(as_str=True))
-    return f'seg_{subject_name}_{annotator_name}_{organ_name}'
+    return f"seg_{subject_name}_{annotator_name}_{organ_name}"
 
 
 class ImageFileFormat(Enum):
@@ -85,16 +80,16 @@ class ImageFileFormat(Enum):
         More image file formats will be added in the future.
     """
 
-    NIFTI = '.nii'
+    NIFTI = ".nii"
     """Image format NIFTI / extension .nii"""
 
-    NIFTI_GZ = '.nii.gz'
+    NIFTI_GZ = ".nii.gz"
     """Image format NIFTI GZ / extension .nii.gz"""
 
-    NRRD = '.nrrd'
+    NRRD = ".nrrd"
     """Image format NRRD / extension .nrrd"""
 
-    MHA = '.mha'
+    MHA = ".mha"
     """Image format MHA / extension .mha"""
 
 
@@ -121,13 +116,13 @@ class SubjectWriter:
         allow_override (bool): If True the writer can overwrite existing files, otherwise not (default: False).
     """
 
-    def __init__(self,
-                 file_format: ImageFileFormat = ImageFileFormat.NIFTI_GZ,
-                 intensity_file_name_fn: Callable[[Subject, IntensityImage], str] = default_intensity_file_name_fn,
-                 segmentation_file_name_fn: Callable[[Subject, SegmentationImage], str] =
-                 default_segmentation_file_name_fn,
-                 allow_override: bool = False
-                 ) -> None:
+    def __init__(
+        self,
+        file_format: ImageFileFormat = ImageFileFormat.NIFTI_GZ,
+        intensity_file_name_fn: Callable[[Subject, IntensityImage], str] = default_intensity_file_name_fn,
+        segmentation_file_name_fn: Callable[[Subject, SegmentationImage], str] = default_segmentation_file_name_fn,
+        allow_override: bool = False,
+    ) -> None:
         super().__init__()
 
         self.image_file_format = file_format
@@ -135,11 +130,9 @@ class SubjectWriter:
         self.segmentation_file_name_fn = segmentation_file_name_fn
         self.allow_override = allow_override
 
-    def _generate_image_file_name(self,
-                                  subject: Subject,
-                                  image: Union[IntensityImage, SegmentationImage],
-                                  with_extension: bool = False
-                                  ) -> str:
+    def _generate_image_file_name(
+        self, subject: Subject, image: Union[IntensityImage, SegmentationImage], with_extension: bool = False
+    ) -> str:
         """Generate an image file name.
 
         Args:
@@ -160,19 +153,20 @@ class SubjectWriter:
             file_name = self.segmentation_file_name_fn(subject, image)
 
         else:
-            raise ValueError(f'Unsupported data type {type(image)} received for serialization.')
+            raise ValueError(f"Unsupported data type {type(image)} received for serialization.")
 
         if with_extension:
             return file_name + str(self.image_file_format.value)
 
         return file_name
 
-    def _generate_transform_file_name(self,
-                                      subject: Subject,
-                                      image: Union[IntensityImage, SegmentationImage],
-                                      index: Union[int, str],
-                                      extension: str = '.tfm'
-                                      ) -> str:
+    def _generate_transform_file_name(
+        self,
+        subject: Subject,
+        image: Union[IntensityImage, SegmentationImage],
+        index: Union[int, str],
+        extension: str = ".tfm",
+    ) -> str:
         """Generate a transformation file name.
 
         Args:
@@ -185,11 +179,11 @@ class SubjectWriter:
             str: The file name of the transformation file.
         """
         if isinstance(image, IntensityImage):
-            file_name = 'tfm_' + self.intensity_file_name_fn(subject, image) + f'_{str(index)}{extension}'
+            file_name = "tfm_" + self.intensity_file_name_fn(subject, image) + f"_{str(index)}{extension}"
         elif isinstance(image, SegmentationImage):
-            file_name = 'tfm_' + self.segmentation_file_name_fn(subject, image) + f'_{str(index)}{extension}'
+            file_name = "tfm_" + self.segmentation_file_name_fn(subject, image) + f"_{str(index)}{extension}"
         else:
-            raise ValueError(f'Unsupported data type {type(image)} received for serialization.')
+            raise ValueError(f"Unsupported data type {type(image)} received for serialization.")
 
         return file_name
 
@@ -206,14 +200,11 @@ class SubjectWriter:
             if self.allow_override:
                 os.remove(path)
             else:
-                raise FileExistsError(f'The file with path {path} is already existing and '
-                                      'allow_override is set to false!')
+                raise FileExistsError(
+                    f"The file with path {path} is already existing and " "allow_override is set to false!"
+                )
 
-    def write(self,
-              path: str,
-              subject: Subject,
-              write_transforms: bool = True
-              ) -> None:
+    def write(self, path: str, subject: Subject, write_transforms: bool = True) -> None:
         """Write a :class:`~pyradise.data.subject.Subject` instance to the specified directory.
 
         Args:
@@ -227,7 +218,7 @@ class SubjectWriter:
             None
         """
         if not os.path.exists(path):
-            raise NotADirectoryError(f'The directory {path} does not exist!')
+            raise NotADirectoryError(f"The directory {path} does not exist!")
 
         images = []
         images.extend(subject.intensity_images)
@@ -251,11 +242,7 @@ class SubjectWriter:
 
                     sitk.WriteTransform(transform, transform_file_path)
 
-    def write_to_subject_folder(self,
-                                base_dir_path: str,
-                                subject: Subject,
-                                write_transforms: bool = True
-                                ) -> None:
+    def write_to_subject_folder(self, base_dir_path: str, subject: Subject, write_transforms: bool = True) -> None:
         """Write a :class:`~pyradise.data.subject.Subject` instance to a separate subject directory within the
         specified base directory. The newly created subject directory will be named with the subjects name.
 
@@ -277,7 +264,7 @@ class SubjectWriter:
         if not os.path.exists(subject_path):
             os.mkdir(subject_path)
         else:
-            raise FileExistsError(f'The subject directory {subject_path} is already existing!')
+            raise FileExistsError(f"The subject directory {subject_path} is already existing!")
 
         self.write(subject_path, subject, write_transforms)
 
@@ -306,11 +293,12 @@ class DicomSeriesSubjectWriter:
         self.as_zip = as_zip
 
     @staticmethod
-    def _write_to_folder(series_infos: Tuple[DicomSeriesInfo],
-                         datasets: Tuple[Tuple[str, Dataset], ...],
-                         output_path: str,
-                         folder_name: Optional[str],
-                         ) -> None:
+    def _write_to_folder(
+        series_infos: Tuple[DicomSeriesInfo],
+        datasets: Tuple[Tuple[str, Dataset], ...],
+        output_path: str,
+        folder_name: Optional[str],
+    ) -> None:
         """Write the provided datasets to the specified folder while copying also the files associated with the
         ``series_infos`` to the ``output_path``.
 
@@ -352,17 +340,18 @@ class DicomSeriesSubjectWriter:
         # write the datasets
         if datasets:
             for name, dataset in datasets:
-                if not name.endswith('.dcm'):
-                    name += '.dcm'
+                if not name.endswith(".dcm"):
+                    name += ".dcm"
 
                 dataset.save_as(os.path.join(output_dir_path, name))
 
     @staticmethod
-    def _write_to_zip(series_infos: Tuple[DicomSeriesInfo],
-                      datasets: Tuple[Tuple[str, Dataset], ...],
-                      output_path: str,
-                      folder_name: str,
-                      ) -> None:
+    def _write_to_zip(
+        series_infos: Tuple[DicomSeriesInfo],
+        datasets: Tuple[Tuple[str, Dataset], ...],
+        output_path: str,
+        folder_name: str,
+    ) -> None:
         """Write the provided datasets to the specified folder as a zip file while also copying the files associated
         with the ``series_infos`` into the zip file.
 
@@ -376,18 +365,17 @@ class DicomSeriesSubjectWriter:
             None
         """
         if not folder_name:
-            raise ValueError('For zipping an folder name must be provided!')
+            raise ValueError("For zipping an folder name must be provided!")
 
-        if not folder_name.endswith('.zip'):
-            folder_name += '.zip'
+        if not folder_name.endswith(".zip"):
+            folder_name += ".zip"
 
         output_path = os.path.join(output_path, folder_name)
 
         if os.path.exists(output_path):
-            raise Exception(f'The output file {output_path} is already existing!')
+            raise Exception(f"The output file {output_path} is already existing!")
 
-        with ZipFile(output_path, 'w') as file:
-
+        with ZipFile(output_path, "w") as file:
             # write / copy the series infos
             for series_info in series_infos:
                 source_paths = series_info.get_path()
@@ -397,22 +385,23 @@ class DicomSeriesSubjectWriter:
 
             if datasets:
                 for name, dataset in datasets:
-                    if name.endswith('.dcm'):
+                    if name.endswith(".dcm"):
                         file_name = name
                     else:
-                        file_name = name + '.dcm'
+                        file_name = name + ".dcm"
 
                     out = BytesIO()
                     dataset.save_as(out)
 
                     file.writestr(file_name, out.getvalue())
 
-    def write(self,
-              datasets: Tuple[Tuple[str, Dataset], ...],
-              output_path: str,
-              folder_name: Optional[str] = None,
-              series_infos: Optional[Tuple[SeriesInfo, ...]] = None
-              ) -> None:
+    def write(
+        self,
+        datasets: Tuple[Tuple[str, Dataset], ...],
+        output_path: str,
+        folder_name: Optional[str] = None,
+        series_infos: Optional[Tuple[SeriesInfo, ...]] = None,
+    ) -> None:
         """Write the provided data to a directory or a zip file.
 
         Args:
@@ -427,10 +416,10 @@ class DicomSeriesSubjectWriter:
             None
         """
         if not os.path.exists(output_path):
-            raise Exception(f'The output path {output_path} is already existing!')
+            raise Exception(f"The output path {output_path} is already existing!")
 
         if not os.path.isdir(output_path):
-            raise NotADirectoryError(f'The output path {output_path} is not a directory!')
+            raise NotADirectoryError(f"The output path {output_path} is not a directory!")
 
         if folder_name is not None:
             folder_name = remove_illegal_folder_chars(folder_name)
@@ -441,7 +430,7 @@ class DicomSeriesSubjectWriter:
 
         if self.as_zip:
             if not folder_name:
-                raise ValueError('For zipping an folder name must be provided!')
+                raise ValueError("For zipping an folder name must be provided!")
             self._write_to_zip(series_infos_, datasets, output_path, folder_name)
         else:
             self._write_to_folder(series_infos_, datasets, output_path, folder_name)
@@ -470,11 +459,12 @@ class DirectorySubjectWriter:
         self.as_zip = as_zip
 
     @staticmethod
-    def _write_to_zip(datasets: Tuple[Tuple[str, Dataset], ...],
-                      copy_dir_path: Optional[str],
-                      output_path: str,
-                      folder_name: str,
-                      ) -> None:
+    def _write_to_zip(
+        datasets: Tuple[Tuple[str, Dataset], ...],
+        copy_dir_path: Optional[str],
+        output_path: str,
+        folder_name: str,
+    ) -> None:
         """Write the provided datasets to the specified folder as a zip file while also copying the files located in
         the ``copy_dir_path`` into the zip file.
 
@@ -487,29 +477,27 @@ class DirectorySubjectWriter:
         Returns:
             None
         """
-        if not folder_name.endswith('.zip'):
-            folder_name += '.zip'
+        if not folder_name.endswith(".zip"):
+            folder_name += ".zip"
 
         output_path = os.path.join(output_path, folder_name)
 
         if os.path.exists(output_path):
-            raise Exception(f'The output file {output_path} is already existing!')
+            raise Exception(f"The output file {output_path} is already existing!")
 
-        with ZipFile(output_path, 'w') as zip_file:
-
+        with ZipFile(output_path, "w") as zip_file:
             # write / copy the files and folders
             if copy_dir_path:
                 for root, _, files in os.walk(copy_dir_path, topdown=True):
                     for file in files:
-                        zip_file.write(os.path.join(root, file),
-                                       os.path.join(root.replace(copy_dir_path, ""), file))
+                        zip_file.write(os.path.join(root, file), os.path.join(root.replace(copy_dir_path, ""), file))
 
             if datasets:
                 for name, dataset in datasets:
-                    if name.endswith('.dcm'):
+                    if name.endswith(".dcm"):
                         file_name = name
                     else:
-                        file_name = name + '.dcm'
+                        file_name = name + ".dcm"
 
                     out = BytesIO()
                     dataset.save_as(out)
@@ -517,11 +505,12 @@ class DirectorySubjectWriter:
                     zip_file.writestr(file_name, out.getvalue())
 
     @staticmethod
-    def _write_to_folder(datasets: Tuple[Tuple[str, Dataset], ...],
-                         copy_dir_path: Optional[str],
-                         output_path: str,
-                         folder_name: Optional[str],
-                         ) -> None:
+    def _write_to_folder(
+        datasets: Tuple[Tuple[str, Dataset], ...],
+        copy_dir_path: Optional[str],
+        output_path: str,
+        folder_name: Optional[str],
+    ) -> None:
         """Write the provided datasets to the specified folder while copying also the files associated with the
         ``copy_dir_path`` to the ``output_path``.
 
@@ -551,18 +540,19 @@ class DirectorySubjectWriter:
         # write the datasets
         if datasets:
             for name, dataset in datasets:
-                if not name.endswith('.dcm'):
-                    name += '.dcm'
+                if not name.endswith(".dcm"):
+                    name += ".dcm"
 
                 output_path = os.path.join(output_dir_path, name)
                 dataset.save_as(output_path)
 
-    def write(self,
-              datasets: Tuple[Tuple[str, Dataset], ...],
-              output_path: str,
-              folder_name: Optional[str] = None,
-              copy_dir_path: Optional[str] = None
-              ) -> None:
+    def write(
+        self,
+        datasets: Tuple[Tuple[str, Dataset], ...],
+        output_path: str,
+        folder_name: Optional[str] = None,
+        copy_dir_path: Optional[str] = None,
+    ) -> None:
         """Write the provided data to a directory or a zip file.
 
         Args:
@@ -577,23 +567,23 @@ class DirectorySubjectWriter:
         """
         if copy_dir_path is not None:
             if not os.path.exists(copy_dir_path):
-                raise Exception(f'The copy directory path {copy_dir_path} is invalid!')
+                raise Exception(f"The copy directory path {copy_dir_path} is invalid!")
 
             if not os.path.isdir(copy_dir_path):
-                raise NotADirectoryError(f'The copy directory path {copy_dir_path} is not a directory!')
+                raise NotADirectoryError(f"The copy directory path {copy_dir_path} is not a directory!")
 
         if not os.path.exists(output_path):
-            raise Exception(f'The output path {output_path} is already existing!')
+            raise Exception(f"The output path {output_path} is already existing!")
 
         if not os.path.isdir(output_path):
-            raise NotADirectoryError(f'The output path {output_path} is not a directory!')
+            raise NotADirectoryError(f"The output path {output_path} is not a directory!")
 
         if isinstance(folder_name, str):
             folder_name = remove_illegal_folder_chars(folder_name)
 
         if self.as_zip:
             if not folder_name:
-                raise ValueError('For zipping an folder name must be provided!')
+                raise ValueError("For zipping an folder name must be provided!")
             self._write_to_zip(datasets, copy_dir_path, output_path, folder_name)
         else:
             self._write_to_folder(datasets, copy_dir_path, output_path, folder_name)

@@ -1,25 +1,13 @@
-from typing import (
-    Any,
-    Dict,
-    Tuple,
-    List,
-    Optional,
-    Union,
-    Sequence)
 from collections import abc as col_abc
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 from warnings import warn
 
+from .annotator import Annotator
+from .image import Image, IntensityImage, SegmentationImage
 from .modality import Modality
 from .organ import Organ
-from .annotator import Annotator
 
-from .image import (
-    Image,
-    IntensityImage,
-    SegmentationImage)
-
-
-__all__ = ['Subject']
+__all__ = ["Subject"]
 
 
 class Subject:
@@ -142,11 +130,9 @@ class Subject:
         >>> # Segmentation image of OpticNerves with size: (256, 256, 256)
     """
 
-    def __init__(self,
-                 name: str,
-                 images: Optional[Union[Image, Sequence[Image]]] = None,
-                 data: Optional[Dict[str, Any]] = None
-                 ) -> None:
+    def __init__(
+        self, name: str, images: Optional[Union[Image, Sequence[Image]]] = None, data: Optional[Dict[str, Any]] = None
+    ) -> None:
         super().__init__()
 
         self.name = name
@@ -167,37 +153,41 @@ class Subject:
                 elif isinstance(image, SegmentationImage):
                     self.segmentation_images.append(image)
                 else:
-                    raise ValueError(f'At least one image is not of type {IntensityImage.__class__.__name__} or'
-                                     f'{SegmentationImage.__class__.__name__}!')
+                    raise ValueError(
+                        f"At least one image is not of type {IntensityImage.__class__.__name__} or"
+                        f"{SegmentationImage.__class__.__name__}!"
+                    )
 
         # check validity of the additional data
         if data is not None:
             if not isinstance(data, dict):
-                raise TypeError('Additional data must be of type dict with the key providing an identifier for '
-                                'data retrieval.')
+                raise TypeError(
+                    "Additional data must be of type dict with the key providing an identifier for " "data retrieval."
+                )
             if not all(isinstance(key, str) for key in data.keys()):
-                raise TypeError('Additional data keys must be of type str because they are used as an identifier for'
-                                'data retrieval.!')
+                raise TypeError(
+                    "Additional data keys must be of type str because they are used as an identifier for"
+                    "data retrieval.!"
+                )
         else:
             data = {}
 
         self.data: Dict[str, Any] = data
 
     @staticmethod
-    def _check_for_single_candidate(candidates: List[Any],
-                                    entity_name: str,
-                                    return_first_on_multiple: bool
-                                    ) -> Any:
+    def _check_for_single_candidate(candidates: List[Any], entity_name: str, return_first_on_multiple: bool) -> Any:
         if len(candidates) == 1:
             return candidates[0]
 
         if len(candidates) > 1:
             if return_first_on_multiple:
-                warn(f'The search for {entity_name} is ambiguous because there are multiple ({len(candidates)}) '
-                     'candidates which are equal. The first found candidate will be returned.')
+                warn(
+                    f"The search for {entity_name} is ambiguous because there are multiple ({len(candidates)}) "
+                    "candidates which are equal. The first found candidate will be returned."
+                )
                 return candidates[0]
             else:
-                raise ValueError(f'There are multiple {entity_name} which fulfil the criterion ({len(candidates)})!')
+                raise ValueError(f"There are multiple {entity_name} which fulfil the criterion ({len(candidates)})!")
 
         return None
 
@@ -236,10 +226,7 @@ class Subject:
         raters = [seg.get_annotator() for seg in self.segmentation_images]
         return tuple(raters)
 
-    def add_image(self,
-                  image: Union[IntensityImage, SegmentationImage],
-                  force: bool = False
-                  ) -> None:
+    def add_image(self, image: Union[IntensityImage, SegmentationImage], force: bool = False) -> None:
         """Add an image to the subject.
 
         Args:
@@ -259,18 +246,19 @@ class Subject:
         for image_ in images:
             if image_ == image:
                 if force:
-                    warn(f'An image of type {type(image).__name__} with the same properties is already contained in '
-                         f'the subject. The image will be added anyway due to force=True.')
+                    warn(
+                        f"An image of type {type(image).__name__} with the same properties is already contained in "
+                        f"the subject. The image will be added anyway due to force=True."
+                    )
                 else:
-                    raise ValueError(f'An image of type {type(image).__name__} with the same properties is already '
-                                     'contained in the subject. No image will be added!')
+                    raise ValueError(
+                        f"An image of type {type(image).__name__} with the same properties is already "
+                        "contained in the subject. No image will be added!"
+                    )
 
         images.append(image)
 
-    def add_images(self,
-                   images: Sequence[Union[IntensityImage, SegmentationImage]],
-                   force: bool = False
-                   ) -> None:
+    def add_images(self, images: Sequence[Union[IntensityImage, SegmentationImage]], force: bool = False) -> None:
         """Add multiple images to the subject.
 
         Args:
@@ -292,10 +280,9 @@ class Subject:
         """
         return [*self.intensity_images, *self.segmentation_images]
 
-    def get_image_by_modality(self,
-                              modality: Union[Modality, str],
-                              return_first_on_multiple: bool = False
-                              ) -> Optional[IntensityImage]:
+    def get_image_by_modality(
+        self, modality: Union[Modality, str], return_first_on_multiple: bool = False
+    ) -> Optional[IntensityImage]:
         """Get one intensity image by its modality.
 
         Args:
@@ -311,12 +298,11 @@ class Subject:
 
         candidates = [img for img in self.intensity_images if img.get_modality() == modality]
 
-        return self._check_for_single_candidate(candidates, 'modalities', return_first_on_multiple)
+        return self._check_for_single_candidate(candidates, "modalities", return_first_on_multiple)
 
-    def get_image_by_organ(self,
-                           organ: Union[Organ, str],
-                           return_first_on_multiple: bool = False
-                           ) -> Optional[SegmentationImage]:
+    def get_image_by_organ(
+        self, organ: Union[Organ, str], return_first_on_multiple: bool = False
+    ) -> Optional[SegmentationImage]:
         """Get one segmentation image by its organ.
 
         Args:
@@ -332,11 +318,9 @@ class Subject:
 
         candidates = [img for img in self.segmentation_images if img.get_organ() == organ]
 
-        return self._check_for_single_candidate(candidates, 'organs', return_first_on_multiple)
+        return self._check_for_single_candidate(candidates, "organs", return_first_on_multiple)
 
-    def get_images_by_annotator(self,
-                                annotator: Union[Annotator, str]
-                                ) -> Optional[Tuple[SegmentationImage]]:
+    def get_images_by_annotator(self, annotator: Union[Annotator, str]) -> Optional[Tuple[SegmentationImage]]:
         """Get one or multiple segmentation images by their annotator.
 
         Args:
@@ -349,18 +333,18 @@ class Subject:
         if isinstance(annotator, str):
             annotator = Annotator(annotator)
 
-        candidates: List[SegmentationImage] = [img for img in self.segmentation_images if img.get_annotator() == annotator]
+        candidates: List[SegmentationImage] = [
+            img for img in self.segmentation_images if img.get_annotator() == annotator
+        ]
 
         if not candidates:
             return None
 
         return tuple(candidates)
 
-    def get_image_by_organ_and_annotator(self,
-                                         organ: Union[Organ, str],
-                                         annotator: Union[Annotator, str],
-                                         return_first_on_multiple: bool = False
-                                         ) -> Optional[SegmentationImage]:
+    def get_image_by_organ_and_annotator(
+        self, organ: Union[Organ, str], annotator: Union[Annotator, str], return_first_on_multiple: bool = False
+    ) -> Optional[SegmentationImage]:
         """Get one segmentation image by its organ and annotator.
 
         Args:
@@ -377,10 +361,11 @@ class Subject:
         if isinstance(annotator, str):
             annotator = Annotator(annotator)
 
-        candidates = [img for img in self.segmentation_images
-                      if img.get_organ() == organ and img.get_annotator() == annotator]
+        candidates = [
+            img for img in self.segmentation_images if img.get_organ() == organ and img.get_annotator() == annotator
+        ]
 
-        return self._check_for_single_candidate(candidates, 'organs and annotators', return_first_on_multiple)
+        return self._check_for_single_candidate(candidates, "organs and annotators", return_first_on_multiple)
 
     def get_images_by_type(self, image_type: type) -> List[Image]:
         """Get all images of a specific type.
@@ -396,12 +381,13 @@ class Subject:
         elif image_type == SegmentationImage:
             return self.segmentation_images
         else:
-            raise ValueError('The given data type is not supported or not contained in the subject!')
+            raise ValueError("The given data type is not supported or not contained in the subject!")
 
-    def replace_image(self,
-                      new_image: Union[IntensityImage, SegmentationImage],
-                      old_image: Optional[Union[IntensityImage, SegmentationImage]] = None
-                      ) -> bool:
+    def replace_image(
+        self,
+        new_image: Union[IntensityImage, SegmentationImage],
+        old_image: Optional[Union[IntensityImage, SegmentationImage]] = None,
+    ) -> bool:
         """Replace an image in the subject either specified by an old image or by the properties of the new image.
 
         The following properties are used to identify the image to be replaced:
@@ -418,6 +404,7 @@ class Subject:
         Returns:
             bool: True if the image is replaced successfully, False otherwise.
         """
+
         def _get_equal_entities(reference: Any, candidates: Sequence[Any]) -> Tuple[Any]:
             candidates_ = [candidate for candidate in candidates if isinstance(candidate, type(reference))]
 
@@ -435,8 +422,10 @@ class Subject:
                 return False
 
             if len(equal_images) > 1:
-                warn(f'More than one image of type {type(new_image).__name__} with the same properties is present '
-                     'in the subject. Exclusively the first image found will be replaced!')
+                warn(
+                    f"More than one image of type {type(new_image).__name__} with the same properties is present "
+                    "in the subject. Exclusively the first image found will be replaced!"
+                )
 
             old_image_idx = image_sequence.index(equal_images[0])
             image_sequence[old_image_idx] = new_image
@@ -444,21 +433,21 @@ class Subject:
 
         else:
             if not isinstance(old_image, type(new_image)):
-                raise TypeError('The new and old image must be of the same type '
-                                f'(new image: {type(new_image).__name__}, old image: {type(old_image).__name__})!')
+                raise TypeError(
+                    "The new and old image must be of the same type "
+                    f"(new image: {type(new_image).__name__}, old image: {type(old_image).__name__})!"
+                )
 
             try:
                 old_image_idx = image_sequence.index(old_image)
             except ValueError:
-                warn(f'The old image is not contained in the subject. No replacement will be performed.')
+                warn(f"The old image is not contained in the subject. No replacement will be performed.")
                 return False
 
             image_sequence[old_image_idx] = new_image
             return True
 
-    def remove_image_by_modality(self,
-                                 modality: Union[Modality, str]
-                                 ) -> bool:
+    def remove_image_by_modality(self, modality: Union[Modality, str]) -> bool:
         """Remove one or multiple images as specified by the modality.
 
         Args:
@@ -484,9 +473,7 @@ class Subject:
 
         return success
 
-    def remove_image_by_organ(self,
-                              organ: Union[Organ, str]
-                              ) -> bool:
+    def remove_image_by_organ(self, organ: Union[Organ, str]) -> bool:
         """Remove one or multiple images as specified by the organ.
 
         Args:
@@ -538,10 +525,7 @@ class Subject:
 
         return success
 
-    def remove_image_by_organ_and_annotator(self,
-                                            organ: Union[Organ, str],
-                                            annotator: Union[Annotator, str]
-                                            ) -> bool:
+    def remove_image_by_organ_and_annotator(self, organ: Union[Organ, str], annotator: Union[Annotator, str]) -> bool:
         """Remove one or multiple images as specified by the organ and annotator.
 
         Args:
@@ -556,8 +540,9 @@ class Subject:
         if isinstance(annotator, str):
             annotator = Annotator(annotator)
 
-        candidates = [img for img in self.segmentation_images
-                      if img.get_organ() == organ and img.get_annotator() == annotator]
+        candidates = [
+            img for img in self.segmentation_images if img.get_organ() == organ and img.get_annotator() == annotator
+        ]
 
         if not candidates:
             return False
@@ -584,8 +569,10 @@ class Subject:
         candidates = [img for img in images if img == image]
 
         if len(candidates) > 1:
-            warn(f'The removal of the image is ambiguous because there are multiple ({len(candidates)}) '
-                 'images which are equal. Only the first found image will be removed')
+            warn(
+                f"The removal of the image is ambiguous because there are multiple ({len(candidates)}) "
+                "images which are equal. Only the first found image will be removed"
+            )
 
         if not candidates:
             return False
@@ -648,7 +635,7 @@ class Subject:
             bool: True if the additional data is replaced successfully, False otherwise.
         """
         if key not in self.data.keys() and not add_if_missing:
-            warn(f'The key {key} is not contained in the additional data. No replacement will be performed.')
+            warn(f"The key {key} is not contained in the additional data. No replacement will be performed.")
             return False
 
         self.data[key] = new_data
@@ -683,5 +670,7 @@ class Subject:
             image.get_transform_tape().playback(image, subject=self)
 
     def __str__(self) -> str:
-        return f'{self.name} (Intensity Images: {len(self.intensity_images)} / ' \
-               f'Segmentation Images: {len(self.segmentation_images)})'
+        return (
+            f"{self.name} (Intensity Images: {len(self.intensity_images)} / "
+            f"Segmentation Images: {len(self.segmentation_images)})"
+        )

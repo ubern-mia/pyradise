@@ -1,11 +1,11 @@
 import os
 from re import sub
-from typing import (Sequence, Tuple, Sized, Iterable)
+from typing import Iterable, Sequence, Sized, Tuple
 
+import itk
 import numpy as np
 import SimpleITK as sitk
-import itk
-from pydicom import (dcmread, Dataset)
+from pydicom import Dataset, dcmread
 from pydicom.tag import Tag
 
 
@@ -19,10 +19,10 @@ def is_dir_and_exists(path: str) -> str:
         str: The normalized path.
     """
     if not os.path.exists(path):
-        raise NotADirectoryError(f'The path {path} is not existing!')
+        raise NotADirectoryError(f"The path {path} is not existing!")
 
     if not os.path.isdir(path):
-        raise NotADirectoryError(f'The path {path} is not a directory!')
+        raise NotADirectoryError(f"The path {path} is not a directory!")
 
     return os.path.normpath(path)
 
@@ -37,10 +37,10 @@ def is_file_and_exists(path: str) -> str:
         str: The normalized path.
     """
     if not os.path.exists(path):
-        raise FileNotFoundError(f'The path {path} is not existing!')
+        raise FileNotFoundError(f"The path {path} is not existing!")
 
     if not os.path.isfile(path):
-        raise FileNotFoundError(f'The path {path} is not a file!')
+        raise FileNotFoundError(f"The path {path} is not a file!")
 
     return os.path.normpath(path)
 
@@ -56,28 +56,28 @@ def is_dicom_file(path: str) -> bool:
     """
 
     file_name = os.path.basename(path)
-    if '.' in file_name:
-        file_extension = file_name.split('.')[-1]
-        return file_extension.lower() == 'dcm'
+    if "." in file_name:
+        file_extension = file_name.split(".")[-1]
+        return file_extension.lower() == "dcm"
 
-    with open(path, 'rb') as fp:
+    with open(path, "rb") as fp:
         fp.seek(128)
-        return fp.read(4).decode('utf-8') == 'DICM'
+        return fp.read(4).decode("utf-8") == "DICM"
 
 
 def assume_is_segmentation(path: str) -> bool:
     """Assume if the image is a segmentation image based on the pixel data type or the SOPClassUID for DICOM files.
 
-        Notes:
-            Assume that a segmentation image has the pixel data type unsigned char.
+    Notes:
+        Assume that a segmentation image has the pixel data type unsigned char.
 
-        Args:
-            path (str): The path to the image file.
+    Args:
+        path (str): The path to the image file.
 
-        Returns:
-            bool: True if the image is assumed to be a segmentation image, False otherwise.
-        """
-    if any([entry in path for entry in ('.nii', '.nrrd', '.mha')]):
+    Returns:
+        bool: True if the image is assumed to be a segmentation image, False otherwise.
+    """
+    if any([entry in path for entry in (".nii", ".nrrd", ".mha")]):
         reader = sitk.ImageFileReader()
         reader.LoadPrivateTagsOn()
         reader.SetFileName(path)
@@ -89,12 +89,12 @@ def assume_is_segmentation(path: str) -> bool:
     elif is_dicom_file(path):
         dataset = load_dataset_tag(path, (Tag(0x0008, 0x0016),))
         sop_class_uid = str(dataset.SOPClassUID)
-        if sop_class_uid == '1.2.840.10008.5.1.4.1.1.66.4':
+        if sop_class_uid == "1.2.840.10008.5.1.4.1.1.66.4":
             return True
         return False
 
     else:
-        raise ValueError(f'The path {path} specifies a not supported file type!')
+        raise ValueError(f"The path {path} specifies a not supported file type!")
 
 
 def convert_to_sitk_image(image: itk.Image) -> sitk.Image:
@@ -107,7 +107,7 @@ def convert_to_sitk_image(image: itk.Image) -> sitk.Image:
         sitk.Image: The converted :class:`SimpleITK.Image`.
     """
     if image.GetImageDimension() > 3:
-        raise NotImplementedError(f'Conversion of {image.GetDimension()}D images is not supported!')
+        raise NotImplementedError(f"Conversion of {image.GetDimension()}D images is not supported!")
 
     is_vector_image = image.GetNumberOfComponentsPerPixel() > 1
     image_sitk = sitk.GetImageFromArray(itk.GetArrayFromImage(image), isVector=is_vector_image)
@@ -127,7 +127,7 @@ def convert_to_itk_image(image: sitk.Image) -> itk.Image:
         itk.Image: The converted :class:`itk.Image`.
     """
     if image.GetDimension() > 3:
-        raise NotImplementedError(f'Conversion of {image.GetDimension()}D images is not supported!')
+        raise NotImplementedError(f"Conversion of {image.GetDimension()}D images is not supported!")
 
     is_vector_image = image.GetNumberOfComponentsPerPixel() > 1
     image_itk = itk.GetImageFromArray(sitk.GetArrayFromImage(image), is_vector=is_vector_image)
@@ -149,7 +149,7 @@ def assume_is_intensity_image(path: str) -> bool:
     Returns:
         bool: True if the image is assumed to be an intensity image, False otherwise.
     """
-    if any([entry in path for entry in ('.nii', '.nrrd', '.mha')]):
+    if any([entry in path for entry in (".nii", ".nrrd", ".mha")]):
         reader = sitk.ImageFileReader()
         reader.LoadPrivateTagsOn()
         reader.SetFileName(path)
@@ -161,13 +161,13 @@ def assume_is_intensity_image(path: str) -> bool:
     elif is_dicom_file(path):
         dataset = load_dataset_tag(path, (Tag(0x0008, 0x0016),))
         sop_class_uid = str(dataset.SOPClassUID)
-        sop_class_last_uid = int(sop_class_uid.split('.')[9])
-        if '1.2.840.10008.5.1.4.1.1' in sop_class_uid and sop_class_last_uid <= 20:
+        sop_class_last_uid = int(sop_class_uid.split(".")[9])
+        if "1.2.840.10008.5.1.4.1.1" in sop_class_uid and sop_class_last_uid <= 20:
             return True
         return False
 
     else:
-        raise ValueError(f'The path {path} specifies a not supported file type!')
+        raise ValueError(f"The path {path} specifies a not supported file type!")
 
 
 def remove_illegal_folder_chars(name: str) -> str:
@@ -183,9 +183,7 @@ def remove_illegal_folder_chars(name: str) -> str:
     return sub(illegal_characters, "", name)
 
 
-def load_dataset(path: str,
-                 stop_before_pixels: bool = True
-                 ) -> Dataset:
+def load_dataset(path: str, stop_before_pixels: bool = True) -> Dataset:
     """Loads a DICOM dataset from a path.
 
     Args:
@@ -218,10 +216,7 @@ def load_datasets(paths: Sequence[str], stop_before_pixels: bool = True) -> Tupl
     return tuple(datasets)
 
 
-def load_dataset_tag(path: str,
-                     tags: Sequence[Tag],
-                     stop_before_pixels: bool = True
-                     ) -> Dataset:
+def load_dataset_tag(path: str, tags: Sequence[Tag], stop_before_pixels: bool = True) -> Dataset:
     """Loads a DICOM dataset from a file with specific tags only.
 
     Args:
@@ -237,9 +232,7 @@ def load_dataset_tag(path: str,
     return dataset
 
 
-def chunkify(iterable: Sized,
-             size: int
-             ) -> Iterable:
+def chunkify(iterable: Sized, size: int) -> Iterable:
     """Separate data from an iterable into chunks of a certain size.
 
     Args:
@@ -249,10 +242,10 @@ def chunkify(iterable: Sized,
     Returns:
         Iterable: A chunk.
     """
-    assert size > 1, 'The size for chunking the data can not be smaller than 1!'
+    assert size > 1, "The size for chunking the data can not be smaller than 1!"
 
     for i in range(0, len(iterable), size):
-        yield iterable[i:i + size]
+        yield iterable[i : i + size]
 
 
 def get_slice_direction(image_dataset: Dataset) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -264,14 +257,16 @@ def get_slice_direction(image_dataset: Dataset) -> Tuple[np.ndarray, np.ndarray,
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray]: The directions in all three dimensions.
     """
-    orientation = image_dataset.get('ImageOrientationPatient')
+    orientation = image_dataset.get("ImageOrientationPatient")
 
     row_direction = np.array(orientation[:3])
     column_direction = np.array(orientation[3:])
     slice_direction = np.cross(row_direction, column_direction)
 
-    validate_directions = (np.allclose(np.dot(row_direction, column_direction), 0.0, atol=1e-3),
-                           np.allclose(np.linalg.norm(slice_direction), 1.0, atol=1e-3))
+    validate_directions = (
+        np.allclose(np.dot(row_direction, column_direction), 0.0, atol=1e-3),
+        np.allclose(np.linalg.norm(slice_direction), 1.0, atol=1e-3),
+    )
 
     if not all(validate_directions):
         raise Exception(f'Invalid ImageOrientationPatient attribute in {image_dataset.get("PatientID")}!')
@@ -288,7 +283,7 @@ def get_slice_position(image_dataset: Dataset) -> np.ndarray:
     Returns:
         np.ndarray: The position of the slice in space.
     """
-    orientation = image_dataset.get('ImagePositionPatient')
+    orientation = image_dataset.get("ImagePositionPatient")
 
     _, _, slice_direction = get_slice_direction(image_dataset)
 

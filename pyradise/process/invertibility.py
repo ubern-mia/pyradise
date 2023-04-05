@@ -1,25 +1,14 @@
-from typing import (
-    Optional,
-    Tuple,
-    Union)
-from copy import deepcopy
 import warnings
+from copy import deepcopy
+from typing import Optional, Tuple, Union
 
-from pyradise.data import (
-    Subject,
-    IntensityImage,
-    SegmentationImage,
-    TransformInfo,
-    Modality,
-    OrganAnnotatorCombination,
-    seq_to_modalities,
-    seq_to_organ_annotator_combinations)
-from pyradise.process import (
-    Filter,
-    FilterParams)
+from pyradise.data import (IntensityImage, Modality, OrganAnnotatorCombination,
+                           SegmentationImage, Subject, TransformInfo,
+                           seq_to_modalities,
+                           seq_to_organ_annotator_combinations)
+from pyradise.process import Filter, FilterParams
 
-
-__all__ = ['PlaybackTransformTapeFilterParams', 'PlaybackTransformTapeFilter']
+__all__ = ["PlaybackTransformTapeFilterParams", "PlaybackTransformTapeFilter"]
 
 
 class PlaybackTransformTapeFilterParams(FilterParams):
@@ -33,11 +22,11 @@ class PlaybackTransformTapeFilterParams(FilterParams):
          will be played back for all organ-annotator combinations (default: None).
     """
 
-    def __init__(self,
-                 modalities: Optional[Tuple[Union[str, Modality], ...]] = None,
-                 organ_annotator_combinations: Optional[Tuple[Union[Tuple[str, str],
-                                                                    OrganAnnotatorCombination], ...]] = None
-                 ) -> None:
+    def __init__(
+        self,
+        modalities: Optional[Tuple[Union[str, Modality], ...]] = None,
+        organ_annotator_combinations: Optional[Tuple[Union[Tuple[str, str], OrganAnnotatorCombination], ...]] = None,
+    ) -> None:
         super().__init__()
 
         if modalities is not None:
@@ -68,10 +57,7 @@ class PlaybackTransformTapeFilter(Filter):
         """
         return False
 
-    def execute(self,
-                subject: Subject,
-                params: Optional[PlaybackTransformTapeFilterParams] = None
-                ) -> Subject:
+    def execute(self, subject: Subject, params: Optional[PlaybackTransformTapeFilterParams] = None) -> Subject:
         """Execute the filter on the provided :class:`~pyradise.data.subject.Subject` instance.
 
         Args:
@@ -86,7 +72,6 @@ class PlaybackTransformTapeFilter(Filter):
 
         images = subject.get_images()
         for image in images:
-
             # exclude images not matching the provided criteria
             if isinstance(image, IntensityImage) and params.modalities is not None:
                 if not image.get_modality() in params.modalities:
@@ -118,17 +103,17 @@ class PlaybackTransformTapeFilter(Filter):
 
         # replace the original images with the modified images and reset the transform tape
         for original_image, changed_image in zip(original_images, changed_images):
-
             original_image.set_image_data(changed_image.get_image_data())
             original_image.get_transform_tape().reset()
 
         return subject
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Return the provided :class:`~pyradise.data.subject.Subject` instance without any processing because
         :class:`~pyradise.data.taping.TransformTape` playback is not invertible.
 
@@ -145,9 +130,11 @@ class PlaybackTransformTapeFilter(Filter):
 
         # potentially warn the user that the operation is not invertible
         if self.warn_on_non_invertible and not self.is_invertible():
-            warnings.warn('WARNING: '
-                          f'The {self.__class__.__name__} is called to invert its operation for the following image: \n'
-                          f'\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject '
-                          'is returned without modification.')
+            warnings.warn(
+                "WARNING: "
+                f"The {self.__class__.__name__} is called to invert its operation for the following image: \n"
+                f"\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject "
+                "is returned without modification."
+            )
 
         return subject

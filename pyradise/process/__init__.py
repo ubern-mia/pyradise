@@ -1,75 +1,37 @@
-from .base import (
-    Filter,
-    FilterParams,
-    LoopEntryFilter,
-    LoopEntryFilterParams,
-    FilterPipeline)
-
-from .intensity import (
-    IntensityFilterParams,
-    IntensityFilter,
-    IntensityLoopFilterParams,
-    IntensityLoopFilter,
-    ZScoreNormFilterParams,
-    ZScoreNormFilter,
-    ZeroOneNormFilterParams,
-    ZeroOneNormFilter,
-    RescaleIntensityFilter,
-    RescaleIntensityFilterParams,
-    ClipIntensityFilter,
-    ClipIntensityFilterParams,
-    GaussianFilter,
-    GaussianFilterParams,
-    MedianFilter,
-    MedianFilterParams,
-    LaplacianFilter,
-    LaplacianFilterParams)
-
-from .orientation import (
-    OrientationFilterParams,
-    OrientationFilter,
-    _Coord,
-    _MajorTerms,
-    SpatialOrientation)
-
-from .registration import (
-    RegistrationType,
-    InterSubjectRegistrationFilterParams,
-    InterSubjectRegistrationFilter,
-    IntraSubjectRegistrationFilterParams,
-    IntraSubjectRegistrationFilter)
-
-from .resampling import (
-    ResampleFilter,
-    ResampleFilterParams)
-
-from .inference import (
-    IndexingStrategy,
-    SliceIndexingStrategy,
-    PatchIndexingStrategy,
-    InferenceFilterParams,
-    InferenceFilter)
-
-from .modification import (
-    AddImageFilterParams,
-    AddImageFilter,
-    RemoveImageByOrganFilterParams,
-    RemoveImageByOrganFilter,
-    RemoveImageByAnnotatorFilterParams,
-    RemoveImageByAnnotatorFilter,
-    RemoveImageByModalityFilterParams,
-    RemoveImageByModalityFilter,
-    MergeSegmentationFilterParams,
-    MergeSegmentationFilter)
-
-from .postprocess import (
-    SingleConnectedComponentFilter,
-    SingleConnectedComponentFilterParams,
-    AlphabeticOrganSortingFilterParams,
-    AlphabeticOrganSortingFilter)
-
-from .invertibility import (
-    PlaybackTransformTapeFilterParams,
-    PlaybackTransformTapeFilter
-)
-
+from .base import (Filter, FilterParams, FilterPipeline, LoopEntryFilter,
+                   LoopEntryFilterParams)
+from .inference import (IndexingStrategy, InferenceFilter,
+                        InferenceFilterParams, PatchIndexingStrategy,
+                        SliceIndexingStrategy)
+from .intensity import (ClipIntensityFilter, ClipIntensityFilterParams,
+                        GaussianFilter, GaussianFilterParams, IntensityFilter,
+                        IntensityFilterParams, IntensityLoopFilter,
+                        IntensityLoopFilterParams, LaplacianFilter,
+                        LaplacianFilterParams, MedianFilter,
+                        MedianFilterParams, RescaleIntensityFilter,
+                        RescaleIntensityFilterParams, ZeroOneNormFilter,
+                        ZeroOneNormFilterParams, ZScoreNormFilter,
+                        ZScoreNormFilterParams)
+from .invertibility import (PlaybackTransformTapeFilter,
+                            PlaybackTransformTapeFilterParams)
+from .modification import (AddImageFilter, AddImageFilterParams,
+                           MergeSegmentationFilter,
+                           MergeSegmentationFilterParams,
+                           RemoveImageByAnnotatorFilter,
+                           RemoveImageByAnnotatorFilterParams,
+                           RemoveImageByModalityFilter,
+                           RemoveImageByModalityFilterParams,
+                           RemoveImageByOrganFilter,
+                           RemoveImageByOrganFilterParams)
+from .orientation import (OrientationFilter, OrientationFilterParams,
+                          SpatialOrientation, _Coord, _MajorTerms)
+from .postprocess import (AlphabeticOrganSortingFilter,
+                          AlphabeticOrganSortingFilterParams,
+                          SingleConnectedComponentFilter,
+                          SingleConnectedComponentFilterParams)
+from .registration import (InterSubjectRegistrationFilter,
+                           InterSubjectRegistrationFilterParams,
+                           IntraSubjectRegistrationFilter,
+                           IntraSubjectRegistrationFilterParams,
+                           RegistrationType)
+from .resampling import ResampleFilter, ResampleFilterParams

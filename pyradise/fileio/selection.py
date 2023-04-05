@@ -1,28 +1,23 @@
-from abc import (ABC, abstractmethod)
-from typing import (
-    Tuple,
-    List,
-    Sequence,
-    Union)
+from abc import ABC, abstractmethod
+from typing import List, Sequence, Tuple, Union
 
-from pyradise.data import (
-    Modality,
-    Organ,
-    Annotator,
-    seq_to_modalities,
-    seq_to_organs,
-    seq_to_annotators)
-from .series_info import (
-    SeriesInfo,
-    IntensityFileSeriesInfo,
-    SegmentationFileSeriesInfo,
-    DicomSeriesInfo,
-    DicomSeriesImageInfo,
-    DicomSeriesRegistrationInfo,
-    DicomSeriesRTSSInfo)
+from pyradise.data import (Annotator, Modality, Organ, seq_to_annotators,
+                           seq_to_modalities, seq_to_organs)
 
-__all__ = ['SeriesInfoSelector', 'SeriesInfoSelectorPipeline', 'ModalityInfoSelector', 'OrganInfoSelector',
-           'AnnotatorInfoSelector', 'NoRegistrationInfoSelector', 'NoRTSSInfoSelector']
+from .series_info import (DicomSeriesImageInfo, DicomSeriesInfo,
+                          DicomSeriesRegistrationInfo, DicomSeriesRTSSInfo,
+                          IntensityFileSeriesInfo, SegmentationFileSeriesInfo,
+                          SeriesInfo)
+
+__all__ = [
+    "SeriesInfoSelector",
+    "SeriesInfoSelectorPipeline",
+    "ModalityInfoSelector",
+    "OrganInfoSelector",
+    "AnnotatorInfoSelector",
+    "NoRegistrationInfoSelector",
+    "NoRTSSInfoSelector",
+]
 
 
 class SeriesInfoSelector(ABC):
@@ -99,12 +94,12 @@ class ModalityInfoSelector(SeriesInfoSelector):
      Args:
          keep (Tuple[Union[Modality, str], ...]): The :class:`~pyradise.data.modality.Modality` entries of
           the :class:`~pyradise.fileio.series_info.SeriesInfo` entries to keep.
-     """
+    """
 
     def __init__(self, keep: Tuple[Union[Modality, str], ...]) -> None:
         super().__init__()
 
-        assert keep, 'The modalities to keep must not be empty!'
+        assert keep, "The modalities to keep must not be empty!"
         self.keep: Tuple[Modality, ...] = seq_to_modalities(keep)
 
     # noinspection DuplicatedCode
@@ -122,8 +117,10 @@ class ModalityInfoSelector(SeriesInfoSelector):
 
         remove_indices = []
         for i, registration_info in enumerate(registration_infos):
-            criteria = [entry.series_instance_uid == registration_info.referenced_series_instance_uid_transform
-                        for entry in image_infos]
+            criteria = [
+                entry.series_instance_uid == registration_info.referenced_series_instance_uid_transform
+                for entry in image_infos
+            ]
 
             if not any(criteria):
                 remove_indices.append(i)
@@ -149,7 +146,7 @@ class ModalityInfoSelector(SeriesInfoSelector):
         Returns:
             Tuple[SeriesInfo, ...]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
-        assert infos, 'The series infos must not be empty!'
+        assert infos, "The series infos must not be empty!"
 
         selected: List[SeriesInfo] = []
         for info in infos:
@@ -184,7 +181,7 @@ class OrganInfoSelector(SeriesInfoSelector):
     def __init__(self, keep: Tuple[Union[Organ, str], ...]) -> None:
         super().__init__()
 
-        assert keep, 'The organs to keep must not be empty!'
+        assert keep, "The organs to keep must not be empty!"
         self.keep: Tuple[Organ, ...] = seq_to_organs(keep)
 
     def execute(self, infos: Sequence[SeriesInfo]) -> Tuple[SeriesInfo, ...]:
@@ -197,7 +194,7 @@ class OrganInfoSelector(SeriesInfoSelector):
         Returns:
             Tuple[SeriesInfo, ...]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
-        assert infos, 'The series infos must not be empty!'
+        assert infos, "The series infos must not be empty!"
 
         selected: List[SeriesInfo] = []
         for info in infos:
@@ -223,7 +220,7 @@ class AnnotatorInfoSelector(SeriesInfoSelector):
     def __init__(self, keep: Tuple[Union[Annotator, str], ...]) -> None:
         super().__init__()
 
-        assert keep, 'The annotators to keep must not be empty!'
+        assert keep, "The annotators to keep must not be empty!"
         self.keep: Tuple[Annotator, ...] = seq_to_annotators(keep)
 
     # noinspection DuplicatedCode
@@ -239,7 +236,7 @@ class AnnotatorInfoSelector(SeriesInfoSelector):
         Returns:
             Tuple[SeriesInfo, ...]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
-        assert infos, 'The series infos must not be empty!'
+        assert infos, "The series infos must not be empty!"
 
         selected: List[SeriesInfo] = []
         for info in infos:
@@ -270,7 +267,7 @@ class NoRegistrationInfoSelector(SeriesInfoSelector):
         Returns:
             Sequence[SeriesInfo]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
-        assert infos, 'The series infos must not be empty!'
+        assert infos, "The series infos must not be empty!"
 
         selected: List[SeriesInfo] = []
         for info in infos:
@@ -294,7 +291,7 @@ class NoRTSSInfoSelector(SeriesInfoSelector):
         Returns:
             Tuple[SeriesInfo, ...]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
-        assert infos, 'The series infos must not be empty!'
+        assert infos, "The series infos must not be empty!"
 
         selected: List[SeriesInfo] = []
         for info in infos:

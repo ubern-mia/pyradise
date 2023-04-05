@@ -14,16 +14,15 @@ def test_dicom_dataset_crawler_direct(dicom_test_dataset_path: str) -> None:
 
     # check the number of entries
     for series_info_entry in series_info:
-        image_series_info = [entry for entry in series_info_entry
-                             if isinstance(entry, ps_fio.DicomSeriesImageInfo)]
+        image_series_info = [entry for entry in series_info_entry if isinstance(entry, ps_fio.DicomSeriesImageInfo)]
         assert len(image_series_info) == 2
 
-        reg_series_info = [entry for entry in series_info_entry
-                           if isinstance(entry, ps_fio.DicomSeriesRegistrationInfo)]
+        reg_series_info = [
+            entry for entry in series_info_entry if isinstance(entry, ps_fio.DicomSeriesRegistrationInfo)
+        ]
         assert len(reg_series_info) == 0
 
-        rtss_series_info = [entry for entry in series_info_entry
-                            if isinstance(entry, ps_fio.DicomSeriesRTSSInfo)]
+        rtss_series_info = [entry for entry in series_info_entry if isinstance(entry, ps_fio.DicomSeriesRTSSInfo)]
         assert len(rtss_series_info) == 1
 
 
@@ -36,16 +35,13 @@ def test_dicom_dataset_crawler_iterative(dicom_test_dataset_path: str) -> None:
     for series_info in crawler:
         num_subject_series_infos += 1
 
-        image_series_info = [entry for entry in series_info
-                             if isinstance(entry, ps_fio.DicomSeriesImageInfo)]
+        image_series_info = [entry for entry in series_info if isinstance(entry, ps_fio.DicomSeriesImageInfo)]
         assert len(image_series_info) == 2
 
-        reg_series_info = [entry for entry in series_info
-                           if isinstance(entry, ps_fio.DicomSeriesRegistrationInfo)]
+        reg_series_info = [entry for entry in series_info if isinstance(entry, ps_fio.DicomSeriesRegistrationInfo)]
         assert len(reg_series_info) == 0
 
-        rtss_series_info = [entry for entry in series_info
-                            if isinstance(entry, ps_fio.DicomSeriesRTSSInfo)]
+        rtss_series_info = [entry for entry in series_info if isinstance(entry, ps_fio.DicomSeriesRTSSInfo)]
         assert len(rtss_series_info) == 1
 
     assert num_subject_series_infos == 5
@@ -60,21 +56,17 @@ def test_dicom_subject_crawler(dicom_test_subj_path: str) -> None:
     assert len(series_info) == 3
 
     # check the number of entries
-    image_series_info = [entry for entry in series_info
-                         if isinstance(entry, ps_fio.DicomSeriesImageInfo)]
+    image_series_info = [entry for entry in series_info if isinstance(entry, ps_fio.DicomSeriesImageInfo)]
     assert len(image_series_info) == 2
 
-    reg_series_info = [entry for entry in series_info
-                       if isinstance(entry, ps_fio.DicomSeriesRegistrationInfo)]
+    reg_series_info = [entry for entry in series_info if isinstance(entry, ps_fio.DicomSeriesRegistrationInfo)]
     assert len(reg_series_info) == 0
 
-    rtss_series_info = [entry for entry in series_info
-                        if isinstance(entry, ps_fio.DicomSeriesRTSSInfo)]
+    rtss_series_info = [entry for entry in series_info if isinstance(entry, ps_fio.DicomSeriesRTSSInfo)]
     assert len(rtss_series_info) == 1
 
 
-def test_dicom_convert_to_dicom_to_nii_with_iter(dicom_test_dataset_path: str,
-                                                 tmp_path: Path) -> None:
+def test_dicom_convert_to_dicom_to_nii_with_iter(dicom_test_dataset_path: str, tmp_path: Path) -> None:
     # crawl for the subjects
     crawler = ps_fio.DatasetDicomCrawler(dicom_test_dataset_path)
 

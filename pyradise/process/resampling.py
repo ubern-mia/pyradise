@@ -1,25 +1,15 @@
-from typing import (
-    Tuple,
-    Optional,
-    Sequence,
-    Union)
+from typing import Optional, Sequence, Tuple, Union
 
+import itk
 import numpy as np
 import SimpleITK as sitk
-import itk
 
-from pyradise.data import (
-    Subject,
-    Modality,
-    TransformInfo,
-    SegmentationImage,
-    IntensityImage,
-    str_to_modality)
-from .base import (
-    Filter,
-    FilterParams)
+from pyradise.data import (IntensityImage, Modality, SegmentationImage,
+                           Subject, TransformInfo, str_to_modality)
 
-__all__ = ['ResampleFilterParams', 'ResampleFilter']
+from .base import Filter, FilterParams
+
+__all__ = ["ResampleFilterParams", "ResampleFilter"]
 
 
 # pylint: disable = too-few-public-methods
@@ -49,21 +39,22 @@ class ResampleFilterParams(FilterParams):
          intensity range (default: True).
     """
 
-    def __init__(self,
-                 output_size: Optional[Tuple[int, ...]],
-                 output_spacing: Optional[Tuple[float, ...]],
-                 reference_modality: Optional[Union[Modality, str]] = None,
-                 transform: sitk.Transform = sitk.AffineTransform(3),
-                 centering_method: str = 'none',
-                 rescaling_intensity_images: bool = True
-                 ) -> None:
+    def __init__(
+        self,
+        output_size: Optional[Tuple[int, ...]],
+        output_spacing: Optional[Tuple[float, ...]],
+        reference_modality: Optional[Union[Modality, str]] = None,
+        transform: sitk.Transform = sitk.AffineTransform(3),
+        centering_method: str = "none",
+        rescaling_intensity_images: bool = True,
+    ) -> None:
         super().__init__()
 
-        if centering_method not in ('none', 'reference', 'label_moment'):
-            raise ValueError(f'The centering method ({centering_method}) is invalid!')
+        if centering_method not in ("none", "reference", "label_moment"):
+            raise ValueError(f"The centering method ({centering_method}) is invalid!")
 
-        if centering_method in ('reference', 'label_moment') and reference_modality is None:
-            raise ValueError(f'A reference modality must be provided!')
+        if centering_method in ("reference", "label_moment") and reference_modality is None:
+            raise ValueError(f"A reference modality must be provided!")
 
         self.output_size = output_size
         self.output_spacing = output_spacing
@@ -117,7 +108,7 @@ class ResampleFilter(Filter):
         """
         # if no segmentation images are provided raise an error
         if not images:
-            raise ValueError('No segmentation images are provided for the label center computation!')
+            raise ValueError("No segmentation images are provided for the label center computation!")
 
         # compute the average label center
         bounding_box = []
@@ -132,7 +123,7 @@ class ResampleFilter(Filter):
             for label_idx in label_ids:
                 bounds = filter_.GetBoundingBox(label_idx)
                 physical_bound_0 = image_sitk.TransformIndexToPhysicalPoint(bounds[0:num_dims])
-                physical_bound_1 = image_sitk.TransformIndexToPhysicalPoint(bounds[num_dims:2 * num_dims])
+                physical_bound_1 = image_sitk.TransformIndexToPhysicalPoint(bounds[num_dims : 2 * num_dims])
                 bounding_box.append([physical_bound_0, physical_bound_1])
 
         bounding_box = np.array(bounding_box)
@@ -142,10 +133,9 @@ class ResampleFilter(Filter):
         return label_center
 
     @staticmethod
-    def _get_label_moment_origin(image: IntensityImage,
-                                 params: ResampleFilterParams,
-                                 label_center: np.ndarray
-                                 ) -> np.ndarray:
+    def _get_label_moment_origin(
+        image: IntensityImage, params: ResampleFilterParams, label_center: np.ndarray
+    ) -> np.ndarray:
         """Get the origin of the label moment centering.
 
         This method computes the average between the image gravity center and the label center and calculates the
@@ -177,12 +167,13 @@ class ResampleFilter(Filter):
         return origin
 
     # noinspection DuplicatedCode
-    def _process_intensity_image(self,
-                                 image: IntensityImage,
-                                 reference_image: Optional[IntensityImage],
-                                 params: ResampleFilterParams,
-                                 segmentation_images: Optional[Sequence[SegmentationImage]] = None
-                                 ) -> IntensityImage:
+    def _process_intensity_image(
+        self,
+        image: IntensityImage,
+        reference_image: Optional[IntensityImage],
+        params: ResampleFilterParams,
+        segmentation_images: Optional[Sequence[SegmentationImage]] = None,
+    ) -> IntensityImage:
         """Apply the resampling on an :class:`~pyradise.data.image.IntensityImage` instance.
 
         Args:
@@ -208,26 +199,28 @@ class ResampleFilter(Filter):
         max_intensity = float(np.max(image_np))
 
         # get the output origin and direction
-        if params.centering_method == 'none':
+        if params.centering_method == "none":
             output_origin = image_sitk.GetOrigin()
             output_direction = image_sitk.GetDirection()
             output_size = image_sitk.GetSize()
             output_spacing = image_sitk.GetSpacing()
 
-        elif params.centering_method == 'reference':
+        elif params.centering_method == "reference":
             if reference_image is None:
-                raise ValueError('The reference image must be provided for the centering method "reference" and '
-                                 '"label_moment"!')
+                raise ValueError(
+                    'The reference image must be provided for the centering method "reference" and ' '"label_moment"!'
+                )
             reference_image_sitk = reference_image.get_image_data()
             output_origin = reference_image_sitk.GetOrigin()
             output_direction = reference_image_sitk.GetDirection()
             output_size = reference_image_sitk.GetSize()
             output_spacing = reference_image_sitk.GetSpacing()
 
-        elif params.centering_method == 'label_moment':
+        elif params.centering_method == "label_moment":
             if reference_image is None:
-                raise ValueError('The reference image must be provided for the centering method "reference" and '
-                                 '"label_moment"!')
+                raise ValueError(
+                    'The reference image must be provided for the centering method "reference" and ' '"label_moment"!'
+                )
             reference_image_sitk = reference_image.get_image_data()
             output_size = reference_image_sitk.GetSize()
             output_spacing = reference_image_sitk.GetSpacing()
@@ -243,7 +236,7 @@ class ResampleFilter(Filter):
                 output_direction = reference_image_sitk.GetDirection()
 
         else:
-            raise NotImplementedError(f'The centering method ({params.centering_method}) is not supported!')
+            raise NotImplementedError(f"The centering method ({params.centering_method}) is not supported!")
 
         # apply the resampling filter
         resample_filter = sitk.ResampleImageFilter()
@@ -276,17 +269,15 @@ class ResampleFilter(Filter):
         image.set_image_data(new_image_sitk)
 
         # track the necessary parameters
-        self.tracking_data['min_intensity'] = min_intensity
-        self.tracking_data['max_intensity'] = max_intensity
-        self.tracking_data['is_intensity'] = True
+        self.tracking_data["min_intensity"] = min_intensity
+        self.tracking_data["max_intensity"] = max_intensity
+        self.tracking_data["is_intensity"] = True
         self._register_tracked_data(image, image_sitk, new_image_sitk, params, params.transform)
 
         return image
 
     @staticmethod
-    def _inverse_process_intensity_image(image: IntensityImage,
-                                         transform_info: TransformInfo
-                                         ) -> IntensityImage:
+    def _inverse_process_intensity_image(image: IntensityImage, transform_info: TransformInfo) -> IntensityImage:
         """Apply the inverse resampling on an :class:`~pyradise.data.image.IntensityImage` instance.
 
         Args:
@@ -304,7 +295,7 @@ class ResampleFilter(Filter):
         resample_filter = sitk.ResampleImageFilter()
         resample_filter.SetInterpolator(sitk.sitkBSpline)
         resample_filter.SetTransform(transform_info.get_transform(True))
-        resample_filter.SetDefaultPixelValue(float(transform_info.get_data('min_intensity')))
+        resample_filter.SetDefaultPixelValue(float(transform_info.get_data("min_intensity")))
         resample_filter.SetOutputOrigin(pre_transform_props.origin)
         resample_filter.SetOutputDirection(pre_transform_props.direction)
         resample_filter.SetOutputSpacing(pre_transform_props.spacing)
@@ -316,8 +307,8 @@ class ResampleFilter(Filter):
         params = transform_info.get_params()
         if params.rescaling_intensity_images:
             rescale_filter = sitk.RescaleIntensityImageFilter()
-            rescale_filter.SetOutputMinimum(transform_info.get_data('min_intensity'))
-            rescale_filter.SetOutputMaximum(transform_info.get_data('max_intensity'))
+            rescale_filter.SetOutputMinimum(transform_info.get_data("min_intensity"))
+            rescale_filter.SetOutputMaximum(transform_info.get_data("max_intensity"))
             new_image_sitk = rescale_filter.Execute(new_image_sitk)
 
         # set the new image data to the intensity image
@@ -326,11 +317,12 @@ class ResampleFilter(Filter):
         return image
 
     # noinspection DuplicatedCode
-    def _process_segmentation_image(self,
-                                    image: SegmentationImage,
-                                    reference_image: Optional[IntensityImage],
-                                    params: ResampleFilterParams,
-                                    ) -> SegmentationImage:
+    def _process_segmentation_image(
+        self,
+        image: SegmentationImage,
+        reference_image: Optional[IntensityImage],
+        params: ResampleFilterParams,
+    ) -> SegmentationImage:
         """Apply the resampling on an :class:`~pyradise.data.image.SegmentationImage` instance.
 
         Args:
@@ -345,16 +337,17 @@ class ResampleFilter(Filter):
         image_sitk = image.get_image_data()
 
         # get the output origin and direction
-        if params.centering_method == 'none':
+        if params.centering_method == "none":
             output_origin = image_sitk.GetOrigin()
             output_direction = image_sitk.GetDirection()
             output_size = image_sitk.GetSize()
             output_spacing = image_sitk.GetSpacing()
 
-        elif params.centering_method in ('reference', 'label_moment'):
+        elif params.centering_method in ("reference", "label_moment"):
             if reference_image is None:
-                raise ValueError('The reference image must be provided for the centering method "reference" and '
-                                 '"label_moment"!')
+                raise ValueError(
+                    'The reference image must be provided for the centering method "reference" and ' '"label_moment"!'
+                )
             reference_image_sitk = reference_image.get_image_data()
             output_origin = reference_image_sitk.GetOrigin()
             output_direction = reference_image_sitk.GetDirection()
@@ -362,7 +355,7 @@ class ResampleFilter(Filter):
             output_spacing = reference_image_sitk.GetSpacing()
 
         else:
-            raise NotImplementedError(f'The centering method ({params.centering_method}) is invalid!')
+            raise NotImplementedError(f"The centering method ({params.centering_method}) is invalid!")
 
         # apply the resampling filter
         resample_filter = sitk.ResampleImageFilter()
@@ -388,17 +381,17 @@ class ResampleFilter(Filter):
         image.set_image_data(new_image_sitk)
 
         # track the necessary parameters
-        self.tracking_data['min_intensity'] = 0.
-        self.tracking_data['max_intensity'] = 1.
-        self.tracking_data['is_intensity'] = False
+        self.tracking_data["min_intensity"] = 0.0
+        self.tracking_data["max_intensity"] = 1.0
+        self.tracking_data["is_intensity"] = False
         self._register_tracked_data(image, image_sitk, new_image_sitk, params, params.transform)
 
         return image
 
     @staticmethod
-    def _inverse_process_segmentation_image(image: SegmentationImage,
-                                            transform_info: TransformInfo
-                                            ) -> SegmentationImage:
+    def _inverse_process_segmentation_image(
+        image: SegmentationImage, transform_info: TransformInfo
+    ) -> SegmentationImage:
         """Apply the inverse resampling on an :class:`~pyradise.data.image.SegmentationImage` instance.
 
         Args:
@@ -429,10 +422,7 @@ class ResampleFilter(Filter):
 
         return image
 
-    def execute(self,
-                subject: Subject,
-                params: ResampleFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: ResampleFilterParams) -> Subject:
         """Executes the resampling filter procedure.
 
         Args:
@@ -448,7 +438,7 @@ class ResampleFilter(Filter):
         segmentation_images = [img for img in segmentation_images if isinstance(img, SegmentationImage)]
 
         # get the reference images if necessary
-        if params.centering_method != 'none':
+        if params.centering_method != "none":
             # resample the reference intensity image
             ref_image = subject.get_image_by_modality(params.reference_modality)
             self._process_intensity_image(ref_image, ref_image, params, segmentation_images)
@@ -457,9 +447,8 @@ class ResampleFilter(Filter):
 
         # resample the intensity images
         for image in subject.intensity_images:
-
             # exclude the reference image if not centering_method == 'none'
-            if params.centering_method != 'none':
+            if params.centering_method != "none":
                 if image.get_modality() == params.reference_modality:
                     continue
 
@@ -471,11 +460,12 @@ class ResampleFilter(Filter):
 
         return subject
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Executes the inverse resampling filter procedure.
 
         Args:

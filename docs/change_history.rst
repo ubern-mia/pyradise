@@ -4,6 +4,13 @@
 Change History
 ==============
 
+0.2.2 (05.04.2023)
+------------------
+
+* Minor bugfix due to deprecated `np.float` and `np.int`.
+* Reformatted code to comply with PEP8.
+
+
 0.2.1 (30.01.2023)
 ------------------
 

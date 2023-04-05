@@ -1,37 +1,23 @@
-from abc import (
-    ABC,
-    abstractmethod)
 import os
 import warnings
-from typing import (
-    Any,
-    Tuple,
-    Optional)
+from abc import ABC, abstractmethod
+from typing import Any, Optional, Tuple
 
 import itk
 from pydicom.tag import Tag
 
 from pyradise.data import Modality
-from pyradise.utils import (
-    is_dir_and_exists,
-    is_dicom_file,
-    load_dataset_tag,
-    assume_is_segmentation)
-from .modality_config import ModalityConfiguration
-from .series_info import (
-    FileSeriesInfo,
-    IntensityFileSeriesInfo,
-    SegmentationFileSeriesInfo,
-    DicomSeriesInfo,
-    DicomSeriesImageInfo,
-    DicomSeriesRegistrationInfo,
-    DicomSeriesRTSSInfo)
-from .extraction import (
-    ModalityExtractor,
-    AnnotatorExtractor,
-    OrganExtractor)
+from pyradise.utils import (assume_is_segmentation, is_dicom_file,
+                            is_dir_and_exists, load_dataset_tag)
 
-__all__ = ['Crawler', 'SubjectFileCrawler', 'DatasetFileCrawler', 'SubjectDicomCrawler', 'DatasetDicomCrawler']
+from .extraction import AnnotatorExtractor, ModalityExtractor, OrganExtractor
+from .modality_config import ModalityConfiguration
+from .series_info import (DicomSeriesImageInfo, DicomSeriesInfo,
+                          DicomSeriesRegistrationInfo, DicomSeriesRTSSInfo,
+                          FileSeriesInfo, IntensityFileSeriesInfo,
+                          SegmentationFileSeriesInfo)
+
+__all__ = ["Crawler", "SubjectFileCrawler", "DatasetFileCrawler", "SubjectDicomCrawler", "DatasetDicomCrawler"]
 
 
 class Crawler(ABC):
@@ -42,9 +28,7 @@ class Crawler(ABC):
         path (str): The directory path for which the crawling will be performed.
     """
 
-    def __init__(self,
-                 path: str
-                 ) -> None:
+    def __init__(self, path: str) -> None:
         super().__init__()
 
         self.path = is_dir_and_exists(os.path.normpath(path))
@@ -83,19 +67,22 @@ class SubjectFileCrawler(Crawler):
 
     """
 
-    def __init__(self,
-                 path: str,
-                 subject_name: str,
-                 extension: str,
-                 modality_extractor: ModalityExtractor,
-                 organ_extractor: OrganExtractor,
-                 annotator_extractor: AnnotatorExtractor
-                 ) -> None:
+    def __init__(
+        self,
+        path: str,
+        subject_name: str,
+        extension: str,
+        modality_extractor: ModalityExtractor,
+        organ_extractor: OrganExtractor,
+        annotator_extractor: AnnotatorExtractor,
+    ) -> None:
         super().__init__(path)
 
-        if 'dcm' in extension:
-            raise ValueError(f'The DICOM format is not supported by {self.__class__.__name__}! '
-                             'Use the appropriate DICOM variant instead.')
+        if "dcm" in extension:
+            raise ValueError(
+                f"The DICOM format is not supported by {self.__class__.__name__}! "
+                "Use the appropriate DICOM variant instead."
+            )
 
         self.extension = extension
         self.subject_name = subject_name
@@ -236,18 +223,21 @@ class DatasetFileCrawler(Crawler):
         annotator_extractor (AnnotatorExtractor): The annotator extractor.
     """
 
-    def __init__(self,
-                 path: str,
-                 extension: str,
-                 modality_extractor: ModalityExtractor,
-                 organ_extractor: OrganExtractor,
-                 annotator_extractor: AnnotatorExtractor
-                 ) -> None:
+    def __init__(
+        self,
+        path: str,
+        extension: str,
+        modality_extractor: ModalityExtractor,
+        organ_extractor: OrganExtractor,
+        annotator_extractor: AnnotatorExtractor,
+    ) -> None:
         super().__init__(path)
 
-        if 'dcm' in extension:
-            raise ValueError(f'The DICOM format is not supported by {self.__class__.__name__}! '
-                             'Use the appropriate DICOM variant instead.')
+        if "dcm" in extension:
+            raise ValueError(
+                f"The DICOM format is not supported by {self.__class__.__name__}! "
+                "Use the appropriate DICOM variant instead."
+            )
         self.extension = extension
 
         self.modality_extractor = modality_extractor
@@ -293,9 +283,14 @@ class DatasetFileCrawler(Crawler):
         # Get subject files
         subject_files = []
         for subject_dir, subject_name in zip(self.subject_dir_path, self.subject_names):
-            subject_file_crawler = SubjectFileCrawler(subject_dir, subject_name, self.extension,
-                                                      self.modality_extractor, self.organ_extractor,
-                                                      self.annotator_extractor)
+            subject_file_crawler = SubjectFileCrawler(
+                subject_dir,
+                subject_name,
+                self.extension,
+                self.modality_extractor,
+                self.organ_extractor,
+                self.annotator_extractor,
+            )
             subject_files.append(subject_file_crawler.execute())
 
         return tuple(subject_files)
@@ -306,12 +301,14 @@ class DatasetFileCrawler(Crawler):
 
     def __next__(self) -> Tuple[FileSeriesInfo, ...]:
         if self.current_idx < self.num_subjects:
-            subject_info = SubjectFileCrawler(self.subject_dir_path[self.current_idx],
-                                              self.subject_names[self.current_idx],
-                                              self.extension,
-                                              self.modality_extractor,
-                                              self.organ_extractor,
-                                              self.annotator_extractor).execute()
+            subject_info = SubjectFileCrawler(
+                self.subject_dir_path[self.current_idx],
+                self.subject_names[self.current_idx],
+                self.extension,
+                self.modality_extractor,
+                self.organ_extractor,
+                self.annotator_extractor,
+            ).execute()
             self.current_idx += 1
             return subject_info
         else:
@@ -352,12 +349,13 @@ class SubjectDicomCrawler(Crawler):
          (default: False).
     """
 
-    def __init__(self,
-                 path: str,
-                 modality_extractor: Optional[ModalityExtractor] = None,
-                 modality_config_file_name: str = 'modality_config.json',
-                 write_modality_config: bool = False
-                 ) -> None:
+    def __init__(
+        self,
+        path: str,
+        modality_extractor: Optional[ModalityExtractor] = None,
+        modality_config_file_name: str = "modality_config.json",
+        write_modality_config: bool = False,
+    ) -> None:
         super().__init__(path)
         self.modality_extractor: Optional[ModalityExtractor] = modality_extractor
         self.config_file_name = modality_config_file_name
@@ -372,8 +370,7 @@ class SubjectDicomCrawler(Crawler):
         file_paths = []
         for root, _, files in os.walk(self.path):
             for file in files:
-
-                if file == 'DICOMDIR':
+                if file == "DICOMDIR":
                     continue
 
                 file_path = os.path.join(root, file)
@@ -402,7 +399,7 @@ class SubjectDicomCrawler(Crawler):
 
             # check if the image belongs to the DICOM RT SOP Classes
             dataset = load_dataset_tag(series_paths[0], (Tag(0x0008, 0x0016),))
-            if '481' in str(dataset.get('SOPClassUID', '')):
+            if "481" in str(dataset.get("SOPClassUID", "")):
                 continue
 
             image_series_paths.append(tuple(series_paths))
@@ -419,14 +416,16 @@ class SubjectDicomCrawler(Crawler):
         Returns:
             Tuple[str, ...]: The DICOM registration file paths.
         """
-        valid_sop_class_uids = ('1.2.840.10008.5.1.4.1.1.66.1',  # Spatial Registration Storage
-                                '1.2.840.10008.5.1.4.1.1.66.3')  # Deformable Spatial Registration Storage
+        valid_sop_class_uids = (
+            "1.2.840.10008.5.1.4.1.1.66.1",  # Spatial Registration Storage
+            "1.2.840.10008.5.1.4.1.1.66.3",
+        )  # Deformable Spatial Registration Storage
 
         registration_files = []
         for path in paths:
             dataset = load_dataset_tag(path, (Tag(0x0008, 0x0016),))
 
-            if dataset.get('SOPClassUID', None) in valid_sop_class_uids:
+            if dataset.get("SOPClassUID", None) in valid_sop_class_uids:
                 registration_files.append(path)
 
         return tuple(registration_files)
@@ -441,13 +440,13 @@ class SubjectDicomCrawler(Crawler):
         Returns:
             Tuple[str, ...]: The DICOM RTSS file paths.
         """
-        valid_sop_class_uid = '1.2.840.10008.5.1.4.1.1.481.3'  # RT Structure Set Storage
+        valid_sop_class_uid = "1.2.840.10008.5.1.4.1.1.481.3"  # RT Structure Set Storage
 
         rtss_files = []
         for path in paths:
             dataset = load_dataset_tag(path, (Tag(0x0008, 0x0016),))
 
-            if dataset.get('SOPClassUID', None) == valid_sop_class_uid:
+            if dataset.get("SOPClassUID", None) == valid_sop_class_uid:
                 rtss_files.append(path)
 
         return tuple(rtss_files)
@@ -473,9 +472,9 @@ class SubjectDicomCrawler(Crawler):
         return tuple(infos)
 
     @staticmethod
-    def _generate_registration_infos(registration_paths: Tuple[str, ...],
-                                     image_infos: Tuple[DicomSeriesImageInfo, ...]
-                                     ) -> Tuple[DicomSeriesRegistrationInfo]:
+    def _generate_registration_infos(
+        registration_paths: Tuple[str, ...], image_infos: Tuple[DicomSeriesImageInfo, ...]
+    ) -> Tuple[DicomSeriesRegistrationInfo]:
         """Generate the :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entries for the DICOM file
         paths specified.
 
@@ -516,9 +515,7 @@ class SubjectDicomCrawler(Crawler):
 
         return tuple(infos)
 
-    def _export_modality_config(self,
-                                infos: Tuple[DicomSeriesInfo, ...]
-                                ) -> None:
+    def _export_modality_config(self, infos: Tuple[DicomSeriesInfo, ...]) -> None:
         """Export the retrieved :class:`~pyradise.fileio.modality_config.ModalityConfiguration` to a file.
 
         Args:
@@ -547,7 +544,7 @@ class SubjectDicomCrawler(Crawler):
             None
         """
         # try to apply the modality configuration if it exists
-        modality_file_path = ''
+        modality_file_path = ""
         for root, _, files in os.walk(self.path):
             for file in files:
                 if self.config_file_name in file:
@@ -560,14 +557,16 @@ class SubjectDicomCrawler(Crawler):
             config.add_modalities_to_info(infos)
 
             if config.has_default_modalities():
-                warnings.warn('The modality configuration file contains at least one default modality.')
+                warnings.warn("The modality configuration file contains at least one default modality.")
 
             if config.has_duplicate_modalities():
-                raise ValueError('The modalities from the modality configuration file contain at least one duplicate '
-                                 'modality. This will cause ambiguity when loading the DICOM series.')
+                raise ValueError(
+                    "The modalities from the modality configuration file contain at least one duplicate "
+                    "modality. This will cause ambiguity when loading the DICOM series."
+                )
 
             if self.write_config:
-                warnings.warn('The modality configuration file already exists and will not be overwritten.')
+                warnings.warn("The modality configuration file already exists and will not be overwritten.")
 
             return
 
@@ -588,28 +587,36 @@ class SubjectDicomCrawler(Crawler):
                     config.to_file(os.path.join(self.path, self.config_file_name))
 
                 if config.has_duplicate_modalities():
-                    raise ValueError('The extracted modalities contain at least one duplicate modality. '
-                                     'This will cause ambiguity when loading the DICOM series.')
+                    raise ValueError(
+                        "The extracted modalities contain at least one duplicate modality. "
+                        "This will cause ambiguity when loading the DICOM series."
+                    )
 
                 if extraction_possible_for_all:
                     return
                 else:
-                    warnings.warn('Modality extraction failed for one DICOM series. The default modality will '
-                                  'be used for the series which failed during modality extraction.')
+                    warnings.warn(
+                        "Modality extraction failed for one DICOM series. The default modality will "
+                        "be used for the series which failed during modality extraction."
+                    )
                     return
 
             else:
                 config = ModalityConfiguration.from_dicom_series_info(infos)
 
                 if config.has_duplicate_modalities() and self.write_config is False:
-                    raise ValueError('The extracted modalities contain at least one duplicate modality. '
-                                     'This will cause ambiguity when loading the DICOM series. Use either a modality '
-                                     'configuration file or a modality extractor to resolve this issue.')
+                    raise ValueError(
+                        "The extracted modalities contain at least one duplicate modality. "
+                        "This will cause ambiguity when loading the DICOM series. Use either a modality "
+                        "configuration file or a modality extractor to resolve this issue."
+                    )
 
                 if config.has_default_modalities() and self.write_config is False and len(config.configuration) > 1:
-                    raise ValueError('The extracted modalities contain at least one default modality. '
-                                     'This will cause ambiguity when loading the DICOM series. Use either a modality '
-                                     'configuration file or a modality extractor to resolve this issue.')
+                    raise ValueError(
+                        "The extracted modalities contain at least one default modality. "
+                        "This will cause ambiguity when loading the DICOM series. Use either a modality "
+                        "configuration file or a modality extractor to resolve this issue."
+                    )
 
                 if self.write_config:
                     config.to_file(os.path.join(self.path, self.config_file_name))
@@ -618,8 +625,10 @@ class SubjectDicomCrawler(Crawler):
                 if not config.has_duplicate_modalities():
                     return
 
-                raise ValueError('The modality configuration file could not be found '
-                                 f'in the specified path ({self.path}) and there is no modality extractor provided!')
+                raise ValueError(
+                    "The modality configuration file could not be found "
+                    f"in the specified path ({self.path}) and there is no modality extractor provided!"
+                )
 
     def execute(self) -> Tuple[DicomSeriesInfo, ...]:
         """Execute the crawling process to retrieve the :class:`~pyradise.fileio.series_info.DicomSeriesInfo` entries.
@@ -716,11 +725,13 @@ class DatasetDicomCrawler(Crawler):
          (default: False).
     """
 
-    def __init__(self,
-                 path: str,
-                 modality_extractor: Optional[ModalityExtractor] = None,
-                 modality_config_file_name: str = 'modality_config.json',
-                 write_modality_config: bool = False) -> None:
+    def __init__(
+        self,
+        path: str,
+        modality_extractor: Optional[ModalityExtractor] = None,
+        modality_config_file_name: str = "modality_config.json",
+        write_modality_config: bool = False,
+    ) -> None:
         super().__init__(path)
         self.modality_extractor: Optional[ModalityExtractor] = modality_extractor
         self.config_file_name = modality_config_file_name
@@ -747,7 +758,7 @@ class DatasetDicomCrawler(Crawler):
 
         for root, _, files in os.walk(path):
             for file in files:
-                if file == 'DICOMDIR':
+                if file == "DICOMDIR":
                     continue
 
                 file_path = os.path.join(root, file)
@@ -777,14 +788,15 @@ class DatasetDicomCrawler(Crawler):
 
         subject_infos = []
         for subject_dir_path in self.subject_dir_paths:
-            subject_info = SubjectDicomCrawler(subject_dir_path, self.modality_extractor, self.config_file_name,
-                                               self.write_config).execute()
+            subject_info = SubjectDicomCrawler(
+                subject_dir_path, self.modality_extractor, self.config_file_name, self.write_config
+            ).execute()
 
             subject_infos.append(subject_info) if subject_info else None
 
         return tuple(subject_infos)
 
-    def __iter__(self) -> 'DatasetDicomCrawler':
+    def __iter__(self) -> "DatasetDicomCrawler":
         self.subject_dir_paths = self._get_subject_dir_paths(self.path)
         self.num_subjects = len(self.subject_dir_paths)
         self.current_idx = 0
@@ -792,8 +804,12 @@ class DatasetDicomCrawler(Crawler):
 
     def __next__(self) -> Tuple[DicomSeriesInfo, ...]:
         if self.current_idx < self.num_subjects:
-            subject_info = SubjectDicomCrawler(self.subject_dir_paths[self.current_idx], self.modality_extractor,
-                                               self.config_file_name, self.write_config).execute()
+            subject_info = SubjectDicomCrawler(
+                self.subject_dir_paths[self.current_idx],
+                self.modality_extractor,
+                self.config_file_name,
+                self.write_config,
+            ).execute()
             self.current_idx += 1
             return subject_info
 

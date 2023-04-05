@@ -1,8 +1,7 @@
-from typing import Optional
 from re import sub
+from typing import Optional
 
-
-__all__ = ['Annotator']
+__all__ = ["Annotator"]
 
 
 class Annotator:
@@ -13,13 +12,11 @@ class Annotator:
         name (str): The name of the annotator.
         abbreviation (Optional[str]): The abbreviation of the annotator (default: None).
     """
-    default_annotator_name = 'NA'
-    default_annotator_abbreviation = 'NA'
 
-    def __init__(self,
-                 name: str,
-                 abbreviation: Optional[str] = None
-                 ) -> None:
+    default_annotator_name = "NA"
+    default_annotator_abbreviation = "NA"
+
+    def __init__(self, name: str, abbreviation: Optional[str] = None) -> None:
         super().__init__()
         name_ = self._remove_illegal_characters(name)
 
@@ -46,7 +43,7 @@ class Annotator:
         return self.abbreviation
 
     @classmethod
-    def get_default(cls) -> 'Annotator':
+    def get_default(cls) -> "Annotator":
         """Get the default :class:`Annotator`.
 
         The default :class:`Annotator` name is 'NA' and its abbreviation is also 'NA'.
@@ -74,12 +71,12 @@ class Annotator:
         Returns:
             str: The string without illegal characters.
         """
-        illegal_characters = "[<>:/\\|?*\"]|[\0-\31]"
+        illegal_characters = '[<>:/\\|?*"]|[\0-\31]'
         return sub(illegal_characters, "", text)
 
     def __str__(self) -> str:
         if self.abbreviation:
-            return f'{self.name} ({self.abbreviation})'
+            return f"{self.name} ({self.abbreviation})"
 
         return self.name
 

@@ -1,37 +1,28 @@
-from abc import ABC, abstractmethod
 import os.path
-from math import ceil
-from itertools import product
-from typing import (
-    Any,
-    Dict,
-    Optional,
-    Tuple,
-    Union)
-from copy import deepcopy
 import warnings
+from abc import ABC, abstractmethod
+from copy import deepcopy
+from itertools import product
+from math import ceil
+from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
 import SimpleITK as sitk
 
-from pyradise.data import (
-    Subject,
-    SegmentationImage,
-    IntensityImage,
-    Modality,
-    Organ,
-    Annotator,
-    TransformInfo,
-    str_to_modality,
-    seq_to_modalities,
-    seq_to_organs,
-    str_to_annotator)
-from .base import (
-    Filter,
-    FilterParams)
+from pyradise.data import (Annotator, IntensityImage, Modality, Organ,
+                           SegmentationImage, Subject, TransformInfo,
+                           seq_to_modalities, seq_to_organs, str_to_annotator,
+                           str_to_modality)
 
-__all__ = ['InferenceFilterParams', 'InferenceFilter', 'IndexingStrategy', 'SliceIndexingStrategy',
-           'PatchIndexingStrategy']
+from .base import Filter, FilterParams
+
+__all__ = [
+    "InferenceFilterParams",
+    "InferenceFilter",
+    "IndexingStrategy",
+    "SliceIndexingStrategy",
+    "PatchIndexingStrategy",
+]
 
 
 class IndexingStrategy(ABC):
@@ -92,11 +83,9 @@ class SliceIndexingStrategy(IndexingStrategy):
         # create the indexing expressions
         index_expressions = []
         for i in range(num_slices):
-
             # loop through the axis to build the indexing expression of a single slice
             index_expression = []
             for axis_idx in range(len(shape)):
-
                 # for the slice axis, we want to have just the current slice
                 if axis_idx == self.loop_axis:
                     index_expression.append(slice(i, i + 1))
@@ -122,10 +111,7 @@ class PatchIndexingStrategy(IndexingStrategy):
     .. automethod:: __call__
     """
 
-    def __init__(self,
-                 patch_shape: Tuple[int, ...],
-                 stride: Optional[Tuple[int, ...]] = None
-                 ) -> None:
+    def __init__(self, patch_shape: Tuple[int, ...], stride: Optional[Tuple[int, ...]] = None) -> None:
         super().__init__(None)
 
         if stride is None:
@@ -134,15 +120,17 @@ class PatchIndexingStrategy(IndexingStrategy):
             stride_ = stride
 
         if len(patch_shape) != len(stride_):
-            raise ValueError(f'Invalid patch shape {patch_shape} and stride {stride_}. '
-                             'Patch shape and stride must have the same length.')
+            raise ValueError(
+                f"Invalid patch shape {patch_shape} and stride {stride_}. "
+                "Patch shape and stride must have the same length."
+            )
 
         if any([patch_size <= 0 for patch_size in patch_shape]):
-            raise ValueError(f'Invalid patch shape {patch_shape}. Patch shape must be positive.')
+            raise ValueError(f"Invalid patch shape {patch_shape}. Patch shape must be positive.")
         self.patch_shape = patch_shape
 
         if any([stride_size <= 0 for stride_size in stride_]):
-            raise ValueError(f'Invalid stride {stride_}. Stride must be positive.')
+            raise ValueError(f"Invalid stride {stride_}. Stride must be positive.")
         self.stride = stride_
 
     def __call__(self, shape: Tuple[int, ...]) -> Tuple[Tuple[slice, ...], ...]:
@@ -156,8 +144,9 @@ class PatchIndexingStrategy(IndexingStrategy):
             Tuple[Tuple[slice, ...], ...]: The indexing expressions.
         """
         # get the number of patches in each dimension
-        num_patches = tuple(range(ceil((shape[i] - self.patch_shape[i]) / self.stride[i]) + 1)
-                            for i in range(len(self.patch_shape)))
+        num_patches = tuple(
+            range(ceil((shape[i] - self.patch_shape[i]) / self.stride[i]) + 1) for i in range(len(self.patch_shape))
+        )
 
         # get the combinations of patch indices
         patch_indexes = tuple(product(*num_patches))
@@ -204,17 +193,18 @@ class InferenceFilterParams(FilterParams):
          the data is fed to the `model`.
     """
 
-    def __init__(self,
-                 model: Any,
-                 model_path: Optional[str],
-                 modalities: Tuple[Union[str, Modality], ...],
-                 reference_modality: Union[str, Modality],
-                 output_organs: Tuple[Union[str, Organ], ...],
-                 output_annotator: Union[str, Annotator],
-                 organ_indices: Tuple[int, ...],
-                 batch_size: int,
-                 indexing_strategy: IndexingStrategy,
-                 ) -> None:
+    def __init__(
+        self,
+        model: Any,
+        model_path: Optional[str],
+        modalities: Tuple[Union[str, Modality], ...],
+        reference_modality: Union[str, Modality],
+        output_organs: Tuple[Union[str, Organ], ...],
+        output_annotator: Union[str, Annotator],
+        organ_indices: Tuple[int, ...],
+        batch_size: int,
+        indexing_strategy: IndexingStrategy,
+    ) -> None:
         # adjust the loop_axis because the first axis will be the channel axis
         super().__init__()
 
@@ -245,7 +235,7 @@ class InferenceFilterParams(FilterParams):
 
         # the indexes of the organs on the output mask of the model (must match output_organs)
         if len(output_organs) != len(organ_indices):
-            raise ValueError('Invalid number of organ indices. Must match the number of output_organs.')
+            raise ValueError("Invalid number of organ indices. Must match the number of output_organs.")
         self.organ_indices = organ_indices
 
         # the batch size
@@ -390,9 +380,7 @@ class InferenceFilter(Filter):
         return False
 
     @staticmethod
-    def _get_input_array(subject: Subject,
-                         params: InferenceFilterParams
-                         ) -> np.ndarray:
+    def _get_input_array(subject: Subject, params: InferenceFilterParams) -> np.ndarray:
         """Return the input array for the DL-model.
 
         Note:
@@ -410,8 +398,9 @@ class InferenceFilter(Filter):
 
         # check if images have the same shape
         if not all(image.get_size() == images[0].get_size() for image in images):
-            raise ValueError('All images selected for inference must have the same shape. '
-                             'Please resample accordingly.')
+            raise ValueError(
+                "All images selected for inference must have the same shape. " "Please resample accordingly."
+            )
 
         # get the image arrays and stack them
         input_array = np.stack([image.get_image_data_as_np() for image in images], axis=0)
@@ -419,10 +408,7 @@ class InferenceFilter(Filter):
         return input_array
 
     @abstractmethod
-    def _prepare_model(self,
-                       model: Any,
-                       model_path: str
-                       ) -> None:
+    def _prepare_model(self, model: Any, model_path: str) -> None:
         """Prepare the model for inference (e.g. loading the model parameters). The loaded model must be added to
         a class attribute such that it can be accessed by all methods.
 
@@ -435,13 +421,10 @@ class InferenceFilter(Filter):
         Returns:
             Any: The model prepared for inference.
         """
-        raise NotImplementedError('This method must be implemented for the specific DL-framework.')
+        raise NotImplementedError("This method must be implemented for the specific DL-framework.")
 
     @abstractmethod
-    def _infer_on_batch(self,
-                        batch: Dict[str, Any],
-                        params: InferenceFilterParams
-                        ) -> Dict[str, Any]:
+    def _infer_on_batch(self, batch: Dict[str, Any], params: InferenceFilterParams) -> Dict[str, Any]:
         """Apply the model to a batch of data.
 
         This method must be implemented for the specific DL-framework and is called with a batch of data. The batch
@@ -465,12 +448,9 @@ class InferenceFilter(Filter):
         Returns:
             Dict[str, Any]: The output of the model.
         """
-        raise NotImplementedError('This method must be implemented for the specific DL-framework.')
+        raise NotImplementedError("This method must be implemented for the specific DL-framework.")
 
-    def _apply_model(self,
-                     input_array: np.ndarray,
-                     params: InferenceFilterParams
-                     ) -> np.ndarray:
+    def _apply_model(self, input_array: np.ndarray, params: InferenceFilterParams) -> np.ndarray:
         """Apply the model to the input array to predict the segmentation.
 
         Args:
@@ -489,10 +469,8 @@ class InferenceFilter(Filter):
 
         # Iterate over the indexes in batches
         while index_expressions:
-
             # Construct the batch
-            batch = {'data': list(),
-                     'index_expr': list()}
+            batch = {"data": list(), "index_expr": list()}
             for i in range(params.batch_size):
                 if len(index_expressions) <= 0:
                     break
@@ -502,25 +480,22 @@ class InferenceFilter(Filter):
                 ext_index_expr = (slice(None), *index_expr)
 
                 # Add the data to the batch
-                batch['data'].append(input_array[ext_index_expr])
-                batch['index_expr'].append(index_expr)
+                batch["data"].append(input_array[ext_index_expr])
+                batch["index_expr"].append(index_expr)
 
             # Apply the model to the batch
             processed_batch = self._infer_on_batch(batch, params)
 
             # Insert the output batch into the output array
-            for i in range(len(processed_batch['data'])):
-                index_expr = processed_batch['index_expr'][i]
-                output_data = processed_batch['data'][i]
+            for i in range(len(processed_batch["data"])):
+                index_expr = processed_batch["index_expr"][i]
+                output_data = processed_batch["data"][i]
                 output_array[index_expr] = output_data
 
         return output_array
 
     @staticmethod
-    def _array_to_subject(output_array: np.ndarray,
-                          subject: Subject,
-                          params: InferenceFilterParams
-                          ) -> Subject:
+    def _array_to_subject(output_array: np.ndarray, subject: Subject, params: InferenceFilterParams) -> Subject:
         """Convert the output array of the DL-model to one or multiple :class:`~pyradise.data.image.SegmentationImage`
         instances and add them to the provided :class:`~pyradise.data.subject.Subject` instance.
 
@@ -538,7 +513,7 @@ class InferenceFilter(Filter):
         reference_image = subject.get_image_by_modality(params.reference_modality)
 
         if reference_image is None:
-            raise ValueError('The reference image is not available.')
+            raise ValueError("The reference image is not available.")
 
         reference_image_sitk = reference_image.get_image_data()
 
@@ -553,9 +528,7 @@ class InferenceFilter(Filter):
             image.CopyInformation(reference_image_sitk)
 
             # Create a segmentation image from the image
-            segmentation_image = SegmentationImage(image,
-                                                   params.output_organs[idx],
-                                                   params.output_annotator)
+            segmentation_image = SegmentationImage(image, params.output_organs[idx], params.output_annotator)
 
             # Copy the transform tape from the reference image such that the segmentation image
             # can be transformed in the same way as the reference image
@@ -566,10 +539,7 @@ class InferenceFilter(Filter):
 
         return subject
 
-    def execute(self,
-                subject: Subject,
-                params: InferenceFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: InferenceFilterParams) -> Subject:
         """Execute the filter on the provided :class:`~pyradise.data.subject.Subject` instance.
 
         Args:
@@ -595,11 +565,12 @@ class InferenceFilter(Filter):
 
         return subject
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Return the provided :class:`~pyradise.data.subject.Subject` instance without any processing because
         the inference of a DL-model is typically not invertible.
 
@@ -616,7 +587,9 @@ class InferenceFilter(Filter):
 
         # potentially warn the user that the operation is not invertible
         if self.warn_on_non_invertible:
-            warnings.warn(f'The {self.__class__.__name__} filter is called but is not invertible. '
-                          'The provided subject is returned without modification.')
+            warnings.warn(
+                f"The {self.__class__.__name__} filter is called but is not invertible. "
+                "The provided subject is returned without modification."
+            )
 
         return subject

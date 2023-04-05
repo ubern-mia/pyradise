@@ -1,34 +1,31 @@
 import os
-import typing as t
 import shutil
+import typing as t
 
 import cv2
-import vtkmodules.all as vtk2
+import cv2 as cv
 import itk
+import matplotlib.pyplot as plt
 import numpy as np
 import SimpleITK as sitk
-import vtkmodules.vtkFiltersCore as vtk_fcore
-import vtkmodules.vtkCommonDataModel as vtk_dm
-import vtkmodules.vtkImagingGeneral as vtk_igen
-import vtkmodules.vtkImagingCore as vtk_icore
-import vtkmodules.vtkFiltersModeling as vtk_fmodel
-import vtkmodules.vtkFiltersGeometry as vtk_fgeom
+import vtkmodules.all as vtk2
 import vtkmodules.vtkCommonCore as vtk_ccore
-from pydicom import (
-    Dataset)
-import matplotlib.pyplot as plt
-import cv2 as cv
+import vtkmodules.vtkCommonDataModel as vtk_dm
+import vtkmodules.vtkFiltersCore as vtk_fcore
+import vtkmodules.vtkFiltersGeometry as vtk_fgeom
+import vtkmodules.vtkFiltersModeling as vtk_fmodel
+import vtkmodules.vtkImagingCore as vtk_icore
+import vtkmodules.vtkImagingGeneral as vtk_igen
+from pydicom import Dataset
 
-from pyradise.utils import (
-    load_datasets,
-    convert_to_itk_image)
 import pyradise.data as dat
 import pyradise.fileio as fio
 import pyradise.process as proc
+from pyradise.utils import convert_to_itk_image, load_datasets
 
 
 def get_datasets(path: str) -> t.Tuple[Dataset]:
-    files = [file.path for file in os.scandir(path) if file.is_file() and file.name.endswith('.dcm')]
+    files = [file.path for file in os.scandir(path) if file.is_file() and file.name.endswith(".dcm")]
     datasets = load_datasets(files)
     return datasets
 
@@ -38,7 +35,7 @@ def get_sitk_image(path: str) -> sitk.Image:
     reader.SetFileName(path)
     image = reader.Execute()
 
-    image = sitk.DICOMOrient(image, 'LPS')
+    image = sitk.DICOMOrient(image, "LPS")
     image_np = sitk.GetArrayFromImage(image)
     image_np[image_np != 0] = 255
     image_2 = sitk.GetImageFromArray(image_np)
@@ -46,24 +43,22 @@ def get_sitk_image(path: str) -> sitk.Image:
     return image_2
 
 
-def convert_to_sitk(input_path: str,
-                    output_path: str
-                    ) -> None:
+def convert_to_sitk(input_path: str, output_path: str) -> None:
     series_info = fio.SubjectDicomCrawler(input_path).execute()
 
-    selection = fio.ModalityInfoSelector(keep=('T1c',))
+    selection = fio.ModalityInfoSelector(keep=("T1c",))
     series_info = selection.execute(series_info)
 
     loader = fio.SubjectLoader()
     subject = loader.load(series_info)
 
-    nii_path = os.path.join(output_path, 'nii')
+    nii_path = os.path.join(output_path, "nii")
     if not os.path.exists(nii_path):
         os.makedirs(nii_path)
 
     fio.SubjectWriter().write(nii_path, subject, False)
 
-    dcm_path = os.path.join(output_path, 'dcm')
+    dcm_path = os.path.join(output_path, "dcm")
     if not os.path.exists(dcm_path):
         os.makedirs(dcm_path)
     for info in series_info:
@@ -83,10 +78,7 @@ def get_vtk_image(sitk_image: sitk.Image) -> vtk_dm.vtkImageData:
     return vtk_image
 
 
-def get_smooth_image(image_vtk: vtk_dm.vtkImageData,
-                     sigma: float = 1.0,
-                     radius: int = 1
-                     ) -> vtk_dm.vtkImageData:
+def get_smooth_image(image_vtk: vtk_dm.vtkImageData, sigma: float = 1.0, radius: int = 1) -> vtk_dm.vtkImageData:
     # Smooth the image
     smooth = vtk_igen.vtkImageGaussianSmooth()
     smooth.SetInputData(image_vtk)
@@ -106,18 +98,18 @@ def get_smooth_image(image_vtk: vtk_dm.vtkImageData,
 
 
 def get_cube_model(image_vtk: vtk_dm.vtkImageData):
-
     padder = vtk2.vtkImageWrapPad()
     padder.SetInputDataObject(0, image_vtk)
     extent = image_vtk.GetExtent()
-    padder.SetOutputWholeExtent(extent[0], extent[1] + 1, extent[2], extent[3] + 1,
-                                extent[4], extent[5] + 1)
+    padder.SetOutputWholeExtent(extent[0], extent[1] + 1, extent[2], extent[3] + 1, extent[4], extent[5] + 1)
     padder.Update(0)
     padder.GetOutput().GetCellData().SetScalars(image_vtk.GetPointData().GetScalars())
 
     # threshold the image
     threshold = vtk2.vtkThreshold()
-    threshold.SetInputArrayToProcess(0, 0, 0, vtk2.vtkDataObject.FIELD_ASSOCIATION_CELLS, vtk2.vtkDataSetAttributes.SCALARS)
+    threshold.SetInputArrayToProcess(
+        0, 0, 0, vtk2.vtkDataObject.FIELD_ASSOCIATION_CELLS, vtk2.vtkDataSetAttributes.SCALARS
+    )
     threshold.SetInputConnection(0, padder.GetOutputPort(0))
     threshold.SetLowerThreshold(1)
     threshold.SetUpperThreshold(255)
@@ -136,16 +128,17 @@ def get_cube_model(image_vtk: vtk_dm.vtkImageData):
     return None
 
 
-def full_pipeline(sitk_image: sitk.Image,
-                  image_smoothing: bool,
-                  smooth_sigma: float,
-                  smooth_radius: float,
-                  smooth_threshold: float,
-                  decimate_reduction: float,
-                  decimate_threshold: float,
-                  model_smooth_iter: int,
-                  model_smooth_pass_band: float
-                  ) -> vtk_dm.vtkPolyData:
+def full_pipeline(
+    sitk_image: sitk.Image,
+    image_smoothing: bool,
+    smooth_sigma: float,
+    smooth_radius: float,
+    smooth_threshold: float,
+    decimate_reduction: float,
+    decimate_threshold: float,
+    model_smooth_iter: int,
+    model_smooth_pass_band: float,
+) -> vtk_dm.vtkPolyData:
     # cast the image to vtkImageData
     itk_image = convert_to_itk_image(sitk_image)
     vtk_image = itk.vtk_image_from_image(itk_image)
@@ -191,7 +184,7 @@ def full_pipeline(sitk_image: sitk.Image,
         decimate.PreserveTopologyOn()
         decimate.SetMaximumError(1)
         decimate.SplittingOff()
-        decimate.SetFeatureAngle(60.)
+        decimate.SetFeatureAngle(60.0)
         decimate.Update(0)
         model = decimate.GetOutputDataObject(0)
 
@@ -230,17 +223,22 @@ def full_pipeline(sitk_image: sitk.Image,
     return stripped
 
 
-def slicing_2d(polydata: vtk_dm.vtkPolyData,
-               image_datasets: t.Tuple[Dataset],
-               ):
+def slicing_2d(
+    polydata: vtk_dm.vtkPolyData,
+    image_datasets: t.Tuple[Dataset],
+):
     origin = image_datasets[0].ImagePositionPatient
     origin = [float(val) for val in origin]
     first_pos = image_datasets[0].ImagePositionPatient
     last_pos = image_datasets[-1].ImagePositionPatient
     length = np.abs(np.linalg.norm(np.array(last_pos) - np.array(first_pos)))
     slice_spacing = length / (len(image_datasets) - 1)
-    normal = tuple(np.cross(np.array(image_datasets[0].get('ImageOrientationPatient')[0:3]),
-                            np.array(image_datasets[0].get('ImageOrientationPatient')[3:6])))
+    normal = tuple(
+        np.cross(
+            np.array(image_datasets[0].get("ImageOrientationPatient")[0:3]),
+            np.array(image_datasets[0].get("ImageOrientationPatient")[3:6]),
+        )
+    )
 
     # create the initial cutting plane
     plane = vtk_dm.vtkPlane()
@@ -263,7 +261,6 @@ def slicing_2d(polydata: vtk_dm.vtkPolyData,
     cutter.Update(0)
 
     # show_polydata(cutter.GetOutput(), show_edges=True, line_width=1)
-
 
     # create the cleaner
     cleaner = vtk_fcore.vtkCleanPolyData()
@@ -317,19 +314,13 @@ def slicing_2d(polydata: vtk_dm.vtkPolyData,
     return contours_points
 
 
-def show_polydata(polydata: vtk_dm.vtkPolyData,
-                  camera_origin: t.Tuple = (5, -110, 80),
-                  show_edges: bool = False,
-                  line_width: int = 4
-                  ) -> None:
+def show_polydata(
+    polydata: vtk_dm.vtkPolyData, camera_origin: t.Tuple = (5, -110, 80), show_edges: bool = False, line_width: int = 4
+) -> None:
     from vtkmodules.vtkCommonColor import vtkNamedColors
-    from vtkmodules.vtkRenderingCore import (
-        vtkActor,
-        vtkPolyDataMapper,
-        vtkRenderWindow,
-        vtkRenderWindowInteractor,
-        vtkRenderer
-    )
+    from vtkmodules.vtkRenderingCore import (vtkActor, vtkPolyDataMapper,
+                                             vtkRenderer, vtkRenderWindow,
+                                             vtkRenderWindowInteractor)
 
     # Visualize
     colors = vtkNamedColors()
@@ -364,15 +355,12 @@ def show_polydata(polydata: vtk_dm.vtkPolyData,
     renderWindowInteractor.Start()
 
 
-def main(dcm_dir_path: str,
-         nii_dir_path: str
-         ) -> None:
-
+def main(dcm_dir_path: str, nii_dir_path: str) -> None:
     # Load the datasets
     datasets = get_datasets(dcm_dir_path)
 
     # Load the image
-    image_path = os.path.join(nii_dir_path, 'seg_ISAS_GBM_005_Robert_Poel_Brainstem.nii.gz')
+    image_path = os.path.join(nii_dir_path, "seg_ISAS_GBM_005_Robert_Poel_Brainstem.nii.gz")
     image = get_sitk_image(image_path)
 
     # Get the vtk image
@@ -396,32 +384,31 @@ def main(dcm_dir_path: str,
     contours = slicing_2d(polydata, datasets)
 
 
-def main2d(dcm_dir_path: str,
-           nii_dir_path: str) -> None:
+def main2d(dcm_dir_path: str, nii_dir_path: str) -> None:
     # Load the image
-    image_path = os.path.join(nii_dir_path, 'seg_ISAS_GBM_005_Robert_Poel_Brainstem.nii.gz')
+    image_path = os.path.join(nii_dir_path, "seg_ISAS_GBM_005_Robert_Poel_Brainstem.nii.gz")
     image = get_sitk_image(image_path)
 
     # # plot the original image
-    path_img = os.path.join(dcm_dir_path, 'img_0.png')
+    path_img = os.path.join(dcm_dir_path, "img_0.png")
     img_np = sitk.GetArrayFromImage(image)
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_axis_off()
-    ax.imshow(img_np[70:(70 + 112), 103:(103 + 112), 90], cmap='gray_r')
-    fig.savefig(path_img, bbox_inches='tight', pad_inches=0)
+    ax.imshow(img_np[70 : (70 + 112), 103 : (103 + 112), 90], cmap="gray_r")
+    fig.savefig(path_img, bbox_inches="tight", pad_inches=0)
     # plt.show()
     plt.close(fig)
 
     # plot the smoothed image
-    path_img = os.path.join(dcm_dir_path, 'img_1.png')
+    path_img = os.path.join(dcm_dir_path, "img_1.png")
     img2 = sitk.DiscreteGaussian(image, 1.5)
     img_np2 = sitk.GetArrayFromImage(img2)
     fig, ax = plt.subplots(figsize=(7, 7))
-    ax.imshow(img_np2[70:(70 + 112), 103:(103 + 112), 90], cmap='gray_r')
+    ax.imshow(img_np2[70 : (70 + 112), 103 : (103 + 112), 90], cmap="gray_r")
     fig.tight_layout()
     ax.set_axis_off()
     # plt.show()
-    fig.savefig(path_img, bbox_inches='tight', pad_inches=0)
+    fig.savefig(path_img, bbox_inches="tight", pad_inches=0)
     plt.close(fig)
 
     # plot the contour image
@@ -445,12 +432,12 @@ def main2d(dcm_dir_path: str,
     img_np4 = img_np4[:, :, 90]
     empty[img_np4 != 0] = 0
 
-    path_img = os.path.join(dcm_dir_path, 'img_3.png')
+    path_img = os.path.join(dcm_dir_path, "img_3.png")
     fig, ax = plt.subplots(figsize=(7, 7))
-    ax.imshow(empty[70:(70 + 112), 103:(103 + 112)], cmap='gray_r')
+    ax.imshow(empty[70 : (70 + 112), 103 : (103 + 112)], cmap="gray_r")
     ax.set_axis_off()
     # plt.show()
-    fig.savefig(path_img, bbox_inches='tight', pad_inches=0)
+    fig.savefig(path_img, bbox_inches="tight", pad_inches=0)
     plt.close(fig)
 
     #
@@ -473,15 +460,14 @@ def main2d(dcm_dir_path: str,
     # plt.close(fig)
 
 
+if __name__ == "__main__":
+    original_dcm_dir = "D:/image/original/ISAS_GBM_005"
+    output_convert_dir = "D:/image/curated/"
 
-if __name__ == '__main__':
-    original_dcm_dir = 'D:/image/original/ISAS_GBM_005'
-    output_convert_dir = 'D:/image/curated/'
+    conv_dcm_dir = "D:/image/curated/dcm"
+    conv_nii_dir = "D:/image/curated/nii"
 
-    conv_dcm_dir = 'D:/image/curated/dcm'
-    conv_nii_dir = 'D:/image/curated/nii'
-
-    img_out = 'D:/image/'
+    img_out = "D:/image/"
 
     # Convert the images and generate NIfTI and DICOM files
     # convert_to_sitk(original_dcm_dir, output_convert_dir)
@@ -489,7 +475,3 @@ if __name__ == '__main__':
     # main
     # main(conv_dcm_dir, conv_nii_dir)
     main2d(img_out, conv_nii_dir)
-
-
-
-

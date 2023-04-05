@@ -1,33 +1,32 @@
 from typing import Tuple
 
 import torch
-from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import Tensor
 
 
 class ConvBlock(nn.Module):
     """A convolution building block."""
 
-    def __init__(self,
-                 in_channels: int,
-                 out_channels: int,
-                 kernel_size: Tuple[int, int] = (3, 3),
-                 padding: Tuple[int, int] = (1, 1)
-                 ) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: Tuple[int, int] = (3, 3),
+        padding: Tuple[int, int] = (1, 1),
+    ) -> None:
         super().__init__()
 
         self.convBlk = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels,
-                      kernel_size=kernel_size, padding=padding),
+            nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding),
             nn.BatchNorm2d(out_channels),
             nn.Dropout2d(p=0.1),
             nn.ReLU(inplace=False),
-            nn.Conv2d(out_channels, out_channels,
-                      kernel_size=kernel_size, padding=padding),
+            nn.Conv2d(out_channels, out_channels, kernel_size=kernel_size, padding=padding),
             nn.BatchNorm2d(out_channels),
             nn.Dropout2d(p=0.1),
-            nn.ReLU(inplace=False)
+            nn.ReLU(inplace=False),
         )
 
     def forward(self, inputs: Tensor) -> Tensor:
@@ -38,15 +37,15 @@ class ConvBlock(nn.Module):
 class InConv(nn.Module):
     """An in-convolution block."""
 
-    def __init__(self,
-                 in_channels: int,
-                 out_channels: int,
-                 kernel_size: Tuple[int, int] = (3, 3),
-                 padding: Tuple[int, int] = (1, 1)
-                 ) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: Tuple[int, int] = (3, 3),
+        padding: Tuple[int, int] = (1, 1),
+    ) -> None:
         super().__init__()
-        self.conv = ConvBlock(in_channels, out_channels,
-                              kernel_size, padding)
+        self.conv = ConvBlock(in_channels, out_channels, kernel_size, padding)
 
     def forward(self, inputs: Tensor) -> Tensor:
         x = self.conv(inputs)
@@ -56,17 +55,15 @@ class InConv(nn.Module):
 class DownsamplingBlock(nn.Module):
     """A downsampling block."""
 
-    def __init__(self,
-                 in_channels: int,
-                 out_channels: int,
-                 kernel_size: Tuple[int, int] = (3, 3),
-                 padding: Tuple[int, int] = (1, 1)
-                 ) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: Tuple[int, int] = (3, 3),
+        padding: Tuple[int, int] = (1, 1),
+    ) -> None:
         super().__init__()
-        self.mpconv = nn.Sequential(
-            nn.MaxPool2d(2),
-            ConvBlock(in_channels, out_channels, kernel_size, padding)
-        )
+        self.mpconv = nn.Sequential(nn.MaxPool2d(2), ConvBlock(in_channels, out_channels, kernel_size, padding))
 
     def forward(self, inputs: Tensor) -> Tensor:
         x = self.mpconv(inputs)
@@ -76,42 +73,34 @@ class DownsamplingBlock(nn.Module):
 class UpsamplingBlock(nn.Module):
     """An upsampling block."""
 
-    def __init__(self,
-                 in_channels: int,
-                 out_channels: int,
-                 kernel_size: Tuple[int, int] = (3, 3),
-                 padding: Tuple[int, int] = (1, 1),
-                 bilinear: bool = False
-                 ) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: Tuple[int, int] = (3, 3),
+        padding: Tuple[int, int] = (1, 1),
+        bilinear: bool = False,
+    ) -> None:
         super().__init__()
 
         self.bilinear = bilinear
 
         if not bilinear:
-            self.up = nn.ConvTranspose2d(in_channels // 2,
-                                         in_channels // 2,
-                                         kernel_size=(2, 2),
-                                         stride=(2, 2))
-        self.conv = ConvBlock(in_channels,
-                              out_channels,
-                              kernel_size,
-                              padding)
+            self.up = nn.ConvTranspose2d(in_channels // 2, in_channels // 2, kernel_size=(2, 2), stride=(2, 2))
+        self.conv = ConvBlock(in_channels, out_channels, kernel_size, padding)
 
     # noinspection DuplicatedCode
     def forward(self, x1, x2):
         if self.bilinear:
-            x1 = F.interpolate(x1,
-                               scale_factor=2,
-                               mode='bilinear',
-                               align_corners=True)
+            x1 = F.interpolate(x1, scale_factor=2, mode="bilinear", align_corners=True)
         else:
             x1 = self.up(x1)
         dx = x2.size()[2] - x1.size()[2]
         dy = x2.size()[3] - x1.size()[3]
 
-        x1 = F.pad(x1,
-                   [dy // 2, x2.size()[3] - (x1.size()[3] + dy // 2),
-                    dx // 2, x2.size()[2] - (x1.size()[2] + dx // 2)])
+        x1 = F.pad(
+            x1, [dy // 2, x2.size()[3] - (x1.size()[3] + dy // 2), dx // 2, x2.size()[2] - (x1.size()[2] + dx // 2)]
+        )
 
         x = torch.cat([x2, x1], dim=1)
         x = self.conv(x)
@@ -122,13 +111,9 @@ class UpsamplingBlock(nn.Module):
 class OutConv(nn.Module):
     """An out-convolution block."""
 
-    def __init__(self,
-                 in_channels: int,
-                 out_channels: int
-                 ) -> None:
+    def __init__(self, in_channels: int, out_channels: int) -> None:
         super().__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=(1, 1))
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=(1, 1))
 
     def forward(self, x: Tensor) -> Tensor:
         x = self.conv(x)
@@ -145,10 +130,11 @@ class UNet(nn.Module):
         vol 9351. Springer, Cham. https://doi.org/10.1007/978-3-319-24574-4_28
     """
 
-    def __init__(self,
-                 num_channels: int,
-                 num_classes: int,
-                 ) -> None:
+    def __init__(
+        self,
+        num_channels: int,
+        num_classes: int,
+    ) -> None:
         super().__init__()
 
         self.in1 = InConv(num_channels, 64)

@@ -1,4 +1,4 @@
-__all__ = ['Modality']
+__all__ = ["Modality"]
 
 
 class Modality:
@@ -18,7 +18,7 @@ class Modality:
     def __init__(self, name: str) -> None:
         super().__init__()
         self.name = name
-        self.default_name = 'UNKNOWN'
+        self.default_name = "UNKNOWN"
 
     @classmethod
     def get_default(cls) -> "Modality":
@@ -30,7 +30,7 @@ class Modality:
         Returns:
             Modality: The default :class:`Modality`.
         """
-        return Modality('UNKNOWN')
+        return Modality("UNKNOWN")
 
     def is_default(self) -> bool:
         """Check if the :class:`Modality` is the default :class:`Modality`.

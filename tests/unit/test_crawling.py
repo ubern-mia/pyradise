@@ -4,20 +4,15 @@ from .utils import ModalityExtractorNifti
 
 
 class TestSubjectFileCrawler:
-    def test_execute(self,
-                     nii_test_subj_path: str
-                     ) -> None:
-        modality_extractor = ModalityExtractorNifti(('T1', 'T2'))
-        organ_extractor = ps_fio.SimpleOrganExtractor(('Cochlea', 'Skull', 'TV', 'Vol2016'))
-        annotator_extractor = ps_fio.SimpleAnnotatorExtractor(('NA',))
+    def test_execute(self, nii_test_subj_path: str) -> None:
+        modality_extractor = ModalityExtractorNifti(("T1", "T2"))
+        organ_extractor = ps_fio.SimpleOrganExtractor(("Cochlea", "Skull", "TV", "Vol2016"))
+        annotator_extractor = ps_fio.SimpleAnnotatorExtractor(("NA",))
 
         # construct the crawler
-        crawler = ps_fio.SubjectFileCrawler(nii_test_subj_path,
-                                            'subject1',
-                                            '.nii.gz',
-                                            modality_extractor,
-                                            organ_extractor,
-                                            annotator_extractor)
+        crawler = ps_fio.SubjectFileCrawler(
+            nii_test_subj_path, "subject1", ".nii.gz", modality_extractor, organ_extractor, annotator_extractor
+        )
 
         # crawl
         series_info = crawler.execute()
@@ -31,11 +26,11 @@ class TestSubjectFileCrawler:
 
         # check the subject name
         for series_info_entry in series_info:
-            assert series_info_entry.get_patient_name() == 'subject1'
+            assert series_info_entry.get_patient_name() == "subject1"
 
         # load the subject
         loader = ps_fio.SubjectLoader()
         subject = loader.load(series_info)
 
         # check the subject name
-        assert subject.get_name() == 'subject1'
+        assert subject.get_name() == "subject1"

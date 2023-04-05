@@ -1,33 +1,35 @@
 from abc import abstractmethod
-from typing import (
-    Any,
-    Tuple,
-    Union,
-    Optional)
+from typing import Any, Optional, Tuple, Union
 from warnings import warn
 
 import numpy as np
 import SimpleITK as sitk
 
-from pyradise.data import (
-    Subject,
-    Modality,
-    IntensityImage,
-    SegmentationImage,
-    TransformInfo,
-    seq_to_modalities)
-from .base import (
-    Filter,
-    FilterParams,
-    LoopEntryFilter,
-    LoopEntryFilterParams)
+from pyradise.data import (IntensityImage, Modality, SegmentationImage,
+                           Subject, TransformInfo, seq_to_modalities)
 
+from .base import Filter, FilterParams, LoopEntryFilter, LoopEntryFilterParams
 
-__all__ = ['IntensityFilterParams', 'IntensityFilter', 'IntensityLoopFilterParams', 'IntensityLoopFilter',
-           'ZScoreNormFilterParams', 'ZScoreNormFilter', 'ZeroOneNormFilterParams', 'ZeroOneNormFilter',
-           'RescaleIntensityFilterParams', 'RescaleIntensityFilter', 'ClipIntensityFilterParams', 'ClipIntensityFilter',
-           'GaussianFilterParams', 'GaussianFilter', 'MedianFilterParams', 'MedianFilter',
-           'LaplacianFilterParams', 'LaplacianFilter']
+__all__ = [
+    "IntensityFilterParams",
+    "IntensityFilter",
+    "IntensityLoopFilterParams",
+    "IntensityLoopFilter",
+    "ZScoreNormFilterParams",
+    "ZScoreNormFilter",
+    "ZeroOneNormFilterParams",
+    "ZeroOneNormFilter",
+    "RescaleIntensityFilterParams",
+    "RescaleIntensityFilter",
+    "ClipIntensityFilterParams",
+    "ClipIntensityFilter",
+    "GaussianFilterParams",
+    "GaussianFilter",
+    "MedianFilterParams",
+    "MedianFilter",
+    "LaplacianFilterParams",
+    "LaplacianFilter",
+]
 
 
 class IntensityFilterParams(FilterParams):
@@ -138,10 +140,7 @@ class IntensityFilter(Filter):
     """
 
     @abstractmethod
-    def _process_image(self,
-                       image: IntensityImage,
-                       params: IntensityFilterParams
-                       ) -> IntensityImage:
+    def _process_image(self, image: IntensityImage, params: IntensityFilterParams) -> IntensityImage:
         """Process the content of an image.
 
         Args:
@@ -154,10 +153,7 @@ class IntensityFilter(Filter):
         raise NotImplementedError()
 
     @abstractmethod
-    def _process_image_inverse(self,
-                               image: IntensityImage,
-                               transform_info: TransformInfo
-                               ) -> IntensityImage:
+    def _process_image_inverse(self, image: IntensityImage, transform_info: TransformInfo) -> IntensityImage:
         """Process the content of an image inversely.
 
         Args:
@@ -169,10 +165,7 @@ class IntensityFilter(Filter):
         """
         raise NotImplementedError()
 
-    def execute(self,
-                subject: Subject,
-                params: IntensityFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: IntensityFilterParams) -> Subject:
         """Execute the intensity modifying procedure.
 
         Args:
@@ -185,7 +178,6 @@ class IntensityFilter(Filter):
         """
         for image in subject.get_images():
             if isinstance(image, IntensityImage):
-
                 # check if the image is specified for processing
                 if params.modalities is not None and image.modality not in params.modalities:
                     image_sitk = image.get_image_data()
@@ -196,11 +188,12 @@ class IntensityFilter(Filter):
 
         return subject
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Execute the inverse intensity modifying procedure.
 
         Args:
@@ -217,20 +210,22 @@ class IntensityFilter(Filter):
 
         # potentially warn the user that the operation is not invertible
         if self.warn_on_non_invertible and not self.is_invertible():
-            warn('WARNING: '
-                 f'The {self.__class__.__name__} is called to invert its operation for the following image: \n'
-                 f'\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject '
-                 'is returned without modification.')
+            warn(
+                "WARNING: "
+                f"The {self.__class__.__name__} is called to invert its operation for the following image: \n"
+                f"\t{target_image.__str__()} \nHowever, the filter is not invertible. The provided subject "
+                "is returned without modification."
+            )
 
         for image in subject.get_images():
-
             if target_image is not None and image != target_image:
                 continue
 
             if isinstance(image, IntensityImage):
-
-                if transform_info.params.modalities is not None and \
-                        image.get_modality() not in transform_info.params.modalities:
+                if (
+                    transform_info.params.modalities is not None
+                    and image.get_modality() not in transform_info.params.modalities
+                ):
                     continue
 
                 self._process_image_inverse(image, transform_info)
@@ -252,10 +247,7 @@ class IntensityLoopFilterParams(LoopEntryFilterParams):
          all :class:`~pyradise.data.image.IntensityImage` instances will be processed (default: None).
     """
 
-    def __init__(self,
-                 loop_axis: Optional[int],
-                 modalities: Optional[Tuple[Union[Modality, str], ...]] = None
-                 ) -> None:
+    def __init__(self, loop_axis: Optional[int], modalities: Optional[Tuple[Union[Modality, str], ...]] = None) -> None:
         super().__init__(loop_axis)
 
         if modalities is not None:
@@ -296,10 +288,7 @@ class IntensityLoopFilter(LoopEntryFilter):
         self.loop_axis_pos_idx = 0
 
     @abstractmethod
-    def _modify_array(self,
-                      array: np.ndarray,
-                      params: IntensityLoopFilterParams
-                      ) -> np.ndarray:
+    def _modify_array(self, array: np.ndarray, params: IntensityLoopFilterParams) -> np.ndarray:
         """The intensity modification function which is applied to the provided array. The provided array can be of
         n-dimensions whereby the dimensionality depend on the provided data and the ``loop_axis`` parameter as
         specified in the appropriate :class:`~pyradise.process.intensity.IntensityFilterParams` instance.
@@ -314,10 +303,7 @@ class IntensityLoopFilter(LoopEntryFilter):
         raise NotImplementedError()
 
     @abstractmethod
-    def _modify_array_inverse(self,
-                              array: np.ndarray,
-                              params: TransformInfo
-                              ) -> np.ndarray:
+    def _modify_array_inverse(self, array: np.ndarray, params: TransformInfo) -> np.ndarray:
         """The inverse intensity modification function which is applied to the provided array. The provided array can
         be of n-dimensions whereby the dimensionality depend on the provided data and the ``loop_axis`` parameter as
         specified in the appropriate :class:`~pyradise.process.intensity.IntensityFilterParams` instance which is
@@ -332,10 +318,7 @@ class IntensityLoopFilter(LoopEntryFilter):
         """
         raise NotImplementedError()
 
-    def _process_image(self,
-                       image: IntensityImage,
-                       params: Union[IntensityLoopFilterParams, Any]
-                       ) -> IntensityImage:
+    def _process_image(self, image: IntensityImage, params: Union[IntensityLoopFilterParams, Any]) -> IntensityImage:
         """Execute the intensity modifying procedure on the provided image by looping over the image accordingly.
 
         Args:
@@ -351,7 +334,7 @@ class IntensityLoopFilter(LoopEntryFilter):
 
         # get the image data for computation
         image_sitk = image.get_image_data()
-        if 'integer' in image_sitk.GetPixelIDTypeAsString():
+        if "integer" in image_sitk.GetPixelIDTypeAsString():
             image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
 
         image_np = sitk.GetArrayFromImage(image_sitk)
@@ -371,10 +354,7 @@ class IntensityLoopFilter(LoopEntryFilter):
 
         return image
 
-    def _process_image_inverse(self,
-                               image: IntensityImage,
-                               transform_info: TransformInfo
-                               ) -> IntensityImage:
+    def _process_image_inverse(self, image: IntensityImage, transform_info: TransformInfo) -> IntensityImage:
         """Execute the inverse intensity modifying procedure on the provided image by looping over the image
         accordingly.
 
@@ -394,13 +374,14 @@ class IntensityLoopFilter(LoopEntryFilter):
 
         # get the image data for inverse processing
         image_sitk = image.get_image_data()
-        if 'integer' in image_sitk.GetPixelIDTypeAsString():
+        if "integer" in image_sitk.GetPixelIDTypeAsString():
             image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
         image_np = sitk.GetArrayFromImage(image_sitk)
 
         # perform the inverse intensity modifying procedure
-        new_image_np = self.loop_entries(image_np, transform_info, self._modify_array_inverse,
-                                         transform_info.params.loop_axis)
+        new_image_np = self.loop_entries(
+            image_np, transform_info, self._modify_array_inverse, transform_info.params.loop_axis
+        )
 
         # construct the new image
         new_image_sitk = sitk.GetImageFromArray(new_image_np)
@@ -411,10 +392,7 @@ class IntensityLoopFilter(LoopEntryFilter):
 
         return image
 
-    def execute(self,
-                subject: Subject,
-                params: IntensityLoopFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: IntensityLoopFilterParams) -> Subject:
         """Execute the intensity modifying procedure.
 
         Args:
@@ -427,7 +405,6 @@ class IntensityLoopFilter(LoopEntryFilter):
         """
         for image in subject.get_images():
             if isinstance(image, IntensityImage):
-
                 # check if the image is specified for processing
                 if params.modalities is not None and image.get_modality() not in params.modalities:
                     image_sitk = image.get_image_data()
@@ -438,11 +415,12 @@ class IntensityLoopFilter(LoopEntryFilter):
 
         return subject
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Execute the inverse intensity modifying procedure.
 
         Args:
@@ -457,14 +435,14 @@ class IntensityLoopFilter(LoopEntryFilter):
             :class:`~pyradise.data.image.IntensityImage` instances.
         """
         for image in subject.get_images():
-
             if target_image is not None and image != target_image:
                 continue
 
             if isinstance(image, IntensityImage):
-
-                if transform_info.params.modalities is not None and \
-                        image.get_modality() not in transform_info.params.modalities:
+                if (
+                    transform_info.params.modalities is not None
+                    and image.get_modality() not in transform_info.params.modalities
+                ):
                     continue
 
                 self._process_image_inverse(image, transform_info)
@@ -484,10 +462,9 @@ class ZScoreNormFilterParams(IntensityLoopFilterParams):
          ``None`` is provided all images of the provided subject are rescaled (default: None).
     """
 
-    def __init__(self,
-                 loop_axis: Optional[int] = None,
-                 modalities: Optional[Tuple[Union[Modality, str], ...]] = None
-                 ) -> None:
+    def __init__(
+        self, loop_axis: Optional[int] = None, modalities: Optional[Tuple[Union[Modality, str], ...]] = None
+    ) -> None:
         super().__init__(loop_axis, modalities)
 
 
@@ -542,18 +519,15 @@ class ZScoreNormFilter(IntensityLoopFilter):
         std = np.std(array)
 
         # track the changes
-        self.tracking_data[f'mean_{self.loop_axis_pos_idx}'] = mean
-        self.tracking_data[f'std_{self.loop_axis_pos_idx}'] = std
+        self.tracking_data[f"mean_{self.loop_axis_pos_idx}"] = mean
+        self.tracking_data[f"std_{self.loop_axis_pos_idx}"] = std
 
         self.loop_axis_pos_idx += 1
 
         # compute the normalization function
         return (array - np.mean(array)) / np.std(array)
 
-    def _modify_array_inverse(self,
-                              array: np.ndarray,
-                              params: TransformInfo
-                              ) -> np.ndarray:
+    def _modify_array_inverse(self, array: np.ndarray, params: TransformInfo) -> np.ndarray:
         """Apply the de-normalization function to the provided data array.
 
         Args:
@@ -565,18 +539,15 @@ class ZScoreNormFilter(IntensityLoopFilter):
 
         """
         # get the tracked data
-        original_mean = params.get_data(f'mean_{self.loop_axis_pos_idx}')
-        original_std = params.get_data(f'std_{self.loop_axis_pos_idx}')
+        original_mean = params.get_data(f"mean_{self.loop_axis_pos_idx}")
+        original_std = params.get_data(f"std_{self.loop_axis_pos_idx}")
 
         self.loop_axis_pos_idx += 1
 
         # compute the inverse normalization function
         return array * original_std + original_mean
 
-    def execute(self,
-                subject: Subject,
-                params: ZScoreNormFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: ZScoreNormFilterParams) -> Subject:
         """Execute the z-score normalization procedure.
 
         Args:
@@ -589,11 +560,12 @@ class ZScoreNormFilter(IntensityLoopFilter):
         """
         return super().execute(subject, params)
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Execute the inverse z-score normalization procedure.
 
         Args:
@@ -622,10 +594,9 @@ class ZeroOneNormFilterParams(IntensityLoopFilterParams):
          ``None`` is provided all images of the provided subject are rescaled (default: None).
     """
 
-    def __init__(self,
-                 loop_axis: Optional[int] = None,
-                 modalities: Optional[Tuple[Union[Modality, str], ...]] = None
-                 ) -> None:
+    def __init__(
+        self, loop_axis: Optional[int] = None, modalities: Optional[Tuple[Union[Modality, str], ...]] = None
+    ) -> None:
         super().__init__(loop_axis, modalities)
 
 
@@ -680,8 +651,8 @@ class ZeroOneNormFilter(IntensityLoopFilter):
         max_val = np.max(array)
 
         # track the changes
-        self.tracking_data[f'min_{self.loop_axis_pos_idx}'] = min_val
-        self.tracking_data[f'max_{self.loop_axis_pos_idx}'] = max_val
+        self.tracking_data[f"min_{self.loop_axis_pos_idx}"] = min_val
+        self.tracking_data[f"max_{self.loop_axis_pos_idx}"] = max_val
 
         self.loop_axis_pos_idx += 1
 
@@ -699,18 +670,15 @@ class ZeroOneNormFilter(IntensityLoopFilter):
             np.ndarray: The min-max normalized array.
         """
         # get the tracked data
-        original_min = params.get_data(f'min_{self.loop_axis_pos_idx}')
-        original_max = params.get_data(f'max_{self.loop_axis_pos_idx}')
+        original_min = params.get_data(f"min_{self.loop_axis_pos_idx}")
+        original_max = params.get_data(f"max_{self.loop_axis_pos_idx}")
 
         self.loop_axis_pos_idx += 1
 
         # compute the inverse normalization function
         return array * (original_max - original_min) + original_min
 
-    def execute(self,
-                subject: Subject,
-                params: ZeroOneNormFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: ZeroOneNormFilterParams) -> Subject:
         """Execute the zero-one normalization procedure.
 
         Args:
@@ -723,11 +691,12 @@ class ZeroOneNormFilter(IntensityLoopFilter):
         """
         return super().execute(subject, params)
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Execute the inverse zero-one normalization procedure.
 
         Args:
@@ -757,17 +726,20 @@ class RescaleIntensityFilterParams(IntensityFilterParams):
          ``None`` is provided all images of the provided subject are rescaled (default: None).
     """
 
-    def __init__(self,
-                 min_out: Optional[float],
-                 max_out: Optional[float],
-                 modalities: Optional[Tuple[Union[Modality, str], ...]] = None
-                 ) -> None:
+    def __init__(
+        self,
+        min_out: Optional[float],
+        max_out: Optional[float],
+        modalities: Optional[Tuple[Union[Modality, str], ...]] = None,
+    ) -> None:
         super().__init__(modalities)
 
         # check the provided min and max values
         if min_out == max_out:
-            raise ValueError('The specified min and max output values are equal. The resulting image would have '
-                             'constant intensity.')
+            raise ValueError(
+                "The specified min and max output values are equal. The resulting image would have "
+                "constant intensity."
+            )
 
         if min_out > max_out:
             min_out, max_out = max_out, min_out
@@ -814,10 +786,7 @@ class RescaleIntensityFilter(IntensityFilter):
         """
         return True
 
-    def _process_image(self,
-                       image: IntensityImage,
-                       params: RescaleIntensityFilterParams
-                       ) -> IntensityImage:
+    def _process_image(self, image: IntensityImage, params: RescaleIntensityFilterParams) -> IntensityImage:
         """Apply the rescaling function to the provided image.
 
         Args:
@@ -837,17 +806,19 @@ class RescaleIntensityFilter(IntensityFilter):
         range_i_o = max_i_o - min_i_o
 
         # track the min and max intensity
-        self.tracking_data['min'] = min_i_o
-        self.tracking_data['max'] = max_i_o
+        self.tracking_data["min"] = min_i_o
+        self.tracking_data["max"] = max_i_o
 
         # get the range of the output values
         param_range = params.max_out - params.min_out
 
         # check if the range of the input array is larger than zero
         if range_i_o < 1e-10:
-            warn('The range of the input image or its subset is smaller than 1e-10. The rescaled image or subset'
-                 'will contain the specified minimum intensity value including the provided noise (input - min(input) '
-                 '+ min_out).')
+            warn(
+                "The range of the input image or its subset is smaller than 1e-10. The rescaled image or subset"
+                "will contain the specified minimum intensity value including the provided noise (input - min(input) "
+                "+ min_out)."
+            )
             new_image_np = image_np - min_i_o + params.min_out
 
         # rescale the intensity values
@@ -864,10 +835,7 @@ class RescaleIntensityFilter(IntensityFilter):
 
         return image
 
-    def _process_image_inverse(self,
-                               image: IntensityImage,
-                               transform_info: TransformInfo
-                               ) -> IntensityImage:
+    def _process_image_inverse(self, image: IntensityImage, transform_info: TransformInfo) -> IntensityImage:
         """Apply the inverse scaling function to the provided data array.
 
         Args:
@@ -882,8 +850,8 @@ class RescaleIntensityFilter(IntensityFilter):
         image_np = image.get_image_data_as_np(False).astype(float)
 
         # get the tracked data
-        min_i_o = transform_info.get_data(f'min')
-        max_i_o = transform_info.get_data(f'max')
+        min_i_o = transform_info.get_data(f"min")
+        max_i_o = transform_info.get_data(f"max")
         range_i_o = max_i_o - min_i_o
 
         # compute the min and max values of the provided array
@@ -893,8 +861,10 @@ class RescaleIntensityFilter(IntensityFilter):
 
         # check if the range of the input array is larger than zero
         if range_i_r < 1e-10:
-            warn('The range of the input image or its subset is smaller than 1e-10. The rescaled image or subset'
-                 'will contain the originally provided values (rescaled_input - min(rescaled_input) + min_original).')
+            warn(
+                "The range of the input image or its subset is smaller than 1e-10. The rescaled image or subset"
+                "will contain the originally provided values (rescaled_input - min(rescaled_input) + min_original)."
+            )
             new_image_np = image_np - min_i_r + min_i_o
 
         # inversely rescale the intensity values
@@ -908,10 +878,7 @@ class RescaleIntensityFilter(IntensityFilter):
 
         return image
 
-    def execute(self,
-                subject: Subject,
-                params: RescaleIntensityFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: RescaleIntensityFilterParams) -> Subject:
         """Execute the rescaling procedure.
 
         Args:
@@ -924,11 +891,12 @@ class RescaleIntensityFilter(IntensityFilter):
         """
         return super().execute(subject, params)
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Execute the inverse rescaling procedure.
 
         Args:
@@ -955,17 +923,17 @@ class ClipIntensityFilterParams(IntensityFilterParams):
          ``None`` is provided all images of the provided subject are clipped (default: None).
     """
 
-    def __init__(self,
-                 min_out: float,
-                 max_out: float,
-                 modalities: Optional[Tuple[Union[Modality, str], ...]] = None
-                 ) -> None:
+    def __init__(
+        self, min_out: float, max_out: float, modalities: Optional[Tuple[Union[Modality, str], ...]] = None
+    ) -> None:
         super().__init__(modalities)
 
         # check the provided min and max values
         if min_out == max_out:
-            raise ValueError('The min and max output intensity values must not be equal because the resulting image '
-                             'will have constant intensity.')
+            raise ValueError(
+                "The min and max output intensity values must not be equal because the resulting image "
+                "will have constant intensity."
+            )
 
         if min_out > max_out:
             min_out, max_out = max_out, min_out
@@ -1003,10 +971,7 @@ class ClipIntensityFilter(IntensityFilter):
         """
         return False
 
-    def _process_image(self,
-                       image: IntensityImage,
-                       params: ClipIntensityFilterParams
-                       ) -> IntensityImage:
+    def _process_image(self, image: IntensityImage, params: ClipIntensityFilterParams) -> IntensityImage:
         """Apply the clipping to the provided image.
 
         Args:
@@ -1030,10 +995,7 @@ class ClipIntensityFilter(IntensityFilter):
 
         return image
 
-    def _process_image_inverse(self,
-                               image: IntensityImage,
-                               transform_info: TransformInfo
-                               ) -> IntensityImage:
+    def _process_image_inverse(self, image: IntensityImage, transform_info: TransformInfo) -> IntensityImage:
         """Return the provided image without any processing because the clipping procedure is not invertible.
 
         Args:
@@ -1045,10 +1007,7 @@ class ClipIntensityFilter(IntensityFilter):
         """
         return image
 
-    def execute(self,
-                subject: Subject,
-                params: ClipIntensityFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: ClipIntensityFilterParams) -> Subject:
         """Execute the clipping procedure.
 
         Args:
@@ -1061,11 +1020,12 @@ class ClipIntensityFilter(IntensityFilter):
         """
         return super().execute(subject, params)
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Return the provided subject without any processing because the clipping procedure is not invertible.
 
         Args:
@@ -1092,19 +1052,17 @@ class GaussianFilterParams(IntensityFilterParams):
          ``None`` is provided all images of the provided subject are filtered (default: None).
     """
 
-    def __init__(self,
-                 variance: float,
-                 kernel_size: int,
-                 modalities: Optional[Tuple[Union[Modality, str], ...]] = None
-                 ) -> None:
+    def __init__(
+        self, variance: float, kernel_size: int, modalities: Optional[Tuple[Union[Modality, str], ...]] = None
+    ) -> None:
         super().__init__(modalities)
 
         # check the statistical values
         if variance <= 0:
-            raise ValueError('The variance must be greater than zero.')
+            raise ValueError("The variance must be greater than zero.")
 
         if kernel_size <= 0:
-            raise ValueError('The kernel size must be greater than zero.')
+            raise ValueError("The kernel size must be greater than zero.")
 
         self.variance = variance
         self.kernel_size = kernel_size
@@ -1130,10 +1088,7 @@ class GaussianFilter(IntensityFilter):
         """
         return False
 
-    def _process_image(self,
-                       image: IntensityImage,
-                       params: GaussianFilterParams
-                       ) -> IntensityImage:
+    def _process_image(self, image: IntensityImage, params: GaussianFilterParams) -> IntensityImage:
         """Apply the Gaussian filter to the provided image.
 
         Args:
@@ -1147,7 +1102,7 @@ class GaussianFilter(IntensityFilter):
         image_sitk = image.get_image_data()
 
         # cast the image if necessary
-        if 'integer' in image_sitk.GetPixelIDTypeAsString():
+        if "integer" in image_sitk.GetPixelIDTypeAsString():
             image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
 
         # apply the gaussian filter
@@ -1165,10 +1120,7 @@ class GaussianFilter(IntensityFilter):
 
         return image
 
-    def _process_image_inverse(self,
-                               image: IntensityImage,
-                               transform_info: TransformInfo
-                               ) -> IntensityImage:
+    def _process_image_inverse(self, image: IntensityImage, transform_info: TransformInfo) -> IntensityImage:
         """Return the provided image because the Gaussian filter is not invertible.
 
         Args:
@@ -1180,10 +1132,7 @@ class GaussianFilter(IntensityFilter):
         """
         return image
 
-    def execute(self,
-                subject: Subject,
-                params: GaussianFilterParams
-                ) -> Subject:
+    def execute(self, subject: Subject, params: GaussianFilterParams) -> Subject:
         """Execute the Gaussian filter.
 
         Args:
@@ -1200,11 +1149,12 @@ class GaussianFilter(IntensityFilter):
 
         return subject
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Return the provided subject without any processing because the Gaussian filtering procedure is not
         invertible.
 
@@ -1230,10 +1180,7 @@ class MedianFilterParams(IntensityFilterParams):
          ``None`` is provided all images of the provided subject are filtered (default: None).
     """
 
-    def __init__(self,
-                 radius: int,
-                 modalities: Optional[Tuple[Union[Modality, str], ...]] = None
-                 ) -> None:
+    def __init__(self, radius: int, modalities: Optional[Tuple[Union[Modality, str], ...]] = None) -> None:
         super().__init__(modalities)
 
         self.radius = radius
@@ -1260,10 +1207,7 @@ class MedianFilter(IntensityFilter):
         """
         return False
 
-    def _process_image(self,
-                       image: IntensityImage,
-                       params: MedianFilterParams
-                       ) -> IntensityImage:
+    def _process_image(self, image: IntensityImage, params: MedianFilterParams) -> IntensityImage:
         """Apply the median filter to the provided image.
 
         Args:
@@ -1277,7 +1221,7 @@ class MedianFilter(IntensityFilter):
         image_sitk = image.get_image_data()
 
         # cast the image if necessary
-        if 'integer' in image_sitk.GetPixelIDTypeAsString():
+        if "integer" in image_sitk.GetPixelIDTypeAsString():
             image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
 
         # apply the median filter
@@ -1293,11 +1237,7 @@ class MedianFilter(IntensityFilter):
 
         return image
 
-
-    def _process_image_inverse(self,
-                               image: IntensityImage,
-                               transform_info: TransformInfo
-                               ) -> IntensityImage:
+    def _process_image_inverse(self, image: IntensityImage, transform_info: TransformInfo) -> IntensityImage:
         """Return the provided image because the median filter is not invertible.
 
         Args:
@@ -1309,9 +1249,7 @@ class MedianFilter(IntensityFilter):
         """
         return image
 
-    def execute(self,
-                subject: Subject,
-                params: MedianFilterParams) -> Subject:
+    def execute(self, subject: Subject, params: MedianFilterParams) -> Subject:
         """Execute the median filter.
 
         Args:
@@ -1324,11 +1262,12 @@ class MedianFilter(IntensityFilter):
         """
         return super().execute(subject, params)
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Return the provided subject without any processing because the median filtering procedure is not
         invertible.
 
@@ -1352,6 +1291,7 @@ class LaplacianFilterParams(IntensityFilterParams):
         modalities (Optional[Tuple[Union[Modality, str], ...]]): The modalities of the images to be filtered. If
          ``None`` is provided all images of the provided subject are filtered (default: None).
     """
+
     def __init__(self, modalities: Optional[Tuple[Union[Modality, str], ...]] = None) -> None:
         super().__init__(modalities)
 
@@ -1377,10 +1317,7 @@ class LaplacianFilter(IntensityFilter):
         """
         return False
 
-    def _process_image(self,
-                       image: IntensityImage,
-                       params: LaplacianFilterParams
-                       ) -> IntensityImage:
+    def _process_image(self, image: IntensityImage, params: LaplacianFilterParams) -> IntensityImage:
         """Apply the Laplacian sharpening filter to the provided image.
 
         Args:
@@ -1394,7 +1331,7 @@ class LaplacianFilter(IntensityFilter):
         image_sitk = image.get_image_data()
 
         # cast the image if necessary
-        if 'integer' in image_sitk.GetPixelIDTypeAsString():
+        if "integer" in image_sitk.GetPixelIDTypeAsString():
             image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
 
         # apply the laplace filter
@@ -1410,10 +1347,7 @@ class LaplacianFilter(IntensityFilter):
 
         return image
 
-    def _process_image_inverse(self,
-                               image: IntensityImage,
-                               transform_info: TransformInfo
-                               ) -> IntensityImage:
+    def _process_image_inverse(self, image: IntensityImage, transform_info: TransformInfo) -> IntensityImage:
         """Return the provided image because the Laplacian filter is not invertible.
 
         Args:
@@ -1441,11 +1375,12 @@ class LaplacianFilter(IntensityFilter):
         """
         return super().execute(subject, params)
 
-    def execute_inverse(self,
-                        subject: Subject,
-                        transform_info: TransformInfo,
-                        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None
-                        ) -> Subject:
+    def execute_inverse(
+        self,
+        subject: Subject,
+        transform_info: TransformInfo,
+        target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
         """Return the provided subject without any processing because the Laplace filtering procedure is not
         invertible.
 

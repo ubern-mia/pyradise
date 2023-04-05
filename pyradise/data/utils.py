@@ -1,20 +1,19 @@
-from typing import (
-    Union,
-    Sequence,
-    Tuple,
-    Optional)
+from typing import Optional, Sequence, Tuple, Union
 
-from .modality import Modality
-from .organ import (
-    Organ,
-    OrganAnnotatorCombination)
 from .annotator import Annotator
+from .modality import Modality
+from .organ import Organ, OrganAnnotatorCombination
 
-
-__all__ = ['str_to_modality', 'seq_to_modalities',
-           'str_to_organ', 'seq_to_organs',
-           'str_to_annotator', 'seq_to_annotators',
-           'str_to_organ_annotator_combination', 'seq_to_organ_annotator_combinations']
+__all__ = [
+    "str_to_modality",
+    "seq_to_modalities",
+    "str_to_organ",
+    "seq_to_organs",
+    "str_to_annotator",
+    "seq_to_annotators",
+    "str_to_organ_annotator_combination",
+    "seq_to_organ_annotator_combinations",
+]
 
 
 def str_to_modality(text: Union[str, Modality]) -> Modality:
@@ -100,9 +99,9 @@ def seq_to_annotators(seq: Sequence[Union[str, Annotator]]) -> Tuple[Annotator, 
     return tuple(str_to_annotator(text) for text in seq)
 
 
-def str_to_organ_annotator_combination(data_or_organ_name: Union[str, Tuple[str, str], OrganAnnotatorCombination],
-                                       annotator_name: Optional[str] = None
-                                       ) -> OrganAnnotatorCombination:
+def str_to_organ_annotator_combination(
+    data_or_organ_name: Union[str, Tuple[str, str], OrganAnnotatorCombination], annotator_name: Optional[str] = None
+) -> OrganAnnotatorCombination:
     """Converts a string to a :class:`~pyradise.data.organ.OrganAnnotatorCombination` instance.
 
     Args:
@@ -122,12 +121,13 @@ def str_to_organ_annotator_combination(data_or_organ_name: Union[str, Tuple[str,
 
     else:
         if annotator_name is None:
-            raise ValueError('`annotator_name` must be provided if `data_or_organ_name` is a string.')
+            raise ValueError("`annotator_name` must be provided if `data_or_organ_name` is a string.")
         return OrganAnnotatorCombination(data_or_organ_name, annotator_name)
 
 
-def seq_to_organ_annotator_combinations(seq: Sequence[Union[Tuple[str, str], OrganAnnotatorCombination]],
-                                        ) -> Tuple[OrganAnnotatorCombination, ...]:
+def seq_to_organ_annotator_combinations(
+    seq: Sequence[Union[Tuple[str, str], OrganAnnotatorCombination]],
+) -> Tuple[OrganAnnotatorCombination, ...]:
     """Converts a sequence of string tuples to a tuple of :class:`~pyradise.data.organ.OrganAnnotatorCombination`
     instances.
 

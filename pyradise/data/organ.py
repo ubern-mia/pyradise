@@ -1,11 +1,8 @@
-from typing import (
-    Optional,
-    Union)
+from typing import Optional, Union
 
 from .annotator import Annotator
 
-
-__all__ = ['Organ', 'OrganAnnotatorCombination']
+__all__ = ["Organ", "OrganAnnotatorCombination"]
 
 
 class Organ:
@@ -22,10 +19,7 @@ class Organ:
         index (Optional[int]): The index of the :class:`Organ` (default: None).
     """
 
-    def __init__(self,
-                 name: str,
-                 index: Optional[int] = None
-                 ) -> None:
+    def __init__(self, name: str, index: Optional[int] = None) -> None:
         super().__init__()
 
         self.name: str = name
@@ -39,8 +33,7 @@ class Organ:
         """
         return self.name
 
-    def set_name(self,
-                 name: str) -> None:
+    def set_name(self, name: str) -> None:
         """Set the name of the :class:`Organ`.
 
         Args:
@@ -69,10 +62,7 @@ class OrganAnnotatorCombination:
         annotator (Union[Annotator, str]): The :class:`~pyradise.data.annotator.Annotator` or its name.
     """
 
-    def __init__(self,
-                 organ: Union[Organ, str],
-                 annotator: Union[Annotator, str]
-                 ) -> None:
+    def __init__(self, organ: Union[Organ, str], annotator: Union[Annotator, str]) -> None:
         super().__init__()
 
         if isinstance(organ, str):
@@ -100,4 +90,4 @@ class OrganAnnotatorCombination:
         Returns:
             str: The combined name.
         """
-        return self.organ.name + '_' + self.annotator.name
+        return self.organ.name + "_" + self.annotator.name

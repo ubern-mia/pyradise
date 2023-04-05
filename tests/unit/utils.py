@@ -1,5 +1,5 @@
 import os
-from typing import (Optional, Tuple)
+from typing import Optional, Tuple
 
 import pyradise.fileio as ps_fio
 from pyradise.data import Modality
@@ -9,10 +9,7 @@ from pyradise.data import Modality
 class ModalityExtractorNifti(ps_fio.ModalityExtractor):
     """A modality extractor that always returns the same modality."""
 
-    def __init__(self,
-                 modalities: Tuple[str, ...],
-                 identifier: str = 'img_',
-                 return_default: bool = False) -> None:
+    def __init__(self, modalities: Tuple[str, ...], identifier: str = "img_", return_default: bool = False) -> None:
         super().__init__(return_default)
 
         self.modalities = modalities

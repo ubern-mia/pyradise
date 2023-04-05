@@ -1,27 +1,21 @@
-from abc import (
-    ABC,
-    abstractmethod)
 import os
-from typing import (
-    Any,
-    Dict,
-    Tuple,
-    Union,
-    Optional)
+from abc import ABC, abstractmethod
+from typing import Any, Dict, Optional, Tuple, Union
 
 from pydicom.tag import Tag
 
-from pyradise.data import (
-    Modality,
-    Organ,
-    Annotator)
-from pyradise.utils import (
-    load_dataset_tag,
-    is_dicom_file)
+from pyradise.data import Annotator, Modality, Organ
+from pyradise.utils import is_dicom_file, load_dataset_tag
 
-
-__all__ = ['Extractor', 'ModalityExtractor', 'SimpleModalityExtractor', 'OrganExtractor', 'SimpleOrganExtractor',
-           'AnnotatorExtractor', 'SimpleAnnotatorExtractor']
+__all__ = [
+    "Extractor",
+    "ModalityExtractor",
+    "SimpleModalityExtractor",
+    "OrganExtractor",
+    "SimpleOrganExtractor",
+    "AnnotatorExtractor",
+    "SimpleAnnotatorExtractor",
+]
 
 
 class Extractor(ABC):
@@ -144,21 +138,17 @@ class ModalityExtractor(Extractor):
          returned if the extraction was not successful. Use this option exclusively for experimentation and debugging
          because it can cause severe damage (default: False).
     """
-    modality_default_idx = 0
-    default_modality_name = 'UnknownModality'
 
-    def __init__(self,
-                 return_default: bool = False
-                 ) -> None:
+    modality_default_idx = 0
+    default_modality_name = "UnknownModality"
+
+    def __init__(self, return_default: bool = False) -> None:
         super().__init__()
 
         self.return_default = return_default
 
-
     @staticmethod
-    def _load_dicom_attributes(tags: Union[Tuple[Tuple[int, int], ...], Tuple[Tag, ...]],
-                               path: str
-                               ) -> Dict[str, Any]:
+    def _load_dicom_attributes(tags: Union[Tuple[Tuple[int, int], ...], Tuple[Tag, ...]], path: str) -> Dict[str, Any]:
         """Load the DICOM attributes for the specified tags.
 
         Args:
@@ -175,7 +165,7 @@ class ModalityExtractor(Extractor):
         for tag in tags_:
             item = dataset.get(tag, None)
             if item is not None:
-                data[item.name] = {'name': item.name, 'value': item.value, 'vr': item.VR}
+                data[item.name] = {"name": item.name, "value": item.value, "vr": item.VR}
 
         return data
 
@@ -272,14 +262,14 @@ class SimpleModalityExtractor(ModalityExtractor):
 
     """
 
-    def __init__(self,
-                 modalities: Tuple[str, ...],
-                 return_default: bool = False,
-                 ) -> None:
+    def __init__(
+        self,
+        modalities: Tuple[str, ...],
+        return_default: bool = False,
+    ) -> None:
         super().__init__(return_default)
 
         self.modalities = modalities
-
 
     def extract_from_path(self, path: str) -> Optional[Modality]:
         """Extract the :class:`~pyradise.data.modality.Modality` from the file name using the provided
@@ -318,8 +308,8 @@ class SimpleModalityExtractor(ModalityExtractor):
         dataset_dict = self._load_dicom_attributes(tags, path)
 
         # get the general modality
-        extracted_modality = dataset_dict.get('Modality', {}).get('value', None)
-        if extracted_modality in ('CT', 'MR', 'PT', 'US'):
+        extracted_modality = dataset_dict.get("Modality", {}).get("value", None)
+        if extracted_modality in ("CT", "MR", "PT", "US"):
             return Modality(extracted_modality)
         else:
             return None
@@ -378,7 +368,7 @@ class OrganExtractor(Extractor):
         Returns:
             Optional[Organ]: The extracted :class:`~pyradise.data.organ.Organ` or :data:`None`.
         """
-        raise NotImplementedError('The extract method needs to be adopted for the intended use case!')
+        raise NotImplementedError("The extract method needs to be adopted for the intended use case!")
 
 
 class SimpleOrganExtractor(OrganExtractor):
@@ -469,7 +459,7 @@ class AnnotatorExtractor(Extractor):
         Returns:
             Optional[Annotator]: The extracted :class:`~pyradise.data.annotator.Annotator` or :data:`None`.
         """
-        raise NotImplementedError('The extract method needs to be adopted for the intended use case!')
+        raise NotImplementedError("The extract method needs to be adopted for the intended use case!")
 
 
 class SimpleAnnotatorExtractor(AnnotatorExtractor):

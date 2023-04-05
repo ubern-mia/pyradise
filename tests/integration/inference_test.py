@@ -1,16 +1,13 @@
 import os
-from typing import (
-    Any,
-    Optional,
-    Dict)
+from typing import Any, Dict, Optional
 
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
+
+import pyradise.data as ps_data
 import pyradise.fileio as ps_fio
 import pyradise.process as ps_proc
-import pyradise.data as ps_data
-
 from examples.inference.network import UNet
 
 
@@ -22,15 +19,12 @@ class ExampleInferenceFilter(ps_proc.InferenceFilter):
         super().__init__()
 
         # Define the device on which the model should be run
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Define a class attribute for the model
         self.model: Optional[nn.Module] = None
 
-    def _prepare_model(self,
-                       model: nn.Module,
-                       model_path: str
-                       ) -> nn.Module:
+    def _prepare_model(self, model: nn.Module, model_path: str) -> nn.Module:
         """Implementation using the PyTorch framework."""
 
         # Load model parameters
@@ -44,19 +38,16 @@ class ExampleInferenceFilter(ps_proc.InferenceFilter):
 
         return model
 
-    def _infer_on_batch(self,
-                        batch: Dict[str, Any],
-                        params: ps_proc.InferenceFilterParams
-                        ) -> Dict[str, Any]:
+    def _infer_on_batch(self, batch: Dict[str, Any], params: ps_proc.InferenceFilterParams) -> Dict[str, Any]:
         """Implementation using the PyTorch framework."""
 
         # Stack and adjust the numpy array such that it fits the
         # [batch, channel / images, height, width, (depth)] format
         # Note: The following statement works for slice-wise and patch-wise processing
         if (loop_axis := params.indexing_strategy.loop_axis) is None:
-            adjusted_input = np.stack(batch['data'], axis=0)
+            adjusted_input = np.stack(batch["data"], axis=0)
         else:
-            adjusted_input = np.stack(batch['data'], axis=0).squeeze(loop_axis + 2)
+            adjusted_input = np.stack(batch["data"], axis=0).squeeze(loop_axis + 2)
 
         # Generate a tensor from the numpy array
         input_tensor = torch.from_numpy(adjusted_input)
@@ -80,8 +71,7 @@ class ExampleInferenceFilter(ps_proc.InferenceFilter):
         batch_output_list = [output_array[i, ...] for i in range(output_array.shape[0])]
 
         # Combine the output arrays into a dictionary
-        output = {'data': batch_output_list,
-                  'index_expr': batch['index_expr']}
+        output = {"data": batch_output_list, "index_expr": batch["index_expr"]}
 
         return output
 
@@ -93,11 +83,10 @@ def get_pipeline(model_path: str) -> ps_proc.FilterPipeline:
     # Construct and ddd the preprocessing filters to the pipeline
     output_size = (256, 256, 256)
     output_spacing = (1.0, 1.0, 1.0)
-    reference_modality = 'T1'
-    resample_filter_params = ps_proc.ResampleFilterParams(output_size,
-                                                          output_spacing,
-                                                          reference_modality=reference_modality,
-                                                          centering_method='reference')
+    reference_modality = "T1"
+    resample_filter_params = ps_proc.ResampleFilterParams(
+        output_size, output_spacing, reference_modality=reference_modality, centering_method="reference"
+    )
     resample_filter = ps_proc.ResampleFilter()
     pipeline.add_filter(resample_filter, resample_filter_params)
 
@@ -106,16 +95,18 @@ def get_pipeline(model_path: str) -> ps_proc.FilterPipeline:
     pipeline.add_filter(norm_filter, norm_filter_params)
 
     # Construct and add the inference filter
-    modalities_to_use = ('T1', 'T2')
-    inf_params = ps_proc.InferenceFilterParams(model=UNet(num_channels=2, num_classes=1),
-                                               model_path=model_path,
-                                               modalities=modalities_to_use,
-                                               reference_modality=reference_modality,
-                                               output_organs=(ps_data.Organ('Skull'),),
-                                               output_annotator=ps_data.Annotator('AutoSegmentation'),
-                                               organ_indices=(1,),
-                                               batch_size=8,
-                                               indexing_strategy=ps_proc.SliceIndexingStrategy(0))
+    modalities_to_use = ("T1", "T2")
+    inf_params = ps_proc.InferenceFilterParams(
+        model=UNet(num_channels=2, num_classes=1),
+        model_path=model_path,
+        modalities=modalities_to_use,
+        reference_modality=reference_modality,
+        output_organs=(ps_data.Organ("Skull"),),
+        output_annotator=ps_data.Annotator("AutoSegmentation"),
+        organ_indices=(1,),
+        batch_size=8,
+        indexing_strategy=ps_proc.SliceIndexingStrategy(0),
+    )
 
     inf_filter = ExampleInferenceFilter()
     pipeline.add_filter(inf_filter, inf_params)
@@ -139,16 +130,13 @@ def get_pipeline(model_path: str) -> ps_proc.FilterPipeline:
 
 
 # pylint: disable=duplicate-code
-def test_inference_2d(dicom_test_dataset_path: str,
-                      tmpdir: str,
-                      model_path: str
-                      ) -> None:
+def test_inference_2d(dicom_test_dataset_path: str, tmpdir: str, model_path: str) -> None:
     # Crawl the data in the input directory
     crawler = ps_fio.SubjectDicomCrawler(dicom_test_dataset_path)
     series_info = crawler.execute()
 
     # Select the required modalities
-    used_modalities = ('T1', 'T2')
+    used_modalities = ("T1", "T2")
     modality_selector = ps_fio.ModalityInfoSelector(used_modalities)
     series_info = modality_selector.execute(series_info)
 
@@ -167,49 +155,41 @@ def test_inference_2d(dicom_test_dataset_path: str,
     # Define the customizable metadata for the DICOM-RTSS
     # Note: Check the value formatting at:
     # https://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html
-    meta_data = ps_fio.RTSSMetaData(patient_name='Jack Demo',
-                                    patient_id=subject.get_name(),
-                                    patient_birth_date='19700101',
-                                    patient_sex='F',
-                                    patient_weight='80',
-                                    patient_size='180',
-                                    series_description='Demo Series Description',
-                                    series_number='10',
-                                    operators_name='Auto-Segmentation Alg.')
+    meta_data = ps_fio.RTSSMetaData(
+        patient_name="Jack Demo",
+        patient_id=subject.get_name(),
+        patient_birth_date="19700101",
+        patient_sex="F",
+        patient_weight="80",
+        patient_size="180",
+        series_description="Demo Series Description",
+        series_number="10",
+        operators_name="Auto-Segmentation Alg.",
+    )
 
     # Convert the segmentations to a DICOM-RTSS
-    reference_modality = 'T1'
+    reference_modality = "T1"
     conv_conf = ps_fio.RTSSConverter2DConfiguration()
-    converter = ps_fio.SubjectToRTSSConverter(subject,
-                                              series_info,
-                                              reference_modality,
-                                              conv_conf,
-                                              meta_data)
+    converter = ps_fio.SubjectToRTSSConverter(subject, series_info, reference_modality, conv_conf, meta_data)
     rtss_dataset = converter.convert()
 
     # Save the new DICOM-RTSS
-    output_dir_path = os.path.join(tmpdir, '2d_inference')
+    output_dir_path = os.path.join(tmpdir, "2d_inference")
     if not os.path.exists(output_dir_path):
         os.makedirs(output_dir_path)
-    named_rtss = (('rtss.dcm', rtss_dataset),)
+    named_rtss = (("rtss.dcm", rtss_dataset),)
     writer = ps_fio.DicomSeriesSubjectWriter()
-    writer.write(named_rtss,
-                 output_dir_path,
-                 subject.get_name(),
-                 series_info)
+    writer.write(named_rtss, output_dir_path, subject.get_name(), series_info)
 
 
 # pylint: disable=duplicate-code
-def test_inference_3d(dicom_test_dataset_path: str,
-                      tmpdir: str,
-                      model_path: str
-                      ) -> None:
+def test_inference_3d(dicom_test_dataset_path: str, tmpdir: str, model_path: str) -> None:
     # Crawl the data in the input directory
     crawler = ps_fio.SubjectDicomCrawler(dicom_test_dataset_path)
     series_info = crawler.execute()
 
     # Select the required modalities
-    used_modalities = ('T1', 'T2')
+    used_modalities = ("T1", "T2")
     modality_selector = ps_fio.ModalityInfoSelector(used_modalities)
     series_info = modality_selector.execute(series_info)
 
@@ -228,34 +208,29 @@ def test_inference_3d(dicom_test_dataset_path: str,
     # Define the customizable metadata for the DICOM-RTSS
     # Note: Check the value formatting at:
     # https://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html
-    meta_data = ps_fio.RTSSMetaData(patient_name='Jack Demo',
-                                    patient_id=subject.get_name(),
-                                    patient_birth_date='19700101',
-                                    patient_sex='F',
-                                    patient_weight='80',
-                                    patient_size='180',
-                                    series_description='Demo Series Description',
-                                    series_number='10',
-                                    operators_name='Auto-Segmentation Alg.')
+    meta_data = ps_fio.RTSSMetaData(
+        patient_name="Jack Demo",
+        patient_id=subject.get_name(),
+        patient_birth_date="19700101",
+        patient_sex="F",
+        patient_weight="80",
+        patient_size="180",
+        series_description="Demo Series Description",
+        series_number="10",
+        operators_name="Auto-Segmentation Alg.",
+    )
 
     # Convert the segmentations to a DICOM-RTSS
-    reference_modality = 'T1'
+    reference_modality = "T1"
     conv_conf = ps_fio.RTSSConverter3DConfiguration()
-    converter = ps_fio.SubjectToRTSSConverter(subject,
-                                              series_info,
-                                              reference_modality,
-                                              conv_conf,
-                                              meta_data)
+    converter = ps_fio.SubjectToRTSSConverter(subject, series_info, reference_modality, conv_conf, meta_data)
     rtss_dataset = converter.convert()
 
     # Save the new DICOM-RTSS
-    output_dir_path = os.path.join(tmpdir, '3d_inference')
+    output_dir_path = os.path.join(tmpdir, "3d_inference")
     if not os.path.exists(output_dir_path):
         os.makedirs(output_dir_path)
 
-    named_rtss = (('rtss.dcm', rtss_dataset),)
+    named_rtss = (("rtss.dcm", rtss_dataset),)
     writer = ps_fio.DicomSeriesSubjectWriter()
-    writer.write(named_rtss,
-                 output_dir_path,
-                 subject.get_name(),
-                 series_info)
+    writer.write(named_rtss, output_dir_path, subject.get_name(), series_info)

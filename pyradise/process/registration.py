@@ -82,8 +82,11 @@ def get_registration_method(
     registration = sitk.ImageRegistrationMethod()
 
     registration.SetMetricAsMattesMutualInformation(number_of_histogram_bins)
-    registration.SetMetricSamplingStrategy(registration.RANDOM)
-    registration.SetMetricSamplingPercentage(sampling_percentage, sitk.sitkWallClock)
+
+    # https://simpleitk.readthedocs.io/en/master/registrationOverview.html
+    registration.SetGlobalDefaultNumberOfThreads(0)
+    sampling_seed = 42
+    registration.SetMetricSamplingPercentage(sampling_percentage, sampling_seed)
 
     registration.SetMetricUseFixedImageGradientFilter(False)
     registration.SetMetricUseMovingImageGradientFilter(False)

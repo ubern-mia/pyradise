@@ -193,7 +193,7 @@ class IntraSubjectRegistrationFilterParams(FilterParams):
         sampling_percentage (float): The sampling percentage of the voxels to incorporate into the optimization
          (default: 0.2).
         resampling_interpolator (int): The resampling interpolator (default: sitk.sitkBSpline).
-
+        deterministic (bool): Deterministic processing with a fixed seed and a single thread (default: True).
     """
 
     def __init__(
@@ -443,7 +443,7 @@ class InterSubjectRegistrationFilterParams(FilterParams):
         smoothing_sigmas: Tuple[float, ...] = (2, 1, 0),
         sampling_percentage: float = 0.2,
         resampling_interpolator: int = sitk.sitkBSpline,
-        deterministic: bool = False,
+        deterministic: bool = True,
     ) -> None:
         super().__init__()
 

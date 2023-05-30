@@ -4,6 +4,13 @@
 Change History
 ==============
 
+0.2.3 (30.05.2023)
+------------------
+
+* Minor update on :class:`~pyradise.process.registration.IntraSubjectRegistrationFilterParams` and
+  :class:`~pyradise.process.registration.InterSubjectRegistrationFilterParams` for deterministic registration
+* Implemented GitHub Actions for continuous integration
+
 0.2.2 (05.04.2023)
 ------------------
 

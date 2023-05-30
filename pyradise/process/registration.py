@@ -61,6 +61,7 @@ def get_registration_method(
     shrink_factors: Tuple[int, ...] = (2, 2, 1),
     smoothing_sigmas: Tuple[float, ...] = (2, 1, 0),
     sampling_percentage: float = 0.2,
+    deterministic: bool = True,
 ) -> sitk.ImageRegistrationMethod:
     """Get the registration method based on the provided parameters.
 
@@ -75,6 +76,7 @@ def get_registration_method(
         smoothing_sigmas (Tuple[float, ...]): The smoothing sigmas (default: (2, 1, 0))).
         sampling_percentage (float): The sampling percentage of the voxels to incorporate into the optimization
          (default: 0.2).
+        deterministic (bool): Deterministic processing with a fixed seed and a single thread (default: True).
 
     Returns:
         sitk.ImageRegistrationMethod: The registration method.
@@ -82,8 +84,15 @@ def get_registration_method(
     registration = sitk.ImageRegistrationMethod()
 
     registration.SetMetricAsMattesMutualInformation(number_of_histogram_bins)
-    registration.SetMetricSamplingStrategy(registration.RANDOM)
-    registration.SetMetricSamplingPercentage(sampling_percentage, sitk.sitkWallClock)
+
+    if deterministic:
+        # https://simpleitk.readthedocs.io/en/master/registrationOverview.html
+        registration.SetGlobalDefaultNumberOfThreads(0)
+        sampling_seed = 42
+        registration.SetMetricSamplingPercentage(sampling_percentage, sampling_seed)
+    else:
+        registration.SetMetricSamplingStrategy(registration.RANDOM)
+        registration.SetMetricSamplingPercentage(sampling_percentage, sitk.sitkWallClock)
 
     registration.SetMetricUseFixedImageGradientFilter(False)
     registration.SetMetricUseMovingImageGradientFilter(False)
@@ -184,6 +193,7 @@ class IntraSubjectRegistrationFilterParams(FilterParams):
         sampling_percentage (float): The sampling percentage of the voxels to incorporate into the optimization
          (default: 0.2).
         resampling_interpolator (int): The resampling interpolator (default: sitk.sitkBSpline).
+        deterministic (bool): Deterministic processing with a fixed seed and a single thread (default: True).
     """
 
     def __init__(
@@ -199,6 +209,7 @@ class IntraSubjectRegistrationFilterParams(FilterParams):
         smoothing_sigmas: Tuple[float, ...] = (2, 1, 0),
         sampling_percentage: float = 0.2,
         resampling_interpolator: int = sitk.sitkBSpline,
+        deterministic: bool = True,
     ) -> None:
         super().__init__()
 
@@ -216,6 +227,7 @@ class IntraSubjectRegistrationFilterParams(FilterParams):
         self.smoothing_sigmas: Tuple[float, ...] = smoothing_sigmas
         self.sampling_percentage = sampling_percentage
         self.resampling_interpolator = resampling_interpolator
+        self.deterministic = deterministic
 
 
 class IntraSubjectRegistrationFilter(Filter):
@@ -285,6 +297,7 @@ class IntraSubjectRegistrationFilter(Filter):
                 params.shrink_factors,
                 params.smoothing_sigmas,
                 params.sampling_percentage,
+                params.deterministic,
             )
 
             transform = register_images(moving_image_sitk, fixed_image, params.registration_type, registration_method)
@@ -410,7 +423,8 @@ class InterSubjectRegistrationFilterParams(FilterParams):
         smoothing_sigmas (Tuple[float, ...]): The smoothing sigmas (default: (2, 1, 0))).
         sampling_percentage (float): The sampling percentage of the voxels to incorporate into the optimization
          (default: 0.2).
-        resampling_interpolator (int): The interpolator to use for resampling the image
+        resampling_interpolator (int): The interpolator to use for resampling the image.
+        deterministic (bool): Deterministic processing with a fixed seed and a single thread (default: True).
     """
 
     # pylint: disable=too-many-instance-attributes, too-many-arguments
@@ -429,6 +443,7 @@ class InterSubjectRegistrationFilterParams(FilterParams):
         smoothing_sigmas: Tuple[float, ...] = (2, 1, 0),
         sampling_percentage: float = 0.2,
         resampling_interpolator: int = sitk.sitkBSpline,
+        deterministic: bool = True,
     ) -> None:
         super().__init__()
 
@@ -450,6 +465,7 @@ class InterSubjectRegistrationFilterParams(FilterParams):
         self.smoothing_sigmas: Tuple[float, ...] = smoothing_sigmas
         self.sampling_percentage = sampling_percentage
         self.resampling_interpolator = resampling_interpolator
+        self.deterministic = deterministic
 
 
 class InterSubjectRegistrationFilter(Filter):
@@ -608,6 +624,7 @@ class InterSubjectRegistrationFilter(Filter):
             params.shrink_factors,
             params.smoothing_sigmas,
             params.sampling_percentage,
+            params.deterministic,
         )
 
         return register_images(moving_image_sitk, reference_image, params.registration_type, registration_method)

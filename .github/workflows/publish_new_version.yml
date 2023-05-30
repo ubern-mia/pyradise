@@ -1,8 +1,8 @@
 name: Build and publish new version
 
-run-name: Build and publish new version on PyPI
-
-on: [publish]
+on:
+   release:
+      types: [published]
 
 jobs:
       build:
@@ -31,6 +31,7 @@ jobs:
               run: |
                  python -m build
 
+      deploy:
             - name: Publish package
               uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
               with:

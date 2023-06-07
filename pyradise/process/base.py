@@ -548,15 +548,15 @@ class FilterPipeline:
         """
         self.logger = logger
 
-    def execute(self, subject: Subject) -> Subject:
-        """Execute the filter pipeline on the provided :class:`~pyradise.data.subject.Subject` instance.
+    def execute_iteratively(self, subject: Subject) -> GeneratorExit(Subject):
+        """Execute iteratively in the filter pipeline on the provided :class:`~pyradise.data.subject.Subject` instance.
 
-        Args:
-            subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed by the pipeline.
+            Args:
+                subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed by the pipeline.
 
-        Returns:
-            Subject: The processed subject.
-        """
+            Returns:
+                Subject: The currently processed Subject iteration.
+            """
         assert len(self.filters) == len(self.params), (
             f"The filter pipeline can not be executed due to unequal "
             f"numbers of filters ({len(self.filters)}) and "
@@ -574,5 +574,19 @@ class FilterPipeline:
                 filter_.set_warning_on_non_invertible(False)
 
             subject = filter_.execute(subject, param)
+            yield subject
 
-        return subject
+    def execute(self, subject: Subject) -> Subject:
+        """Execute the filter pipeline on the provided :class:`~pyradise.data.subject.Subject` instance.
+
+        Args:
+            subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed by the pipeline.
+
+        Returns:
+            Subject: The processed subject.
+        """
+        processed_subject = None
+        for processed_subject in self.execute_iteratively(subject):
+            pass
+        return processed_subject
+

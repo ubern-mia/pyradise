@@ -551,12 +551,12 @@ class FilterPipeline:
     def execute_iteratively(self, subject: Subject) -> GeneratorExit(Subject):
         """Execute iteratively in the filter pipeline on the provided :class:`~pyradise.data.subject.Subject` instance.
 
-            Args:
-                subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed by the pipeline.
+        Args:
+            subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed by the pipeline.
 
-            Returns:
-                Subject: The currently processed Subject iteration.
-            """
+        Returns:
+            Subject: The currently processed Subject iteration.
+        """
         assert len(self.filters) == len(self.params), (
             f"The filter pipeline can not be executed due to unequal "
             f"numbers of filters ({len(self.filters)}) and "

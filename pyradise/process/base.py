@@ -585,8 +585,6 @@ class FilterPipeline:
         Returns:
             Subject: The processed subject.
         """
-        processed_subject = None
-        for processed_subject in self.execute_iteratively(subject):
-            pass
-        return processed_subject
+        *_, subject = self.execute_iteratively(subject)  # iterate over the generator and get the last subject
+        return subject
 

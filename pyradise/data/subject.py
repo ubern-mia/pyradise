@@ -199,31 +199,31 @@ class Subject:
         """
         return self.name
 
-    def get_modalities(self) -> Tuple[Optional[Modality], ...]:
+    def get_modalities(self, as_str: bool = False) -> Tuple[Optional[Modality], ...]:
         """Get the modalities of the subject-associated intensity images.
 
         Returns:
             Tuple[Optional[Modality], ...]: The modalities of the intensity images.
         """
-        modalities = [img.get_modality() for img in self.intensity_images]
+        modalities = [img.get_modality(as_str) for img in self.intensity_images]
         return tuple(modalities)
 
-    def get_organs(self) -> Tuple[Optional[Organ], ...]:
+    def get_organs(self, as_str: bool = False) -> Tuple[Optional[Organ], ...]:
         """Get the organs of the subject-associated segmentation images.
 
-        Returns:
+        Returns:gi
             Tuple[Optional[Organ], ...]: The organs of the segmentation images.
         """
-        organs = [seg.get_organ() for seg in self.segmentation_images]
+        organs = [seg.get_organ(as_str) for seg in self.segmentation_images]
         return tuple(organs)
 
-    def get_annotators(self) -> Tuple[Optional[Annotator], ...]:
+    def get_annotators(self, as_str: bool = False) -> Tuple[Optional[Annotator], ...]:
         """Get the annotators of the subject-associated segmentation images.
 
         Returns:
             Tuple[Optional[Rater], ...]: The annotators of the segmentation images.
         """
-        raters = [seg.get_annotator() for seg in self.segmentation_images]
+        raters = [seg.get_annotator(as_str) for seg in self.segmentation_images]
         return tuple(raters)
 
     def add_image(self, image: Union[IntensityImage, SegmentationImage], force: bool = False) -> None:

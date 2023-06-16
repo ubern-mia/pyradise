@@ -1,19 +1,31 @@
 from pyradise.data.annotator import Annotator
 
 from pytest import mark
+import pytest
 
 
-@mark.parametrize('name, result', [('name', 'name'), ('test', 'test')])
-def test_get_name(name, result):
-    a = Annotator(name, 'None')
-    assert a.get_name() == result
+def test__init__1():
+    a = Annotator('name', 'abbreviation')
+    assert a.name == 'name'
+    assert a.abbreviation == 'abbreviation'
+    assert isinstance(a.name, str)
+    assert isinstance(a.abbreviation, str)
+
+
+def test__init__2():
+    with pytest.raises(ValueError):
+        a = Annotator('', 'abbreviation')
+
+
+def test_get_name():
+    a = Annotator('name', 'abbreviation')
+    assert a.get_name() == 'name'
     assert isinstance(a.get_name(), str)
 
 
-@mark.parametrize('abbreviation, result', [('name', 'name'), ('test', 'test')])
-def test_get_abbreviation(abbreviation, result):
-    a = Annotator('None', abbreviation)
-    assert a.get_abbreviation() == result
+def test_get_abbreviation():
+    a = Annotator('name', 'abbreviation')
+    assert a.get_abbreviation() == 'abbreviation'
     assert isinstance(a.get_abbreviation(), str)
 
 
@@ -40,19 +52,24 @@ def test_remove_illegal_characters(abbreviation, result):
     assert isinstance(legal_string, str)
 
 
-@mark.parametrize('name, abbreviation, result', [('name', 'abbreviation', 'name (abbreviation)'), ('1', '2', '1 (2)')])
-def test__str__(name, abbreviation, result):
-    a = Annotator(name, abbreviation)
-    assert str(a) == result
+def test__str__():
+    a = Annotator('name', 'abbreviation')
+    assert str(a) == 'name abbreviation'
 
 
-@mark.parametrize('name, abbreviation', [('name', 'abbreviation'), ('1', '2')])
-def test__eq__(name, abbreviation):
-    a = Annotator(name, abbreviation)
-    b = Annotator(name, abbreviation)
+def test__eq__1():
+    a = Annotator('name', 'abbreviation')
+    b = Annotator('name', 'abbreviation')
     assert a == b
     assert isinstance(a, Annotator)
     assert isinstance(b, Annotator)
+
+
+def test__eq__2():
+    a = Annotator('name', 'abbreviation')
+    o = object()
+    assert a.__eq__(o) is False
+    assert isinstance(a.__eq__(o), bool)
 
 
 def test_not__eq__():
@@ -61,3 +78,4 @@ def test_not__eq__():
     assert a != b
     assert isinstance(a, Annotator)
     assert isinstance(b, Annotator)
+

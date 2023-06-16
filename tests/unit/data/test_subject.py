@@ -1,8 +1,9 @@
 from collections import abc as col_abc
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 from warnings import warn
-import SimpleITK as sitk
+
 import numpy as np
+import SimpleITK as sitk
 
 np.random.seed(42)
 
@@ -11,13 +12,19 @@ from pyradise.data.image import Image, IntensityImage, SegmentationImage
 from pyradise.data.modality import Modality
 from pyradise.data.organ import Organ
 from pyradise.data.subject import Subject
-
-from tests.unit.helpers.image_helpers import get_sitk_intensity_image, get_sitk_segmentation_image
+from tests.unit.helpers.image_helpers import (
+    get_sitk_intensity_image,
+    get_sitk_segmentation_image,
+)
 
 img_1 = IntensityImage(get_sitk_intensity_image(1), Modality("modality_1"))
 img_2 = IntensityImage(get_sitk_intensity_image(2), Modality("modality_2"))
-seg_1 = SegmentationImage(get_sitk_segmentation_image(3), Organ("organ_1"), Annotator("annotator_1"))
-seg_2 = SegmentationImage(get_sitk_segmentation_image(4), Organ("organ_2"), Annotator("annotator_2"))
+seg_1 = SegmentationImage(
+    get_sitk_segmentation_image(3), Organ("organ_1"), Annotator("annotator_1")
+)
+seg_2 = SegmentationImage(
+    get_sitk_segmentation_image(4), Organ("organ_2"), Annotator("annotator_2")
+)
 
 
 def test__init__1():
@@ -40,9 +47,18 @@ def test__init__2():
 
 def test_check_for_single_candidate():
     s = Subject("subject")
-    assert s._check_for_single_candidate([], "test_1", return_first_on_multiple=False) is None
-    assert s._check_for_single_candidate([1], "test_1", return_first_on_multiple=False) == 1
-    assert s._check_for_single_candidate([2, 3], "test_2", return_first_on_multiple=True) == 2
+    assert (
+        s._check_for_single_candidate([], "test_1", return_first_on_multiple=False)
+        is None
+    )
+    assert (
+        s._check_for_single_candidate([1], "test_1", return_first_on_multiple=False)
+        == 1
+    )
+    assert (
+        s._check_for_single_candidate([2, 3], "test_2", return_first_on_multiple=True)
+        == 2
+    )
 
 
 def test_get_name():
@@ -125,35 +141,45 @@ def test_get_images():
 def test_get_image_by_modality():
     s = Subject("subject")
     s.add_images([img_1, img_1, img_2, seg_1, seg_1, seg_2], force=True)
-    assert s.get_image_by_modality('modality_2') == img_2
-    assert s.get_image_by_modality(Modality('modality_2')) == img_2
-    assert s.get_image_by_modality('modality_1', return_first_on_multiple=True) == img_1
+    assert s.get_image_by_modality("modality_2") == img_2
+    assert s.get_image_by_modality(Modality("modality_2")) == img_2
+    assert s.get_image_by_modality("modality_1", return_first_on_multiple=True) == img_1
 
 
 def test_get_image_by_organ():
     s = Subject("subject")
     s.add_images([img_1, img_1, img_2, seg_1, seg_1, seg_2], force=True)
-    assert s.get_image_by_organ('organ_2') == seg_2
-    assert s.get_image_by_organ(Organ('organ_2')) == seg_2
-    assert s.get_image_by_organ('organ_1', return_first_on_multiple=True) == seg_1
+    assert s.get_image_by_organ("organ_2") == seg_2
+    assert s.get_image_by_organ(Organ("organ_2")) == seg_2
+    assert s.get_image_by_organ("organ_1", return_first_on_multiple=True) == seg_1
 
 
 def test_get_images_by_annotator():
     s = Subject("subject")
     s.add_images([img_1, img_1, img_2, seg_1, seg_1, seg_2], force=True)
-    assert isinstance(s.get_images_by_annotator('annotator_2'), tuple)
-    assert s.get_images_by_annotator('annotator_2') == (seg_2,)
-    assert s.get_images_by_annotator(Annotator('annotator_2')) == (seg_2,)
-    assert s.get_images_by_annotator('annotator_1') == (seg_1, seg_1)
+    assert isinstance(s.get_images_by_annotator("annotator_2"), tuple)
+    assert s.get_images_by_annotator("annotator_2") == (seg_2,)
+    assert s.get_images_by_annotator(Annotator("annotator_2")) == (seg_2,)
+    assert s.get_images_by_annotator("annotator_1") == (seg_1, seg_1)
 
 
 def test_get_image_by_organ_and_annotator():
     s = Subject("subject")
     s.add_images([img_1, img_1, img_2, seg_1, seg_1, seg_2], force=True)
-    assert isinstance(s.get_image_by_organ_and_annotator('organ_2', 'annotator_2'), SegmentationImage)
-    assert s.get_image_by_organ_and_annotator('organ_2', 'annotator_2') == seg_2
-    assert s.get_image_by_organ_and_annotator(Organ('organ_2'), Annotator('annotator_2')) == seg_2
-    assert s.get_image_by_organ_and_annotator('organ_1', 'annotator_1', return_first_on_multiple=True) == seg_1
+    assert isinstance(
+        s.get_image_by_organ_and_annotator("organ_2", "annotator_2"), SegmentationImage
+    )
+    assert s.get_image_by_organ_and_annotator("organ_2", "annotator_2") == seg_2
+    assert (
+        s.get_image_by_organ_and_annotator(Organ("organ_2"), Annotator("annotator_2"))
+        == seg_2
+    )
+    assert (
+        s.get_image_by_organ_and_annotator(
+            "organ_1", "annotator_1", return_first_on_multiple=True
+        )
+        == seg_1
+    )
 
 
 def test_get_images_by_type():
@@ -182,7 +208,7 @@ def test_replace_image():
 def test_remove_image_by_modality():
     s = Subject("subject")
     s.add_images([img_1, img_1, img_2, seg_1, seg_1, seg_2], force=True)
-    s.remove_image_by_modality('modality_1')
+    s.remove_image_by_modality("modality_1")
     assert s.get_images_by_type(IntensityImage) == [img_2]
     assert s.get_images_by_type(SegmentationImage) == [seg_1, seg_1, seg_2]
 
@@ -190,7 +216,7 @@ def test_remove_image_by_modality():
 def test_remove_image_by_organ():
     s = Subject("subject")
     s.add_images([img_1, img_1, img_2, seg_1, seg_1, seg_2], force=True)
-    s.remove_image_by_organ('organ_1')
+    s.remove_image_by_organ("organ_1")
     assert s.get_images_by_type(IntensityImage) == [img_1, img_1, img_2]
     assert s.get_images_by_type(SegmentationImage) == [seg_2]
 
@@ -198,7 +224,7 @@ def test_remove_image_by_organ():
 def test_remove_image_by_annotator():
     s = Subject("subject")
     s.add_images([img_1, img_1, img_2, seg_1, seg_1, seg_2], force=True)
-    s.remove_image_by_annotator('annotator_1')
+    s.remove_image_by_annotator("annotator_1")
     assert s.get_images_by_type(IntensityImage) == [img_1, img_1, img_2]
     assert s.get_images_by_type(SegmentationImage) == [seg_2]
 
@@ -206,7 +232,7 @@ def test_remove_image_by_annotator():
 def test_remove_image_by_organ_and_annotator():
     s = Subject("subject")
     s.add_images([img_1, img_1, img_2, seg_1, seg_1, seg_2], force=True)
-    s.remove_image_by_organ_and_annotator('organ_1', 'annotator_1')
+    s.remove_image_by_organ_and_annotator("organ_1", "annotator_1")
     assert s.get_images_by_type(IntensityImage) == [img_1, img_1, img_2]
     assert s.get_images_by_type(SegmentationImage) == [seg_2]
 
@@ -224,52 +250,52 @@ def test_remove_image():
 
 def test_add_data():
     s = Subject("subject")
-    data = {'a': 1, 'b': 2}
+    data = {"a": 1, "b": 2}
     s.add_data(data)
     assert s.data == data
 
 
 def test_add_data_by_key():
     s = Subject("subject")
-    data = {'a': 1, 'b': 2}
-    s.add_data_by_key('a', 1)
-    assert s.data == {'a': 1}
-    s.add_data_by_key('b', 2)
+    data = {"a": 1, "b": 2}
+    s.add_data_by_key("a", 1)
+    assert s.data == {"a": 1}
+    s.add_data_by_key("b", 2)
     assert s.data == data
 
 
 def test_get_data():
     s = Subject("subject")
-    data = {'a': 1, 'b': 2}
+    data = {"a": 1, "b": 2}
     s.add_data(data)
     assert s.get_data() == data
 
 
 def test_get_data_by_key():
     s = Subject("subject")
-    data = {'a': 1, 'b': 2}
+    data = {"a": 1, "b": 2}
     s.add_data(data)
-    assert s.get_data_by_key('a') == 1
-    assert s.get_data_by_key('b') == 2
-    assert s.get_data_by_key('c') is None
+    assert s.get_data_by_key("a") == 1
+    assert s.get_data_by_key("b") == 2
+    assert s.get_data_by_key("c") is None
 
 
 def test_replace_data():
     s = Subject("subject")
-    data = {'a': 1, 'b': 2}
+    data = {"a": 1, "b": 2}
     s.add_data(data)
-    s.replace_data('a', 3)
-    assert s.get_data_by_key('a') == 3
-    assert s.get_data_by_key('b') == 2
-    s.replace_data('c', 4, add_if_missing=True)
-    assert s.get_data_by_key('c') == 4
-    assert s.get_data_by_key('b') == 2
-    assert s.get_data_by_key('a') == 3
+    s.replace_data("a", 3)
+    assert s.get_data_by_key("a") == 3
+    assert s.get_data_by_key("b") == 2
+    s.replace_data("c", 4, add_if_missing=True)
+    assert s.get_data_by_key("c") == 4
+    assert s.get_data_by_key("b") == 2
+    assert s.get_data_by_key("a") == 3
 
 
 def test_remove_additional_data():
     s = Subject("subject")
-    data = {'a': 1, 'b': 2}
+    data = {"a": 1, "b": 2}
     s.add_data(data)
     s.remove_additional_data()
     assert s.get_data() == {}
@@ -277,11 +303,11 @@ def test_remove_additional_data():
 
 def test_remove_additional_data_by_key():
     s = Subject("subject")
-    data = {'a': 1, 'b': 2}
+    data = {"a": 1, "b": 2}
     s.add_data(data)
-    s.remove_additional_data_by_key('a')
-    assert s.get_data() == {'b': 2}
-    s.remove_additional_data_by_key('b')
+    s.remove_additional_data_by_key("a")
+    assert s.get_data() == {"b": 2}
+    s.remove_additional_data_by_key("b")
     assert s.get_data() == {}
 
 

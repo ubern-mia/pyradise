@@ -1,4 +1,4 @@
-from pyradise.data.taping import TransformTape, TransformInfo
+from pyradise.data.taping import TransformInfo, TransformTape
 
 
 def test_record():

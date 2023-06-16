@@ -1,6 +1,3 @@
-from typing import Any
-
-
 from pyradise.data.taping import Tape
 
 
@@ -8,11 +5,11 @@ class NewTape(Tape):
     def __init__(self):
         super().__init__()
 
-    def record(self, value: Any) -> None:
+    def record(self, value):
         self.recordings.append(value)
 
-    def playback(data: Any, **kwargs) -> Any:
-        return data
+    def playback(self):
+        pass
 
 
 def test_record_1():

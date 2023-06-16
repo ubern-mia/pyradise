@@ -1,6 +1,6 @@
-import SimpleITK as sitk
 import itk
 import numpy as np
+import SimpleITK as sitk
 
 dummy_meta_nifti = {'ITK_FileNotes': '', 'ITK_original_direction': '[UNKNOWN_PRINT_CHARACTERISTICS]\n',
               'ITK_original_spacing': '[UNKNOWN_PRINT_CHARACTERISTICS]\n', 'aux_file': '', 'bitpix': '32',

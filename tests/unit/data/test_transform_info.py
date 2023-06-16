@@ -1,10 +1,11 @@
-from pyradise.data.taping import TransformTape, TransformInfo
+from pyradise.data.taping import TransformInfo, TransformTape
 
 
 def test_get_subclasses():
     tra_info = TransformInfo("name_1", None, None, None, None, None, None)
 
     tra_info._get_subclasses(TransformInfo)
+
 
 # def get_filter():
 #     from pyradise.process import Filter

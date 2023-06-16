@@ -1,18 +1,16 @@
+import pytest
+
+from pyradise.data import Annotator, Modality, Organ, OrganAnnotatorCombination
 from pyradise.data.utils import (
-    str_to_modality,
+    seq_to_annotators,
     seq_to_modalities,
-    str_to_organ,
+    seq_to_organ_annotator_combinations,
     seq_to_organs,
     str_to_annotator,
-    seq_to_annotators,
+    str_to_modality,
+    str_to_organ,
     str_to_organ_annotator_combination,
-    seq_to_organ_annotator_combinations,
 )
-
-from pyradise.data.modality import Modality
-from pyradise.data.organ import Organ
-from pyradise.data.annotator import Annotator
-from pyradise.data.organ import OrganAnnotatorCombination
 
 
 def test_str_to_modality_1():
@@ -130,11 +128,11 @@ def test_str_to_organ_annotator_combination_2():
 
 
 def test_str_to_organ_annotator_combination_3():
-    with mark.raises(TypeError):
-        str_to_organ_annotator_combination(1)
-    organ_annotator = str_to_organ_annotator_combination("organ")
-    assert organ_annotator.organ.name == "organ_annotator"
-    assert organ_annotator.annotator.name == "organ_annotator"
+    with pytest.raises(ValueError):
+        str_to_organ_annotator_combination("organ", None)
+    organ_annotator = str_to_organ_annotator_combination("organ", "annotator")
+    assert organ_annotator.organ.name == "organ"
+    assert organ_annotator.annotator.name == "annotator"
     assert isinstance(organ_annotator, OrganAnnotatorCombination)
 
 

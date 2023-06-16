@@ -1,9 +1,10 @@
-import pytest
 import itk
+import pytest
+
 from pyradise.data.image import ImageProperties
 from tests.unit.helpers.image_helpers import (
-    get_sitk_intensity_image,
     get_itk_intensity_image,
+    get_sitk_intensity_image,
 )
 
 sitk_img_1 = get_sitk_intensity_image(1)
@@ -22,7 +23,9 @@ def test__init__2():
     i = ImageProperties(itk_img_1)
     assert i._spacing == itk_img_1.GetSpacing()
     assert i._origin == itk_img_1.GetOrigin()
-    assert i._direction == tuple(itk.GetArrayFromMatrix(itk_img_1.GetDirection()).flatten())
+    assert i._direction == tuple(
+        itk.GetArrayFromMatrix(itk_img_1.GetDirection()).flatten()
+    )
 
 
 def test__init__3():
@@ -32,19 +35,19 @@ def test__init__3():
 
 def test_get_entry():
     i = ImageProperties(sitk_img_1, resize=(1, 1, 1), shape=None)
-    assert i.get_entry('resize') == (1, 1, 1)
+    assert i.get_entry("resize") == (1, 1, 1)
 
 
 def test_set_entry_1():
     i = ImageProperties(sitk_img_1, resize=(1, 1, 1), shape=None)
-    assert i.set_entry('new_resize', (2, 2, 2)) is None
-    assert i.get_entry('new_resize') == (2, 2, 2)
+    assert i.set_entry("new_resize", (2, 2, 2)) is None
+    assert i.get_entry("new_resize") == (2, 2, 2)
 
 
 def test_set_entry_2():
     i = ImageProperties(sitk_img_1, resize=(1, 1, 1), shape=None)
     with pytest.raises(ValueError):
-        i.set_entry('resize', (2, 2))
+        i.set_entry("resize", (2, 2))
 
 
 def test_origin():

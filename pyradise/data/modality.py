@@ -56,7 +56,7 @@ class Modality:
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Modality):
-            raise False
+            return False
 
         return self.name == other.name
 

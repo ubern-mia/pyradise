@@ -145,8 +145,10 @@ class Image(ABC):
         # set the image
         if isinstance(image, sitk.Image):
             self.image: sitk.Image = image
-        else:
+        elif isinstance(image, itk.Image):
             self.image: sitk.Image = convert_to_sitk_image(image)
+        else:
+            raise TypeError("Image must be of type SimpleITK.Image or itk.Image")
 
         # initialize the transform tape
         self.transform_tape = TransformTape()

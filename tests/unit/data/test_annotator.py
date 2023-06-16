@@ -17,6 +17,13 @@ def test__init__2():
         a = Annotator('', 'abbreviation')
 
 
+def test__init__3():
+    a = Annotator('name')
+    assert a.name == 'name'
+    assert a.abbreviation is None
+    assert isinstance(a.name, str)
+
+
 def test_get_name():
     a = Annotator('name', 'abbreviation')
     assert a.get_name() == 'name'
@@ -35,6 +42,7 @@ def test_get_default():
     assert isinstance(a.get_default().name, str)
     assert a.get_default().abbreviation == Annotator.default_annotator_abbreviation
     assert isinstance(a.get_default().abbreviation, str)
+    assert isinstance(a.get_default(), Annotator)
 
 
 def test_is_default():
@@ -42,6 +50,8 @@ def test_is_default():
     assert isinstance(Annotator.default_annotator_name, str)
     assert Annotator.default_annotator_abbreviation == 'NA'
     assert isinstance(Annotator.default_annotator_abbreviation, str)
+    a = Annotator('name', 'abbreviation')
+    assert a.is_default() is False
 
 
 @mark.parametrize('abbreviation, result', [('[<>:/\\|?*"]|[\0-\31]', '[\\][-]'), ('test', 'test'), ('name>', 'name')])
@@ -54,7 +64,9 @@ def test_remove_illegal_characters(abbreviation, result):
 
 def test__str__():
     a = Annotator('name', 'abbreviation')
-    assert str(a) == 'name abbreviation'
+    assert str(a) == 'name (abbreviation)'
+    a = Annotator('name')
+    assert str(a) == 'name'
 
 
 def test__eq__1():

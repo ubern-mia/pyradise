@@ -1,4 +1,5 @@
 import SimpleITK as sitk
+import itk
 import numpy as np
 
 dummy_meta_nifti = {'ITK_FileNotes': '', 'ITK_original_direction': '[UNKNOWN_PRINT_CHARACTERISTICS]\n',
@@ -32,3 +33,16 @@ def get_sitk_segmentation_image(seed) -> sitk.Image:
     for key, value in dummy_meta_nifti.items():
         image.SetMetaData(key, value)
     return image
+
+
+def get_itk_intensity_image(seed) -> itk.Image:
+    np.random.seed(seed)
+    sitk_image = get_sitk_intensity_image(seed)
+    itk_image = itk.GetImageFromArray(sitk.GetArrayFromImage(sitk_image),
+                                      is_vector=sitk_image.GetNumberOfComponentsPerPixel() > 1)
+    itk_image.SetOrigin(sitk_image.GetOrigin())
+    itk_image.SetSpacing(sitk_image.GetSpacing())
+    image_dimension = sitk_image.GetDimension()
+    itk_image.SetDirection(
+        itk.GetMatrixFromArray(np.reshape(np.array(sitk_image.GetDirection()), [image_dimension] * 2)))
+    return itk_image

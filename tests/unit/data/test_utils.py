@@ -129,6 +129,15 @@ def test_str_to_organ_annotator_combination_2():
     assert isinstance(organ_annotator, OrganAnnotatorCombination)
 
 
+def test_str_to_organ_annotator_combination_3():
+    with mark.raises(TypeError):
+        str_to_organ_annotator_combination(1)
+    organ_annotator = str_to_organ_annotator_combination("organ")
+    assert organ_annotator.organ.name == "organ_annotator"
+    assert organ_annotator.annotator.name == "organ_annotator"
+    assert isinstance(organ_annotator, OrganAnnotatorCombination)
+
+
 def test_seq_to_organ_annotator_combination_1():
     organ_annotator_1 = OrganAnnotatorCombination("organ_1", "annotator_1")
     organ_annotator_2 = OrganAnnotatorCombination("organ_2", "annotator_2")

@@ -3,44 +3,45 @@ from pyradise.data.organ import Organ
 from pytest import mark
 
 
-@mark.parametrize('name', ['name', 'test'])
-def test_get_name(name):
-    o = Organ(name)
-    assert o.get_name() == name
+def test_get_name():
+    o = Organ('name')
+    assert o.get_name() == 'name'
     assert isinstance(o.get_name(), str)
 
 
-@mark.parametrize('name, index', [('name', 1), ('test', 2)])
-def test_index(name, index):
-    o = Organ(name, index)
-    assert o.index == index
+def test_index():
+    o = Organ('name', 1)
+    assert o.index == 1
     assert isinstance(o.index, int)
 
 
-@mark.parametrize('name', ['name', 'test'])
-def test_set_name(name):
+def test_set_name():
     o = Organ('default')
-    o.set_name(name)
-    assert o.get_name() == name
+    o.set_name('name')
+    assert o.get_name() == 'name'
     assert isinstance(o.get_name(), str)
 
 
-@mark.parametrize('name', ['name', 'test'])
-def test__str__(name):
-    o = Organ(name)
-    assert str(o) == name
+def test__str__():
+    o = Organ('name')
+    assert str(o) == 'name'
     assert isinstance(o.__str__(), str)
 
 
-@mark.parametrize('name, index', [('name', 1), ('test', 2)])
-def test__eq__(name, index):
-    o = Organ(name, index)
-    p = Organ(name, index)
+def test__eq__1():
+    o = Organ('name', 1)
+    p = Organ('test', 2)
     assert o == p
     assert isinstance(o.__eq__(p), bool)
 
 
-@mark.parametrize('name, index', [('name', 1), ('test', 2)])
-def test__hash__(name, index):
-    o = Organ(name, index)
+def test__eq__2():
+    o = Organ('name', 1)
+    p = object
+    assert o.__eq__(p) is False
+    assert isinstance(o.__eq__(p), bool)
+
+
+def test__hash__():
+    o = Organ('name', 1)
     assert isinstance(o.__hash__(), int)

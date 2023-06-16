@@ -48,7 +48,7 @@ def test__eq__2():
     m = Modality('name')
     o = object
     assert m.__eq__(o) is False
-    # assert isinstance(m.__eq__(o), bool)
+    assert isinstance(m.__eq__(o), bool)
 
 
 def test_not__eq__():

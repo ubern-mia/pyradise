@@ -383,6 +383,16 @@ class Subject:
         else:
             raise ValueError("The given data type is not supported or not contained in the subject!")
 
+    @staticmethod
+    def _get_equal_entities(reference: Any, candidates: Sequence[Any]) -> Tuple[Any]:
+        """Helper for replace image methods to get all entities of a specific type that are equal to a reference."""
+        candidates_ = [candidate for candidate in candidates if isinstance(candidate, type(reference))]
+
+        if not candidates_:
+            return tuple()
+
+        return tuple(candidate for candidate in candidates_ if candidate == reference)
+
     def replace_image(
         self,
         new_image: Union[IntensityImage, SegmentationImage],
@@ -405,18 +415,10 @@ class Subject:
             bool: True if the image is replaced successfully, False otherwise.
         """
 
-        def _get_equal_entities(reference: Any, candidates: Sequence[Any]) -> Tuple[Any]:
-            candidates_ = [candidate for candidate in candidates if isinstance(candidate, type(reference))]
-
-            if not candidates_:
-                return tuple()
-
-            return tuple(candidate for candidate in candidates_ if candidate == reference)
-
         image_sequence = self.get_images_by_type(type(new_image))
 
         if old_image is None:
-            equal_images = _get_equal_entities(new_image, image_sequence)
+            equal_images = self._get_equal_entities(new_image, image_sequence)
 
             if not equal_images:
                 return False
@@ -460,7 +462,7 @@ class Subject:
             modality = Modality(modality)
 
         candidates = [img for img in self.intensity_images if img.get_modality() == modality]
-
+        print(candidates)
         if not candidates:
             return False
 

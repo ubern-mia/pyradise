@@ -1,3 +1,7 @@
+import numpy as np
+import pytest
+import SimpleITK as sitk
+
 from pyradise.data import Annotator, Organ, OrganAnnotatorCombination
 from pyradise.data.image import SegmentationImage
 from tests.unit.helpers.image_helpers import get_sitk_segmentation_image
@@ -53,7 +57,11 @@ def test_set_annotator():
 
 def test_organ_annotator_combination():
     s = SegmentationImage(sitk_seg_1, "organ", "annotator")
+    oa = OrganAnnotatorCombination("organ", "annotator")
+    s.set_organ_annotator_combination(oa)
     assert isinstance(s.get_organ_annotator_combination(), OrganAnnotatorCombination)
+    assert s.get_organ_annotator_combination().organ.get_name() == "organ"
+    assert s.get_organ_annotator_combination().annotator.get_name() == "annotator"
 
 
 def test_copy_info_1():
@@ -74,14 +82,27 @@ def test_copy_info_2():
     assert s_1.get_size() == sitk_seg_2.GetSize()
 
 
+def test_copy_info_3():
+    with pytest.raises(TypeError):
+        s_1 = SegmentationImage(sitk_seg_1, "organ_1", "annotator_1")
+        s_1.copy_info(source=object, include_transforms=True)
+
+
 def test_is_intensity_image():
     s = SegmentationImage(sitk_seg_1, "organ", "annotator")
     assert s.is_intensity_image() is False
 
 
-def test_is_binary():
+def test_is_binary_1():
     s = SegmentationImage(sitk_seg_1, "organ", "annotator")
     assert s.is_binary() is True
+    assert isinstance(s.is_binary(), bool)
+
+
+def test_is_binary_2():
+    zero_seg = sitk.GetImageFromArray(np.zeros((5,5,5)), sitk.sitkUInt8)
+    s = SegmentationImage(zero_seg, "organ", "annotator")
+    assert s.is_binary() is False
     assert isinstance(s.is_binary(), bool)
 
 
@@ -102,7 +123,16 @@ def test__eq__3():
     assert s_1.__eq__(object) is False
 
 
-def test__str__():
+def test__str__1():
     s = SegmentationImage(sitk_seg_1, "organ", "annotator")
     assert isinstance(s.__str__(), str)
     assert s.__str__() == "SegmentationImage: organ / annotator"
+
+
+def test__str__2():
+    s = SegmentationImage(sitk_seg_1, "organ", None)
+    assert isinstance(s.__str__(), str)
+    assert s.__str__() == "SegmentationImage: organ / None"
+
+
+

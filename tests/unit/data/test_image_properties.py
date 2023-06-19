@@ -41,7 +41,7 @@ def test_get_entry():
 def test_set_entry_1():
     i = ImageProperties(sitk_img_1, resize=(1, 1, 1), shape=None)
     assert i.set_entry("new_resize", (2, 2, 2)) is None
-    assert i.get_entry("new_resize") == (2, 2, 2)
+    assert i.kwargs['new_resize'] == (2, 2, 2)
 
 
 def test_set_entry_2():

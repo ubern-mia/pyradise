@@ -1,3 +1,5 @@
+import pytest
+
 from pyradise.data.image import IntensityImage
 from pyradise.data.modality import Modality
 from tests.unit.helpers.image_helpers import (
@@ -37,13 +39,28 @@ def test_set_modality():
     assert i.get_modality(as_str=False).get_name() == "modality_2"
 
 
-def test_copy_info():
+def test_copy_info_1():
     i_1 = IntensityImage(sitk_img_1, "modality_1")
     i_2 = IntensityImage(sitk_img_2, "modality_2")
     assert i_1.copy_info(i_2, include_transforms=False) is None
     assert isinstance(i_2, IntensityImage)
     assert i_2.get_modality(as_str=True) == "modality_2"
     assert i_2.get_modality(as_str=False).get_name() == "modality_2"
+
+
+def test_copy_info_2():
+    i_1 = IntensityImage(sitk_img_1, "modality_1")
+    i_2 = IntensityImage(sitk_img_2, "modality_2")
+    assert i_1.copy_info(i_2, include_transforms=True) is None
+    assert isinstance(i_2, IntensityImage)
+    assert i_2.get_modality(as_str=True) == "modality_2"
+    assert i_2.get_modality(as_str=False).get_name() == "modality_2"
+
+
+def test_copy_info_3():
+    with pytest.raises(TypeError):
+        i_1 = IntensityImage(sitk_img_1, "modality_1")
+        i_1.copy_info(object, include_transforms=False)
 
 
 def test_is_intensity_image():

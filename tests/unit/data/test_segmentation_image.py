@@ -132,7 +132,7 @@ def test__str__1():
 def test__str__2():
     s = SegmentationImage(sitk_seg_1, "organ", None)
     assert isinstance(s.__str__(), str)
-    assert s.__str__() == "SegmentationImage: organ / None"
+    assert s.__str__() == "SegmentationImage: organ"
 
 
 

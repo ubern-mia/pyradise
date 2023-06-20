@@ -230,7 +230,7 @@ class Subject:
             as_str (bool, optional): Whether to return the annotators as strings. Defaults to False.
 
         Returns:
-            Tuple[Optional[Rater, str], ...]:  Annotators of the segmentation images by objects or strings
+            Tuple[Optional[Rater, str], ...]:  Annotators of the segmentation images as objects or strings
         """
         raters = [seg.get_annotator(as_str) for seg in self.segmentation_images]
         return tuple(raters)

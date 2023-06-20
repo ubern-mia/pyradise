@@ -1,29 +1,28 @@
-from collections import abc as col_abc
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
-from warnings import warn
 import pytest
-import numpy as np
-import SimpleITK as sitk
-
-np.random.seed(42)
 
 from pyradise.data.annotator import Annotator
-from pyradise.data.image import Image, IntensityImage, SegmentationImage
+from pyradise.data.image import IntensityImage, SegmentationImage
 from pyradise.data.modality import Modality
 from pyradise.data.organ import Organ
 from pyradise.data.subject import Subject
-from tests.unit.helpers.image_helpers import (
-    get_sitk_intensity_image,
-    get_sitk_segmentation_image,
-)
 
-img_1 = IntensityImage(get_sitk_intensity_image(1), Modality("modality_1"))
-img_2 = IntensityImage(get_sitk_intensity_image(2), Modality("modality_2"))
+from tests.unit.helpers.image_helpers import get_sitk_image
+
+img_1 = IntensityImage(
+    get_sitk_image(seed=0, low=0, high=101, meta="nii"), Modality("modality_1")
+)
+img_2 = IntensityImage(
+    get_sitk_image(seed=1, low=0, high=101, meta="nii"), Modality("modality_2")
+)
 seg_1 = SegmentationImage(
-    get_sitk_segmentation_image(3), Organ("organ_1"), Annotator("annotator_1")
+    get_sitk_image(seed=2, low=0, high=2, meta="nii"),
+    Organ("organ_1"),
+    Annotator("annotator_1"),
 )
 seg_2 = SegmentationImage(
-    get_sitk_segmentation_image(4), Organ("organ_2"), Annotator("annotator_2")
+    get_sitk_image(seed=3, low=0, high=2, meta="nii"),
+    Organ("organ_2"),
+    Annotator("annotator_2"),
 )
 
 

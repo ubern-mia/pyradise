@@ -4,15 +4,13 @@ import pytest
 import SimpleITK as sitk
 
 from pyradise.data import Image, TransformTape, TransformInfo
-from tests.unit.helpers.image_helpers import (
-    get_itk_intensity_image,
-    get_sitk_intensity_image,
-)
+from tests.unit.helpers.image_helpers import get_itk_image, get_sitk_image
 
-sitk_img_1 = get_sitk_intensity_image(1)
-sitk_img_2 = get_sitk_intensity_image(2)
-itk_img_1 = get_itk_intensity_image(3)
-itk_img_2 = get_itk_intensity_image(4)
+
+itk_img_1 = get_itk_image(seed=0, low=0, high=101, meta="nii")
+itk_img_2 = get_itk_image(seed=1, low=0, high=101, meta="nii")
+sitk_img_1 = get_sitk_image(seed=2, low=0, high=101, meta="nii")
+sitk_img_2 = get_sitk_image(seed=3, low=0, high=101, meta="nii")
 
 
 class NewImage(Image):
@@ -136,8 +134,12 @@ def test_cast():
     i = NewImage(sitk_img_1, data)
     assert isinstance(i.cast(image=sitk_img_1, pixel_type=1, as_sitk=True), sitk.Image)
     assert isinstance(i.cast(image=sitk_img_1, pixel_type=1, as_sitk=False), itk.Image)
-    assert isinstance(i.cast(image=itk_img_1, pixel_type=itk.UC, as_sitk=True), sitk.Image)
-    assert isinstance(i.cast(image=itk_img_1, pixel_type=itk.UC, as_sitk=False), itk.Image)
+    assert isinstance(
+        i.cast(image=itk_img_1, pixel_type=itk.UC, as_sitk=True), sitk.Image
+    )
+    assert isinstance(
+        i.cast(image=itk_img_1, pixel_type=itk.UC, as_sitk=False), itk.Image
+    )
 
 
 def test_get_image_data():

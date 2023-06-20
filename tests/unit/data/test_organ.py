@@ -1,5 +1,3 @@
-from pytest import mark
-
 from pyradise.data.organ import Organ
 
 

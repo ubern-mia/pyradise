@@ -199,38 +199,38 @@ class Subject:
         """
         return self.name
 
-    def get_modalities(self, as_str: bool = False) -> Tuple[Optional[Modality], ...]:
+    def get_modalities(self, as_str: bool = False) -> Tuple[Optional[Modality, str], ...]:
         """Get the modalities of the subject-associated intensity images.
 
         Args:
             as_str (bool, optional): Whether to return the modalities as strings. Defaults to False.
 
         Returns:
-            Tuple[Optional[Modality, str], ...]: The modalities of the intensity images.
+            Tuple[Optional[Modality, str], ...]: The modalities of the intensity images as objects or strings.
         """
         modalities = [img.get_modality(as_str) for img in self.intensity_images]
         return tuple(modalities)
 
-    def get_organs(self, as_str: bool = False) -> Tuple[Optional[Organ], ...]:
+    def get_organs(self, as_str: bool = False) -> Tuple[Optional[Organ, str], ...]:
         """Get the organs of the subject-associated segmentation images.
 
         Args:
             as_str (bool, optional): Whether to return the organs as strings. Defaults to False.
 
         Returns:
-            Tuple[Optional[Organ, str], ...]: The organs of the segmentation images.
+            Tuple[Optional[Organ, str], ...]: The organs of the segmentation images as objects or strings.
         """
         organs = [seg.get_organ(as_str) for seg in self.segmentation_images]
         return tuple(organs)
 
-    def get_annotators(self, as_str: bool = False) -> Tuple[Optional[Annotator], ...]:
+    def get_annotators(self, as_str: bool = False) -> Tuple[Optional[Annotator, str], ...]:
         """Get the annotators of the subject-associated segmentation images.
 
         Args:
             as_str (bool, optional): Whether to return the annotators as strings. Defaults to False.
 
         Returns:
-            Tuple[Optional[Rater, str], ...]: The annotators of the segmentation images.
+            Tuple[Optional[Rater, str], ...]:  Annotators of the segmentation images by objects or strings
         """
         raters = [seg.get_annotator(as_str) for seg in self.segmentation_images]
         return tuple(raters)

@@ -199,7 +199,7 @@ class Subject:
         """
         return self.name
 
-    def get_modalities(self, as_str: bool = False) -> Tuple[Optional[Modality, str], ...]:
+    def get_modalities(self, as_str: bool = False) -> Tuple[Optional[Modality or str], ...]:
         """Get the modalities of the subject-associated intensity images.
 
         Args:
@@ -211,7 +211,7 @@ class Subject:
         modalities = [img.get_modality(as_str) for img in self.intensity_images]
         return tuple(modalities)
 
-    def get_organs(self, as_str: bool = False) -> Tuple[Optional[Organ, str], ...]:
+    def get_organs(self, as_str: bool = False) -> Tuple[Optional[Organ or str], ...]:
         """Get the organs of the subject-associated segmentation images.
 
         Args:
@@ -223,7 +223,7 @@ class Subject:
         organs = [seg.get_organ(as_str) for seg in self.segmentation_images]
         return tuple(organs)
 
-    def get_annotators(self, as_str: bool = False) -> Tuple[Optional[Annotator, str], ...]:
+    def get_annotators(self, as_str: bool = False) -> Tuple[Optional[Annotator or str], ...]:
         """Get the annotators of the subject-associated segmentation images.
 
         Args:

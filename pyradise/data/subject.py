@@ -202,6 +202,9 @@ class Subject:
     def get_modalities(self, as_str: bool = False) -> Tuple[Optional[Modality], ...]:
         """Get the modalities of the subject-associated intensity images.
 
+        Args:
+            as_str (bool, optional): Whether to return the modalities as strings. Defaults to False.
+
         Returns:
             Tuple[Optional[Modality], ...]: The modalities of the intensity images.
         """
@@ -211,7 +214,10 @@ class Subject:
     def get_organs(self, as_str: bool = False) -> Tuple[Optional[Organ], ...]:
         """Get the organs of the subject-associated segmentation images.
 
-        Returns:gi
+        Args:
+            as_str (bool, optional): Whether to return the modalities as strings. Defaults to False.
+
+        Returns:
             Tuple[Optional[Organ], ...]: The organs of the segmentation images.
         """
         organs = [seg.get_organ(as_str) for seg in self.segmentation_images]
@@ -219,6 +225,9 @@ class Subject:
 
     def get_annotators(self, as_str: bool = False) -> Tuple[Optional[Annotator], ...]:
         """Get the annotators of the subject-associated segmentation images.
+
+        Args:
+            as_str (bool, optional): Whether to return the modalities as strings. Defaults to False.
 
         Returns:
             Tuple[Optional[Rater], ...]: The annotators of the segmentation images.

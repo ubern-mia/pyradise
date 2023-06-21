@@ -470,19 +470,13 @@ class Subject:
         if isinstance(modality, str):
             modality = Modality(modality)
 
+        original_length = len(self.intensity_images)
         candidates = [img for img in self.intensity_images if img.get_modality() == modality]
-        print(candidates)
-        if not candidates:
-            return False
 
-        success = True
         for candidate in candidates:
-            try:
-                self.intensity_images.remove(candidate)
-            except ValueError:
-                success = False
+            self.intensity_images.remove(candidate)
 
-        return success
+        return original_length > len(self.intensity_images)
 
     def remove_image_by_organ(self, organ: Union[Organ, str]) -> bool:
         """Remove one or multiple images as specified by the organ.
@@ -496,19 +490,13 @@ class Subject:
         if isinstance(organ, str):
             organ = Organ(organ, None)
 
+        original_length = len(self.segmentation_images)
         candidates = [img for img in self.segmentation_images if img.get_organ() == organ]
 
-        if not candidates:
-            return False
-
-        success = True
         for candidate in candidates:
-            try:
-                self.segmentation_images.remove(candidate)
-            except ValueError:
-                success = False
+            self.segmentation_images.remove(candidate)
 
-        return success
+        return original_length > len(self.segmentation_images)
 
     def remove_image_by_annotator(self, annotator: Union[Annotator, str]) -> bool:
         """Remove one or multiple images as specified by the annotator.
@@ -522,19 +510,13 @@ class Subject:
         if isinstance(annotator, str):
             annotator = Annotator(annotator)
 
+        original_length = len(self.segmentation_images)
         candidates = [img for img in self.segmentation_images if img.get_annotator() == annotator]
 
-        if not candidates:
-            return False
-
-        success = True
         for candidate in candidates:
-            try:
-                self.segmentation_images.remove(candidate)
-            except ValueError:
-                success = False
+            self.segmentation_images.remove(candidate)
 
-        return success
+        return original_length > len(self.segmentation_images)
 
     def remove_image_by_organ_and_annotator(self, organ: Union[Organ, str], annotator: Union[Annotator, str]) -> bool:
         """Remove one or multiple images as specified by the organ and annotator.
@@ -551,21 +533,15 @@ class Subject:
         if isinstance(annotator, str):
             annotator = Annotator(annotator)
 
+        original_length = len(self.segmentation_images)
         candidates = [
             img for img in self.segmentation_images if img.get_organ() == organ and img.get_annotator() == annotator
         ]
 
-        if not candidates:
-            return False
-
-        success = True
         for candidate in candidates:
-            try:
-                self.segmentation_images.remove(candidate)
-            except ValueError:
-                success = False
+            self.segmentation_images.remove(candidate)
 
-        return success
+        return original_length > len(self.segmentation_images)
 
     def remove_image(self, image: Union[IntensityImage, SegmentationImage]) -> bool:
         """Remove a given image from the subject.
@@ -579,17 +555,17 @@ class Subject:
         images = self.get_images_by_type(type(image))
         candidates = [img for img in images if img == image]
 
-        if len(candidates) > 1:
-            warn(
-                f"The removal of the image is ambiguous because there are multiple ({len(candidates)}) "
-                "images which are equal. Only the first found image will be removed"
-            )
+        if len(candidates) > 0:
+            images.remove(candidates[0])
+            if len(candidates) > 1:
+                warn(
+                    f"The removal of the image is ambiguous because there are multiple ({len(candidates)}) "
+                    "images which are equal. Only the first found image will be removed"
+                )
+            return True
 
-        if not candidates:
-            return False
-
-        images.remove(candidates[0])
-        return True
+        warn("The image is not contained in the subject. No removal will be performed.")
+        return False
 
     def add_data(self, data: Dict[str, Any]) -> None:
         """Add additional data to the subject.

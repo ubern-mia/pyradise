@@ -1,0 +1,11 @@
+[run]
+omit =
+    # ignore all test cases in tests/
+    tests/*
+
+[report]
+exclude_lines =
+    # ignore abstract methods
+    @abstractmethod
+    @abc.abstractmethod
+

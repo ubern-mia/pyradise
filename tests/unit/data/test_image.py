@@ -4,7 +4,7 @@ import pytest
 import SimpleITK as sitk
 
 from pyradise.data import Image, TransformTape, TransformInfo
-from tests.unit.helpers.image_helpers import get_itk_image, get_sitk_image
+from tests.conftest import get_itk_image, get_sitk_image
 
 
 itk_img_1 = get_itk_image(seed=0, low=0, high=101, meta="nii")

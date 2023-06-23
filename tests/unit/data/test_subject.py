@@ -1,12 +1,7 @@
 import pytest
 
-from pyradise.data.annotator import Annotator
-from pyradise.data.image import IntensityImage, SegmentationImage
-from pyradise.data.modality import Modality
-from pyradise.data.organ import Organ
-from pyradise.data.subject import Subject
-
-from tests.unit.helpers.image_helpers import get_sitk_image
+from pyradise.data import Annotator, IntensityImage, SegmentationImage, Subject, Modality, Organ
+from tests.conftest import get_sitk_image
 
 img_1 = IntensityImage(
     get_sitk_image(seed=0, low=0, high=101, meta="nii"), Modality("modality_1")
@@ -438,7 +433,7 @@ def test_remove_additional_data_by_key():
 
 
 def test_playback_transform_tapes():
-    pass
+    """Test that the transform tapes are played back correctly."""
 
 
 def test__str__():

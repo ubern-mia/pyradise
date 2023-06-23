@@ -1,5 +1,3 @@
-from pydicom.tag import Tag
-
 from .crawling import (Crawler, DatasetDicomCrawler, DatasetFileCrawler,
                        SubjectDicomCrawler, SubjectFileCrawler)
 from .dicom_conversion import (Converter, DicomImageSeriesConverter,

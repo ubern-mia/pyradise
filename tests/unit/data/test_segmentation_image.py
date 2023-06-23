@@ -4,7 +4,7 @@ import SimpleITK as sitk
 
 from pyradise.data import Annotator, Organ, OrganAnnotatorCombination
 from pyradise.data.image import SegmentationImage
-from tests.unit.helpers.image_helpers import get_sitk_image
+from tests.conftest import get_sitk_image
 
 sitk_seg_1 = get_sitk_image(seed=0, low=0, high=2, meta="nii")
 sitk_seg_2 = get_sitk_image(seed=1, low=0, high=2, meta="nii")

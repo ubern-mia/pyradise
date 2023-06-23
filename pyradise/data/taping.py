@@ -293,6 +293,7 @@ class TransformTape(Tape):
             subject = filter_.execute_inverse(subject, transform_info)
 
         # set the new image data on the original image
+        print(type(data))
         image = subject.get_images_by_type(type(data))[0]
         data.set_image_data(image.get_image_data())
 

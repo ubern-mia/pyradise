@@ -1,5 +1,4 @@
-from pyradise.data.annotator import Annotator
-from pyradise.data.organ import Organ, OrganAnnotatorCombination
+from pyradise.data import Annotator, Organ, OrganAnnotatorCombination
 
 
 def test__init__1():

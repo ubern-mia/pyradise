@@ -1,69 +1,101 @@
-from pyradise.data.taping import TransformInfo, TransformTape
+from pyradise.data import TransformInfo, ImageProperties
+from typing import TypeVar
+from pyradise.process import FilterParams, ZScoreNormFilter
+
+import SimpleITK as sitk
+
+
+class TestFilterParams(FilterParams):
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.a = 1
+
+
+filter_params = TestFilterParams()
+
+
+class TestImageProperties(ImageProperties):
+
+    def __init__(self, image) -> None:
+        super().__init__(image=image, data={})
+
+
+image_1 = sitk.Image(1, 1, 1, sitk.sitkUInt8)
+image_2 = sitk.Image(1, 1, 1, sitk.sitkUInt8)
+image_2.SetOrigin((1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0))
+
+image_properties_1 = TestImageProperties(image_1)
+image_properties_2 = TestImageProperties(image_2)
+
+IntensityImage = TypeVar("IntensityImage")
+SegmentationImage = TypeVar("SegmentationImage")
+FilterParameters = TypeVar("FilterParameters")
 
 
 def test_get_subclasses():
-    tra_info = TransformInfo("name_1", None, None, None, None, None, None)
+    tra_info = TransformInfo("", filter_params, ImageProperties, ImageProperties)
+    found_classes = tra_info._get_subclasses(FilterParams)
+    assert isinstance(found_classes, dict)
+    assert isinstance(found_classes['TestFilterParams'](), TestFilterParams)
+    assert found_classes['TestFilterParams']().a == 1
 
-    tra_info._get_subclasses(TransformInfo)
+
+def test_get_filter():
+    tra_info = TransformInfo("ZScoreNormFilter", FilterParams, ImageProperties, ImageProperties)
+    assert isinstance(tra_info.get_filter(), ZScoreNormFilter)
 
 
-# def get_filter():
-#     from pyradise.process import Filter
-#
-#     subclasses = self._get_subclasses(Filter)
-#     return subclasses.get(self.name)(**self.filter_args)
-#
-#
-# def get_params():
-#     return self.params
-#
-#
-# def get_image_properties():
-#     if pre_transform:
-#         return self.pre_transform_image_properties
-#     return self.post_transform_image_properties
-#
-#
-# def add_data():
-#     self.additional_data[key] = value
-#
-#
-# def get_data():
-#     return self.additional_data.get(key, None)
-#
-#
-# def get_transform():
-#     if self.transform is not None:
-#         if inverse:
-#             return self.transform.GetInverse()
-#         return self.transform
-#
-#     # check if the image origin and direction have changed
-#     num_dims = len(self.pre_transform_image_properties.size)
-#     if self.pre_transform_image_properties.has_equal_origin_direction(self.post_transform_image_properties):
-#         transform = sitk.AffineTransform(num_dims)
-#         transform.SetIdentity()
-#         return transform
-#
-#     else:
-#         transform = sitk.AffineTransform(num_dims)
-#         transform.SetIdentity()
-#
-#         # compute the translation
-#         post_origin = self.post_transform_image_properties.origin
-#         pre_origin = self.pre_transform_image_properties.origin
-#         translation = list(np.array(post_origin) - np.array(pre_origin))
-#
-#         # compute the rotation
-#         post_direction = np.array(self.post_transform_image_properties.direction).reshape(num_dims, num_dims)
-#         pre_direction = np.array(self.pre_transform_image_properties.direction).reshape(num_dims, num_dims)
-#         rotation = np.matmul(np.linalg.inv(pre_direction), post_direction)
-#         rotation = list(rotation.reshape(-1))
-#
-#         # set the transform parameters
-#         transform.SetParameters(rotation + translation)
-#
-#         # return the inverted or the original transform
-#         if inverse:
-#             transform = transform.GetInverse()
-#         return transform
+def test_get_params():
+    tra_info = TransformInfo("", filter_params, ImageProperties, ImageProperties)
+    assert isinstance(tra_info.get_params(), TestFilterParams)
+    assert tra_info.get_params().a == 1
+
+
+def test_get_image_properties():
+    tra_info = TransformInfo("", filter_params, 1, 2)
+    assert tra_info.get_image_properties(pre_transform=True) == 1
+    assert tra_info.get_image_properties(pre_transform=False) == 2
+
+
+def test_add_data():
+    tra_info = TransformInfo("", filter_params, ImageProperties, ImageProperties)
+    tra_info.add_data("a", 1)
+    assert tra_info.additional_data['a'] == 1
+    tra_info.add_data("b", 2)
+    assert tra_info.additional_data['b'] == 2
+
+
+def test_get_data():
+    tra_info = TransformInfo("", filter_params, ImageProperties, ImageProperties, None, {"a": 1, "b": 2})
+    assert tra_info.get_data("a") == 1
+    assert tra_info.get_data("b") == 2
+
+
+def test_get_transform_1():
+    transform_params = (10, 20, 0)
+    transform = sitk.TranslationTransform(3, transform_params)
+    inverse_transform = transform.GetInverse()
+    tra_info = TransformInfo("", filter_params, ImageProperties, ImageProperties, None, None, transform)
+    assert tra_info.get_transform(inverse=False) == transform
+    assert tra_info.get_transform(inverse=True).GetParameters() == inverse_transform.GetParameters()
+
+
+def test_get_transform_2():
+    tra_info = TransformInfo("", filter_params, image_properties_1, image_properties_1)
+    assert isinstance(tra_info.get_transform(inverse=False), sitk.Transform)
+    assert isinstance(tra_info.get_transform(inverse=True), sitk.Transform)
+    assert tra_info.get_transform(inverse=False).GetParameters() == (
+        1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0)
+    assert tra_info.get_transform(inverse=True).GetParameters() == (
+        1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0)
+
+
+def test_get_transform_3():
+    tra_info = TransformInfo("", filter_params, image_properties_1, image_properties_2)
+    assert isinstance(tra_info.get_transform(inverse=False), sitk.Transform)
+    assert isinstance(tra_info.get_transform(inverse=True), sitk.Transform)
+    assert tra_info.get_transform(inverse=False).GetParameters() == (
+        1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0)
+    assert tra_info.get_transform(inverse=True).GetParameters() == (
+        1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0)

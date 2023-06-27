@@ -515,8 +515,8 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
         """
         additional_tags_ = [
             Tag(0x0008, 0x1115),  # ReferencedSeriesSequence
-            Tag(0x0008, 0x1200),
-        ]  # StudiesContainingOtherReferencedInstancesSequence
+            Tag(0x0008, 0x1200),  # StudiesContainingOtherReferencedInstancesSequence
+        ]
 
         if additional_tags:
             additional_tags_.extend(additional_tags)
@@ -537,8 +537,8 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
             Tuple[ReferenceInfo, ...]: The :class:`ReferenceInfo` retrieved from the Dataset.
         """
         referenced_series_instance_uids = []
-
         referenced_series_sq = registration_dataset.get("ReferencedSeriesSequence", [])
+
         for item in referenced_series_sq:
             referenced_series_instance_uids.append(
                 ReferenceInfo(
@@ -571,7 +571,6 @@ class DicomSeriesRegistrationInfo(DicomSeriesInfo):
             Tuple[RegistrationSequenceInfo, ...]: The :class:`RegistrationSequenceInfo` entries retrieved.
         """
         registration_info = []
-
         for item in registration_dataset.get("RegistrationSequence", []):
             frame_of_reference_uid = str(item.get("FrameOfReferenceUID", ""))
             transforms = []

@@ -501,9 +501,11 @@ class OrientationFilter(Filter):
 
             # get the original orientation
             original_orient = transform_info.get_data("original_orientation")
+            print(original_orient)
 
             # reorient the image
             orient_filter = sitk.DICOMOrientImageFilter()
+            print(original_orient)
             orient_filter.SetDesiredCoordinateOrientation(original_orient)
             oriented_sitk_image = orient_filter.Execute(image.get_image_data())
 

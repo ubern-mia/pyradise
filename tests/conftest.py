@@ -172,6 +172,7 @@ dummy_meta_dicom = {
     "0040|0253": "0 ",
     "0040|0254": "MR",
     "0040|0280": "",
+    "0008|1115": "ReferencedSeriesSequence",
 }
 
 

@@ -4,11 +4,7 @@ from pyradise.process.base import (
 from pyradise.data import (Image, ImageProperties, IntensityImage,
                            SegmentationImage, Subject, TransformInfo)
 
-from tests.unit.helpers.image_helpers import get_sitk_image
-
-sitk_image_1 = get_sitk_image(1, 1, 101, 'nii')
-img_1 = IntensityImage(sitk_image_1, 'modality_1')
-
+import SimpleITK as sitk
 
 class TestFilter(Filter):
 
@@ -40,8 +36,10 @@ def test_filter_set_warning_on_non_invertible():
     assert filter.warn_on_non_invertible is True
 
 
-def test__register_tracked_data():
+def test__register_tracked_data(img_file_nii):
     filter = TestFilter()
+    sitk_image_1 = sitk.ReadImage(img_file_nii)
+    img_1 = IntensityImage(sitk_image_1, "modality")
     filter._register_tracked_data(img_1, sitk_image_1, sitk_image_1)
     # TODO:
 

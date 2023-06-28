@@ -7,10 +7,22 @@ import itk
 import numpy as np
 import SimpleITK as sitk
 
-from pyradise.data import (Image, ImageProperties, IntensityImage,
-                           SegmentationImage, Subject, TransformInfo)
+from pyradise.data import (
+    Image,
+    ImageProperties,
+    IntensityImage,
+    SegmentationImage,
+    Subject,
+    TransformInfo,
+)
 
-__all__ = ["FilterParams", "Filter", "LoopEntryFilterParams", "LoopEntryFilter", "FilterPipeline"]
+__all__ = [
+    "FilterParams",
+    "Filter",
+    "LoopEntryFilterParams",
+    "LoopEntryFilter",
+    "FilterPipeline",
+]
 
 
 # pylint: disable=too-few-public-methods
@@ -531,6 +543,11 @@ class FilterPipeline:
         Returns:
             None
         """
+        if filter_index >= len(self.filters) - 1:
+            raise ValueError(
+                f"The filter index ({filter_index}) must be smaller than the number of filters ({len(self.filters)})!"
+            )
+
         if filter_index == -1:
             filter_idx = len(self.filters) - 1
         else:

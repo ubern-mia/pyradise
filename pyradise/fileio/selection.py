@@ -1,13 +1,24 @@
 from abc import ABC, abstractmethod
 from typing import List, Sequence, Tuple, Union
 
-from pyradise.data import (Annotator, Modality, Organ, seq_to_annotators,
-                           seq_to_modalities, seq_to_organs)
+from pyradise.data import (
+    Annotator,
+    Modality,
+    Organ,
+    seq_to_annotators,
+    seq_to_modalities,
+    seq_to_organs,
+)
 
-from .series_info import (DicomSeriesImageInfo, DicomSeriesInfo,
-                          DicomSeriesRegistrationInfo, DicomSeriesRTSSInfo,
-                          IntensityFileSeriesInfo, SegmentationFileSeriesInfo,
-                          SeriesInfo)
+from .series_info import (
+    DicomSeriesImageInfo,
+    DicomSeriesInfo,
+    DicomSeriesRegistrationInfo,
+    DicomSeriesRTSSInfo,
+    IntensityFileSeriesInfo,
+    SegmentationFileSeriesInfo,
+    SeriesInfo,
+)
 
 __all__ = [
     "SeriesInfoSelector",
@@ -29,7 +40,7 @@ class SeriesInfoSelector(ABC):
     """
 
     @abstractmethod
-    def execute(self, infos: Sequence[SeriesInfo]) -> Tuple[SeriesInfo, ...]:
+    def execute(self, infos: Sequence[SeriesInfo] = None) -> Tuple[SeriesInfo, ...]:
         """Perform the selection procedure such that the appropriate :class:`~pyradise.fileio.series_info.SeriesInfo`
         entries are kept.
 
@@ -96,10 +107,11 @@ class ModalityInfoSelector(SeriesInfoSelector):
           the :class:`~pyradise.fileio.series_info.SeriesInfo` entries to keep.
     """
 
-    def __init__(self, keep: Tuple[Union[Modality, str], ...]) -> None:
+    def __init__(self, keep: Tuple[Union[Modality, str], ...] = None) -> None:
         super().__init__()
 
-        assert keep, "The modalities to keep must not be empty!"
+        if keep is None:
+            raise ValueError("The modalities to keep must not be empty!")
         self.keep: Tuple[Modality, ...] = seq_to_modalities(keep)
 
     # noinspection DuplicatedCode
@@ -134,7 +146,7 @@ class ModalityInfoSelector(SeriesInfoSelector):
 
     # noinspection DuplicatedCode
     # pylint: disable=duplicate-code
-    def execute(self, infos: Sequence[SeriesInfo]) -> Tuple[SeriesInfo, ...]:
+    def execute(self, infos: Sequence[SeriesInfo] = None) -> Tuple[SeriesInfo, ...]:
         """Remove all :class:`~pyradise.fileio.series_info.IntensityFileSeriesInfo` and
         :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` entries that do not contain
         one of the specified :class:`~pyradise.data.modality.Modality` entries.
@@ -146,7 +158,8 @@ class ModalityInfoSelector(SeriesInfoSelector):
         Returns:
             Tuple[SeriesInfo, ...]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
-        assert infos, "The series infos must not be empty!"
+        if infos is None:
+            raise ValueError("The series infos must not be empty!")
 
         selected: List[SeriesInfo] = []
         for info in infos:
@@ -178,13 +191,14 @@ class OrganInfoSelector(SeriesInfoSelector):
 
     """
 
-    def __init__(self, keep: Tuple[Union[Organ, str], ...]) -> None:
+    def __init__(self, keep: Tuple[Union[Organ, str], ...] = None) -> None:
         super().__init__()
 
-        assert keep, "The organs to keep must not be empty!"
+        if keep is None:
+            raise ValueError("The organs to keep must not be empty!")
         self.keep: Tuple[Organ, ...] = seq_to_organs(keep)
 
-    def execute(self, infos: Sequence[SeriesInfo]) -> Tuple[SeriesInfo, ...]:
+    def execute(self, infos: Sequence[SeriesInfo] = None) -> Tuple[SeriesInfo, ...]:
         """Remove all :class:`~pyradise.fileio.series_info.SegmentationFileSeriesInfo` entries that do not contain
         one of the specified :class:`~pyradise.data.organ.Organ` entries.
 
@@ -194,7 +208,8 @@ class OrganInfoSelector(SeriesInfoSelector):
         Returns:
             Tuple[SeriesInfo, ...]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
-        assert infos, "The series infos must not be empty!"
+        if infos is None:
+            raise ValueError("The series infos must not be empty!")
 
         selected: List[SeriesInfo] = []
         for info in infos:
@@ -217,15 +232,16 @@ class AnnotatorInfoSelector(SeriesInfoSelector):
          :class:`~pyradise.fileio.series_info.SeriesInfo` entries to keep.
     """
 
-    def __init__(self, keep: Tuple[Union[Annotator, str], ...]) -> None:
+    def __init__(self, keep: Tuple[Union[Annotator, str], ...] = None) -> None:
         super().__init__()
 
-        assert keep, "The annotators to keep must not be empty!"
+        if keep is None:
+            raise ValueError("The annotators to keep must not be empty!")
         self.keep: Tuple[Annotator, ...] = seq_to_annotators(keep)
 
     # noinspection DuplicatedCode
     # pylint: disable=duplicate-code
-    def execute(self, infos: Sequence[SeriesInfo]) -> Tuple[SeriesInfo, ...]:
+    def execute(self, infos: Sequence[SeriesInfo] = None) -> Tuple[SeriesInfo, ...]:
         """Remove all :class:`~pyradise.fileio.series_info.SegmentationFileSeriesInfo` and
         :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` entries that do not contain one of the specified
         :class:`~pyradise.data.annotator.Annotator` entries.
@@ -236,7 +252,8 @@ class AnnotatorInfoSelector(SeriesInfoSelector):
         Returns:
             Tuple[SeriesInfo, ...]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
-        assert infos, "The series infos must not be empty!"
+        if infos is None:
+            raise ValueError("The series infos must not be empty!")
 
         selected: List[SeriesInfo] = []
         for info in infos:
@@ -257,7 +274,7 @@ class NoRegistrationInfoSelector(SeriesInfoSelector):
     """A :class:`SeriesInfoSelector` to remove all :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo`
     entries such that no registration is applied during loading."""
 
-    def execute(self, infos: Sequence[SeriesInfo]) -> Tuple[SeriesInfo, ...]:
+    def execute(self, infos: Sequence[SeriesInfo] = None) -> Tuple[SeriesInfo, ...]:
         """Remove all :class:`~pyradise.fileio.series_info.DicomSeriesRegistrationInfo` entries from the provided
         :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
 
@@ -267,7 +284,8 @@ class NoRegistrationInfoSelector(SeriesInfoSelector):
         Returns:
             Sequence[SeriesInfo]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
-        assert infos, "The series infos must not be empty!"
+        if infos is None:
+            raise ValueError("The series infos must not be empty!")
 
         selected: List[SeriesInfo] = []
         for info in infos:
@@ -281,7 +299,7 @@ class NoRTSSInfoSelector(SeriesInfoSelector):
     """A :class:`SeriesInfoSelector` to remove all :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo`
     entries such that all DICOM-RTSS data is excluded from loading."""
 
-    def execute(self, infos: Sequence[SeriesInfo]) -> Tuple[SeriesInfo, ...]:
+    def execute(self, infos: Sequence[SeriesInfo] = None) -> Tuple[SeriesInfo, ...]:
         """Remove all :class:`~pyradise.fileio.series_info.DicomSeriesRTSSInfo` entries from the provided
         :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
 
@@ -291,7 +309,8 @@ class NoRTSSInfoSelector(SeriesInfoSelector):
         Returns:
             Tuple[SeriesInfo, ...]: The selected :class:`~pyradise.fileio.series_info.SeriesInfo` entries.
         """
-        assert infos, "The series infos must not be empty!"
+        if infos is None:
+            raise ValueError("The series infos must not be empty!")
 
         selected: List[SeriesInfo] = []
         for info in infos:

@@ -337,14 +337,14 @@ class LoopEntryFilterParams(FilterParams):
          by looping over the corresponding image dimension.
     """
 
-    def __init__(self, loop_axis: Optional[int]) -> None:
+    def __init__(self, loop_axis: Optional[int] = None) -> None:
         super().__init__()
 
         if loop_axis is not None:
-            assert loop_axis >= 0, "The loop axis must be a non-negative integer."
-            assert loop_axis < 3, (
-                "The loop axis must be smaller than 3 because PyRaDiSe only supports 2D and " "3D images."
-            )
+            if loop_axis < 0:
+                raise ValueError("The loop axis must be a non-negative integer.")
+            if loop_axis > 3:
+                raise ValueError("The loop axis must be smaller than 3, PyRaDiSe only supports 2D and 3D images.")
 
         self.loop_axis: Optional[int] = loop_axis
 
@@ -482,10 +482,11 @@ class FilterPipeline:
                 params = [None] * len(filters)
 
             else:
-                assert len(params) == len(filters), (
-                    f"The number of filters ({len(filters)}) must be equal "
-                    f"to the number of filter parameters ({len(params)})!"
-                )
+                if len(params) != len(filters):
+                    raise ValueError(
+                        f"The number of filters ({len(filters)}) must be equal "
+                        f"to the number of filter parameters ({len(params)})!"
+                    )
 
             for filter_, param in zip(filters, params):
                 self.add_filter(filter_, param)
@@ -557,11 +558,12 @@ class FilterPipeline:
         Returns:
             Subject: The currently processed Subject iteration.
         """
-        assert len(self.filters) == len(self.params), (
-            f"The filter pipeline can not be executed due to unequal "
-            f"numbers of filters ({len(self.filters)}) and "
-            f"parameters ({len(self.params)})!"
-        )
+        if len(self.filters) != len(self.params):
+            raise ValueError(
+                f"The filter pipeline can not be executed due to unequal "
+                f"numbers of filters ({len(self.filters)}) and "
+                f"parameters ({len(self.params)})!"
+            )
 
         for filter_, param in zip(self.filters, self.params):
             if self.logger:
@@ -587,4 +589,3 @@ class FilterPipeline:
         """
         *_, subject = self.execute_iteratively(subject)  # iterate over the generator and get the last subject
         return subject
-

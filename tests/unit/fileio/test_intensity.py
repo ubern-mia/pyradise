@@ -1,34 +1,30 @@
-import pytest
 import numpy as np
+import pytest
 import SimpleITK as sitk
 
-from pyradise.data import TransformInfo, Subject, IntensityImage
-
+from pyradise.data import IntensityImage, Modality, Subject, TransformInfo
 from pyradise.process.intensity import (
-    IntensityFilter,
-    IntensityFilterParams,
-    IntensityLoopFilterParams,
-    IntensityLoopFilter,
-    ZScoreNormFilter,
-    ZScoreNormFilterParams,
-    ZeroOneNormFilter,
-    ZeroOneNormFilterParams,
-    RescaleIntensityFilter,
-    RescaleIntensityFilterParams,
     ClipIntensityFilter,
     ClipIntensityFilterParams,
     GaussianFilter,
     GaussianFilterParams,
+    IntensityFilter,
+    IntensityFilterParams,
+    IntensityLoopFilter,
+    IntensityLoopFilterParams,
+    LaplacianFilterParams,
     MedianFilter,
     MedianFilterParams,
-
-    LaplacianFilterParams,
+    RescaleIntensityFilter,
+    RescaleIntensityFilterParams,
+    ZeroOneNormFilter,
+    ZeroOneNormFilterParams,
+    ZScoreNormFilter,
+    ZScoreNormFilterParams,
 )
-from pyradise.data import Modality
 
 
 class HelperTransformInfo:
-
     def __init__(self):
         self.params = {
             "mean_0": 0.5,
@@ -85,27 +81,36 @@ def test_zscore_norm_filter_1():
 def test_zscore_norm_filter_2():
     filter = ZScoreNormFilter()
     array = np.array([1, 0, 1, 0])
-    assert np.array_equal(filter._modify_array(array, None), [1., -1., 1., -1.])
+    assert np.array_equal(filter._modify_array(array, None), [1.0, -1.0, 1.0, -1.0])
 
 
 def test_zscore_norm_filter_3():
     filter = ZScoreNormFilter()
     post_array = np.array([1, -1, 1, -1])
     params = HelperTransformInfo()
-    assert np.array_equal(filter._modify_array_inverse(post_array, params), [1., 0., 1., 0.])
+    assert np.array_equal(
+        filter._modify_array_inverse(post_array, params), [1.0, 0.0, 1.0, 0.0]
+    )
 
 
 def test_zscore_norm_filter_4():
-    image = IntensityImage(sitk.GetImageFromArray(np.array([[1, 0], [1, 0]])), "modality")
+    image = IntensityImage(
+        sitk.GetImageFromArray(np.array([[1, 0], [1, 0]])), "modality"
+    )
     s = Subject("test_name", image)
     filter = ZScoreNormFilter()
     filter_params = ZScoreNormFilterParams(0, ("modality",))
     result = filter.execute(s, filter_params)
-    assert np.array_equal(result.get_image_by_modality("modality").get_image_data_as_np(), [[1., -1.], [1., -1.]])
+    assert np.array_equal(
+        result.get_image_by_modality("modality").get_image_data_as_np(),
+        [[1.0, -1.0], [1.0, -1.0]],
+    )
 
 
 def test_zscore_norm_filter_5():
-    image = IntensityImage(sitk.GetImageFromArray(np.array([[1, -1], [1, -1]])), "modality")
+    image = IntensityImage(
+        sitk.GetImageFromArray(np.array([[1, -1], [1, -1]])), "modality"
+    )
     s = Subject("test_name", image)
     filter = ZScoreNormFilter()
     params = HelperTransformInfo()
@@ -218,5 +223,3 @@ def test_laplace_filter_params_1():
 def test_laplace_filter_params_2():
     params = LaplacianFilterParams(None)
     assert params.modalities is None
-
-

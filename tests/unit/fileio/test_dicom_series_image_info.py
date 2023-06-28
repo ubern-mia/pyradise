@@ -1,7 +1,7 @@
 import os
 
-from pyradise.fileio.series_info import DicomSeriesImageInfo
 from pyradise.data.modality import Modality
+from pyradise.fileio.series_info import DicomSeriesImageInfo
 
 
 def test__init__(img_series_dcm):

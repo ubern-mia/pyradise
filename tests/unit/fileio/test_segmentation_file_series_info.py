@@ -1,6 +1,7 @@
-from pyradise.fileio.series_info import SegmentationFileSeriesInfo
-from pyradise.data import Annotator, Organ
 import pytest
+
+from pyradise.data import Annotator, Organ
+from pyradise.fileio.series_info import SegmentationFileSeriesInfo
 
 
 def test__init__1(img_file_nii):

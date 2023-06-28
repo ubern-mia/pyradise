@@ -1,7 +1,7 @@
 import SimpleITK as sitk
 
+from pyradise.data import ImageProperties, IntensityImage, Subject, TransformInfo
 from pyradise.process.orientation import OrientationFilter, OrientationFilterParams
-from pyradise.data import Subject, IntensityImage, TransformInfo, ImageProperties
 
 
 def test_is_invertible():

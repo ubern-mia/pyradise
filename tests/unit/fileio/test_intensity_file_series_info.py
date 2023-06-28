@@ -1,7 +1,7 @@
-from pyradise.fileio.series_info import IntensityFileSeriesInfo
-from pyradise.data import Modality
-
 import pytest
+
+from pyradise.data import Modality
+from pyradise.fileio.series_info import IntensityFileSeriesInfo
 
 
 def test__init__1(img_file_nii):
@@ -30,4 +30,3 @@ def test_update(img_file_nii):
     ifsi = IntensityFileSeriesInfo(img_file_nii, "test_name", "modality")
     ifsi.update()
     assert ifsi.is_updated() is True
-    

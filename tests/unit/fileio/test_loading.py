@@ -1,6 +1,8 @@
-from pyradise.fileio.loading import SubjectLoader, IterableSubjectLoader
-import SimpleITK as sitk
 import os
+
+import SimpleITK as sitk
+
+from pyradise.fileio.loading import IterableSubjectLoader, SubjectLoader
 
 
 def test_subject_loader_load_intensity_images(img_series_dcm):

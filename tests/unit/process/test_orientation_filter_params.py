@@ -1,6 +1,6 @@
-from pyradise.process.orientation import OrientationFilterParams, SpatialOrientation
-
 import pytest
+
+from pyradise.process.orientation import OrientationFilterParams, SpatialOrientation
 
 
 def test__init__1():
@@ -15,4 +15,6 @@ def test__init__2():
 
 def test__init__3():
     params = OrientationFilterParams(SpatialOrientation.LAS)
-    assert params.output_orientation == OrientationFilterParams("LAS").output_orientation
+    assert (
+        params.output_orientation == OrientationFilterParams("LAS").output_orientation
+    )

@@ -1,26 +1,25 @@
-import pytest
 import os
 
+import pytest
 import SimpleITK as sitk
 
 from pyradise.utils import (
-    is_dir_and_exists,
-    is_file_and_exists,
-    is_dicom_file,
-    assume_is_segmentation,
-    convert_to_sitk_image,
-    convert_to_itk_image,
     assume_is_intensity_image,
-    remove_illegal_folder_chars,
-    load_dataset,
-    load_datasets,
-    load_dataset_tag,
+    assume_is_segmentation,
     chunkify,
+    convert_to_itk_image,
+    convert_to_sitk_image,
     get_slice_direction,
     get_slice_position,
     get_spacing_between_slices,
+    is_dicom_file,
+    is_dir_and_exists,
+    is_file_and_exists,
+    load_dataset,
+    load_dataset_tag,
+    load_datasets,
+    remove_illegal_folder_chars,
 )
-
 from tests.unit.helpers.image_helpers import (
     get_sitk_intensity_image,
     get_sitk_segmentation_image,

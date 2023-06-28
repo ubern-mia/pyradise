@@ -1,17 +1,17 @@
-from pyradise.fileio.extraction import OrganExtractor, SimpleOrganExtractor
+import pytest
 
 from pyradise.data import Organ
-import pytest
+from pyradise.fileio.extraction import OrganExtractor, SimpleOrganExtractor
 
 
 def test_organ_extractor_1(img_file_nii):
-    soe = SimpleOrganExtractor(('Brain',))
+    soe = SimpleOrganExtractor(("Brain",))
     assert soe.extract(path=img_file_nii) is None
 
 
 def test_organ_extractor_2(img_file_nii):
-    soe = SimpleOrganExtractor(('nii',))
-    assert soe.extract(path=img_file_nii) == Organ('nii')
+    soe = SimpleOrganExtractor(("nii",))
+    assert soe.extract(path=img_file_nii) == Organ("nii")
 
 
 def test_organ_extractor_3(img_file_nii):

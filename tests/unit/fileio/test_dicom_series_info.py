@@ -1,9 +1,9 @@
-from pyradise.fileio.series_info import DicomSeriesInfo, Tag
 import pytest
+
+from pyradise.fileio.series_info import DicomSeriesInfo, Tag
 
 
 class TestDicomSeriesInfo(DicomSeriesInfo):
-
     def __init__(self, path):
         super().__init__(path)
 
@@ -30,5 +30,3 @@ def test__init__2(img_file_dcm):
 def test__init__3(img_file_dcm_no_meta):
     with pytest.raises(ValueError):
         TestDicomSeriesInfo(img_file_dcm_no_meta)
-
-

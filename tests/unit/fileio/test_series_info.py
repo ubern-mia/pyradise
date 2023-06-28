@@ -4,7 +4,6 @@ from pyradise.fileio.series_info import SeriesInfo
 
 
 class TestSeriesInfo(SeriesInfo):
-
     def __init__(self, path):
         super().__init__(path)
 
@@ -41,7 +40,10 @@ def test_check_paths_3(img_file_nii):
 
 def test_check_paths_4(img_file_nii):
     tsi = TestSeriesInfo((img_file_nii, img_file_nii))
-    tsi._check_paths((os.path.dirname(img_file_nii), os.path.dirname(img_file_nii)), should_be_dir=True)
+    tsi._check_paths(
+        (os.path.dirname(img_file_nii), os.path.dirname(img_file_nii)),
+        should_be_dir=True,
+    )
     assert tsi.path == (img_file_nii, img_file_nii)
 
 
@@ -64,4 +66,3 @@ def test_get_patient_id(img_file_nii):
 def test_is_update(img_file_nii):
     tsi = TestSeriesInfo(img_file_nii)
     assert tsi.is_updated() is False
-

@@ -1,13 +1,12 @@
 import os
 import shutil
-import itk
-import numpy as np
-import SimpleITK as sitk
-
-from PIL import Image
-import pytest
 import tempfile
 
+import itk
+import numpy as np
+import pytest
+import SimpleITK as sitk
+from PIL import Image
 
 dummy_meta_nifti = {
     "ITK_FileNotes": "",
@@ -294,3 +293,9 @@ def seg_series_dcm(tmp_path_factory) -> str:
         sitk.WriteImage(slice_image, tmp_file)
     yield str(tmp_dir)
     shutil.rmtree(tmp_dir)
+
+
+@pytest.fixture
+def empty_folder(tmp_path_factory) -> str:
+    tmp_dir = tmp_path_factory.mktemp("data")
+    return str(tmp_dir)

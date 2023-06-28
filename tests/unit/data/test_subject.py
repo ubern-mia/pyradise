@@ -1,6 +1,13 @@
 import pytest
 
-from pyradise.data import Annotator, IntensityImage, SegmentationImage, Subject, Modality, Organ
+from pyradise.data import (
+    Annotator,
+    IntensityImage,
+    Modality,
+    Organ,
+    SegmentationImage,
+    Subject,
+)
 from tests.conftest import get_sitk_image
 
 img_1 = IntensityImage(

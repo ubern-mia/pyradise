@@ -3,9 +3,8 @@ import numpy as np
 import pytest
 import SimpleITK as sitk
 
-from pyradise.data import Image, TransformTape, TransformInfo
+from pyradise.data import Image, TransformInfo, TransformTape
 from tests.conftest import get_itk_image, get_sitk_image
-
 
 itk_img_1 = get_itk_image(seed=0, low=0, high=101, meta="nii")
 itk_img_2 = get_itk_image(seed=1, low=0, high=101, meta="nii")

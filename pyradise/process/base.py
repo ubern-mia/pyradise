@@ -242,7 +242,7 @@ class Filter(ABC):
         image: Image,
         pre_transform_image: Union[sitk.Image, itk.Image],
         post_transform_image: Union[sitk.Image, itk.Image],
-        params: Optional[FilterParams] = None,
+        params: Optional[FilterParams],
         transform: Optional[sitk.Transform] = None,
     ) -> None:
         """Create the :class:`~pyradise.data.taping.TransformInfo` instance which is used to store the information

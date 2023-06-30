@@ -175,7 +175,7 @@ class ModalityExtractor(Extractor):
         Returns:
             str: The next enumerated modality name.
         """
-        name = f"{self.default_modality_name}_{self.modality_default_idx}"
+        name = self.default_modality_name + str(self.modality_default_idx)
         self.modality_default_idx += 1
         return name
 

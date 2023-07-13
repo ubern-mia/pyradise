@@ -2,14 +2,11 @@ import pytest
 
 from pyradise.data.image import IntensityImage
 from pyradise.data.modality import Modality
-from tests.unit.helpers.image_helpers import (
-    get_itk_intensity_image,
-    get_sitk_intensity_image,
-)
+from tests.conftest import get_itk_image, get_sitk_image
 
-sitk_img_1 = get_sitk_intensity_image(1)
-sitk_img_2 = get_sitk_intensity_image(2)
-itk_img_1 = get_itk_intensity_image(3)
+itk_img_1 = get_itk_image(seed=0, low=0, high=101, meta="nii")
+sitk_img_1 = get_sitk_image(seed=1, low=0, high=101, meta="nii")
+sitk_img_2 = get_sitk_image(seed=2, low=0, high=101, meta="nii")
 
 
 def test__init__1():

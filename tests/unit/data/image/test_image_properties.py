@@ -2,13 +2,10 @@ import itk
 import pytest
 
 from pyradise.data.image import ImageProperties
-from tests.unit.helpers.image_helpers import (
-    get_itk_intensity_image,
-    get_sitk_intensity_image,
-)
+from tests.conftest import get_itk_image, get_sitk_image
 
-sitk_img_1 = get_sitk_intensity_image(1)
-itk_img_1 = get_itk_intensity_image(2)
+itk_img_1 = get_itk_image(seed=0, low=0, high=101, meta="nii")
+sitk_img_1 = get_sitk_image(seed=1, low=0, high=101, meta="nii")
 
 
 def test__init__1():
@@ -41,7 +38,7 @@ def test_get_entry():
 def test_set_entry_1():
     i = ImageProperties(sitk_img_1, resize=(1, 1, 1), shape=None)
     assert i.set_entry("new_resize", (2, 2, 2)) is None
-    assert i.kwargs['new_resize'] == (2, 2, 2)
+    assert i.kwargs["new_resize"] == (2, 2, 2)
 
 
 def test_set_entry_2():

@@ -4,10 +4,10 @@ import SimpleITK as sitk
 
 from pyradise.data import Annotator, Organ, OrganAnnotatorCombination
 from pyradise.data.image import SegmentationImage
-from tests.unit.helpers.image_helpers import get_sitk_segmentation_image
+from tests.conftest import get_sitk_image
 
-sitk_seg_1 = get_sitk_segmentation_image(1)
-sitk_seg_2 = get_sitk_segmentation_image(2)
+sitk_seg_1 = get_sitk_image(seed=0, low=0, high=2, meta="nii")
+sitk_seg_2 = get_sitk_image(seed=1, low=0, high=2, meta="nii")
 
 
 def test__init__1():
@@ -100,7 +100,7 @@ def test_is_binary_1():
 
 
 def test_is_binary_2():
-    zero_seg = sitk.GetImageFromArray(np.zeros((5,5,5)), sitk.sitkUInt8)
+    zero_seg = sitk.GetImageFromArray(np.zeros((5, 5, 5)), sitk.sitkUInt8)
     s = SegmentationImage(zero_seg, "organ", "annotator")
     assert s.is_binary() is False
     assert isinstance(s.is_binary(), bool)
@@ -133,6 +133,3 @@ def test__str__2():
     s = SegmentationImage(sitk_seg_1, "organ", None)
     assert isinstance(s.__str__(), str)
     assert s.__str__() == "SegmentationImage: organ"
-
-
-

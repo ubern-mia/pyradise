@@ -58,3 +58,9 @@ addopts = "-ra -q"
 testpaths = [
     "tests",
 ]
+
+[tool.isort]
+profile = "black"
+
+[tool.black]
+line-length = 120

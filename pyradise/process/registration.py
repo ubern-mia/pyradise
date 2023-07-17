@@ -4,8 +4,15 @@ from typing import Optional, Tuple, Union
 import numpy as np
 import SimpleITK as sitk
 
-from pyradise.data import (Image, IntensityImage, Modality, SegmentationImage,
-                           Subject, TransformInfo, str_to_modality)
+from pyradise.data import (
+    Image,
+    IntensityImage,
+    Modality,
+    SegmentationImage,
+    Subject,
+    TransformInfo,
+    str_to_modality,
+)
 
 from .base import Filter, FilterParams
 

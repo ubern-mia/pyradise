@@ -133,12 +133,8 @@ def test_cast():
     i = NewImage(sitk_img_1, data)
     assert isinstance(i.cast(image=sitk_img_1, pixel_type=1, as_sitk=True), sitk.Image)
     assert isinstance(i.cast(image=sitk_img_1, pixel_type=1, as_sitk=False), itk.Image)
-    assert isinstance(
-        i.cast(image=itk_img_1, pixel_type=itk.UC, as_sitk=True), sitk.Image
-    )
-    assert isinstance(
-        i.cast(image=itk_img_1, pixel_type=itk.UC, as_sitk=False), itk.Image
-    )
+    assert isinstance(i.cast(image=itk_img_1, pixel_type=itk.UC, as_sitk=True), sitk.Image)
+    assert isinstance(i.cast(image=itk_img_1, pixel_type=itk.UC, as_sitk=False), itk.Image)
 
 
 def test_get_image_data():

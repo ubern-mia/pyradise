@@ -5,8 +5,13 @@ from typing import Optional, Tuple, Union
 import numpy as np
 import SimpleITK as sitk
 
-from pyradise.data import (IntensityImage, Organ, SegmentationImage, Subject,
-                           TransformInfo)
+from pyradise.data import (
+    IntensityImage,
+    Organ,
+    SegmentationImage,
+    Subject,
+    TransformInfo,
+)
 
 from .base import Filter, FilterParams
 

@@ -4,6 +4,7 @@ np.random.seed(42)
 
 
 def test_numpy_random_seed():
+    """Verify that numpy random seed has not changed by the version update"""
     random_cube = np.random.randint(low=0, high=101, size=[5, 5, 5], dtype=np.int64)
     test_cube = np.array(
         [

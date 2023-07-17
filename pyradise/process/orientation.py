@@ -3,8 +3,7 @@ from typing import Optional, Union
 
 import SimpleITK as sitk
 
-from pyradise.data import (IntensityImage, SegmentationImage, Subject,
-                           TransformInfo)
+from pyradise.data import IntensityImage, SegmentationImage, Subject, TransformInfo
 
 from .base import Filter, FilterParams
 

@@ -4,8 +4,14 @@ import itk
 import numpy as np
 import SimpleITK as sitk
 
-from pyradise.data import (IntensityImage, Modality, SegmentationImage,
-                           Subject, TransformInfo, str_to_modality)
+from pyradise.data import (
+    IntensityImage,
+    Modality,
+    SegmentationImage,
+    Subject,
+    TransformInfo,
+    str_to_modality,
+)
 
 from .base import Filter, FilterParams
 

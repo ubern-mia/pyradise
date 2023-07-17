@@ -21,18 +21,34 @@ import vtkmodules.vtkImagingGeneral as vtk_igen
 from pydicom import Dataset, FileDataset, Sequence
 from pydicom.dataset import FileMetaDataset
 from pydicom.tag import Tag
-from pydicom.uid import (PYDICOM_IMPLEMENTATION_UID, ImplicitVRLittleEndian,
-                         generate_uid)
+from pydicom.uid import PYDICOM_IMPLEMENTATION_UID, ImplicitVRLittleEndian, generate_uid
 
-from pyradise.data import (IntensityImage, Modality, Organ, SegmentationImage,
-                           Subject, str_to_modality)
-from pyradise.utils import (chunkify, convert_to_itk_image,
-                            get_slice_direction, get_slice_position,
-                            get_spacing_between_slices, load_dataset,
-                            load_dataset_tag, load_datasets)
+from pyradise.data import (
+    IntensityImage,
+    Modality,
+    Organ,
+    SegmentationImage,
+    Subject,
+    str_to_modality,
+)
+from pyradise.utils import (
+    chunkify,
+    convert_to_itk_image,
+    get_slice_direction,
+    get_slice_position,
+    get_spacing_between_slices,
+    load_dataset,
+    load_dataset_tag,
+    load_datasets,
+)
 
-from .series_info import (DicomSeriesImageInfo, DicomSeriesRegistrationInfo,
-                          DicomSeriesRTSSInfo, RegistrationInfo, SeriesInfo)
+from .series_info import (
+    DicomSeriesImageInfo,
+    DicomSeriesRegistrationInfo,
+    DicomSeriesRTSSInfo,
+    RegistrationInfo,
+    SeriesInfo,
+)
 
 __all__ = [
     "Converter",

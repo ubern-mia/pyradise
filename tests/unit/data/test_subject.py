@@ -10,12 +10,8 @@ from pyradise.data import (
 )
 from tests.conftest import get_sitk_image
 
-img_1 = IntensityImage(
-    get_sitk_image(seed=0, low=0, high=101, meta="nii"), Modality("modality_1")
-)
-img_2 = IntensityImage(
-    get_sitk_image(seed=1, low=0, high=101, meta="nii"), Modality("modality_2")
-)
+img_1 = IntensityImage(get_sitk_image(seed=0, low=0, high=101, meta="nii"), Modality("modality_1"))
+img_2 = IntensityImage(get_sitk_image(seed=1, low=0, high=101, meta="nii"), Modality("modality_2"))
 seg_1 = SegmentationImage(
     get_sitk_image(seed=2, low=0, high=2, meta="nii"),
     Organ("organ_1"),
@@ -193,20 +189,10 @@ def test_get_images_by_annotator_2():
 def test_get_image_by_organ_and_annotator():
     s = Subject("subject")
     s.add_images([img_1, img_1, img_2, seg_1, seg_1, seg_2], force=True)
-    assert isinstance(
-        s.get_image_by_organ_and_annotator("organ_2", "annotator_2"), SegmentationImage
-    )
+    assert isinstance(s.get_image_by_organ_and_annotator("organ_2", "annotator_2"), SegmentationImage)
     assert s.get_image_by_organ_and_annotator("organ_2", "annotator_2") == seg_2
-    assert (
-        s.get_image_by_organ_and_annotator(Organ("organ_2"), Annotator("annotator_2"))
-        == seg_2
-    )
-    assert (
-        s.get_image_by_organ_and_annotator(
-            "organ_1", "annotator_1", return_first_on_multiple=True
-        )
-        == seg_1
-    )
+    assert s.get_image_by_organ_and_annotator(Organ("organ_2"), Annotator("annotator_2")) == seg_2
+    assert s.get_image_by_organ_and_annotator("organ_1", "annotator_1", return_first_on_multiple=True) == seg_1
 
 
 def test_get_images_by_type():
@@ -440,7 +426,10 @@ def test_remove_additional_data_by_key():
 
 
 def test_playback_transform_tapes():
-    """Test that the transform tapes are played back correctly."""
+    s = Subject("subject")
+    s.add_images([img_1, img_2, seg_1, seg_2])
+    s.playback_transform_tapes()
+    assert s.get_images_by_type(IntensityImage) == [img_1, img_2]
 
 
 def test__str__():

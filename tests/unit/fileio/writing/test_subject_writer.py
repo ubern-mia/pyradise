@@ -11,6 +11,10 @@ from pyradise.data import (
     TransformInfo,
 )
 from pyradise.fileio.writing import ImageFileFormat, SubjectWriter
+from tests.conftest import get_sitk_image
+
+sitk_img_1 = get_sitk_image(seed=0, low=0, high=101, meta="nii")
+sitk_seg_1 = get_sitk_image(seed=0, low=0, high=2, meta="nii")
 
 
 def test__init__():
@@ -22,7 +26,7 @@ def test__init__():
 def test__generate_image_file_name_1(img_file_nii):
     subject_writer = SubjectWriter()
     subject = Subject("subject")
-    image = IntensityImage(sitk.ReadImage(img_file_nii), "modality")
+    image = IntensityImage(sitk_img_1, "modality")
     assert subject_writer._generate_image_file_name(subject, image, False) == "img_subject_modality"
 
 
@@ -36,14 +40,14 @@ def test__generate_image_file_name_2(seg_file_nii):
 def test__generate_image_file_name_3(img_file_nii):
     subject_writer = SubjectWriter()
     subject = Subject("subject")
-    image = IntensityImage(sitk.ReadImage(img_file_nii), "modality")
+    image = IntensityImage(sitk_img_1, "modality")
     assert subject_writer._generate_image_file_name(subject, image, True) == "img_subject_modality.nii.gz"
 
 
 def test__generate_image_file_name_4(seg_file_nii):
     subject_writer = SubjectWriter()
     subject = Subject("subject")
-    image = SegmentationImage(sitk.ReadImage(seg_file_nii), "organ", "annotation")
+    image = SegmentationImage(sitk_seg_1, "organ", "annotation")
     assert subject_writer._generate_image_file_name(subject, image, True) == "seg_subject_annotation_organ.nii.gz"
 
 
@@ -54,18 +58,18 @@ def test__generate_image_file_name_5():
         subject_writer._generate_image_file_name(subject, None, False)
 
 
-def test__generate_transform_file_name_1(img_file_nii):
+def test__generate_transform_file_name_1():
     subject_writer = SubjectWriter()
     subject = Subject("subject")
-    image = IntensityImage(sitk.ReadImage(img_file_nii), "modality")
+    image = IntensityImage(sitk_img_1, "modality")
     assert subject_writer._generate_transform_file_name(subject, image, 0, ".tfm") == "tfm_img_subject_modality_0.tfm"
     assert isinstance(subject_writer._generate_transform_file_name(subject, image, 0, ".tfm"), str)
 
 
-def test__generate_transform_file_name_2(seg_file_nii):
+def test__generate_transform_file_name_2():
     subject_writer = SubjectWriter()
     subject = Subject("subject")
-    image = SegmentationImage(sitk.ReadImage(seg_file_nii), "organ", "annotation")
+    image = SegmentationImage(sitk_seg_1, "organ", "annotation")
     assert (
         subject_writer._generate_transform_file_name(subject, image, -1, ".tfm")
         == "tfm_seg_subject_annotation_organ_-1.tfm"
@@ -96,17 +100,17 @@ def test__check_file_path_3(img_file_nii):
     assert subject_writer._check_file_path(img_file_nii) is None
 
 
-def test_write_1(img_file_nii, seg_file_nii, empty_folder):
+def test_write_1(empty_folder):
     subject_writer = SubjectWriter()
     subject = Subject("subject")
     with pytest.raises(NotADirectoryError):
         subject_writer.write("fantasy_path", subject, False)
 
 
-def test_write_2(img_file_nii, seg_file_nii, empty_folder):
+def test_write_2(empty_folder):
     subject_writer = SubjectWriter()
-    image = IntensityImage(sitk.ReadImage(img_file_nii), "modality")
-    seg = SegmentationImage(sitk.ReadImage(seg_file_nii), "organ", "annotation")
+    image = IntensityImage(sitk_img_1, "modality")
+    seg = SegmentationImage(sitk_seg_1, "organ", "annotation")
     subject = Subject("subject", [image, seg])
     subject_writer.write(empty_folder, subject, False)
     assert os.path.exists(os.path.join(empty_folder, "img_subject_modality.nii.gz"))
@@ -116,13 +120,13 @@ def test_write_2(img_file_nii, seg_file_nii, empty_folder):
     assert "tfm" not in os.listdir(empty_folder)
 
 
-def test_write_3(img_file_nii, seg_file_nii, empty_folder):
+def test_write_3(empty_folder):
     subject_writer = SubjectWriter()
-    image = IntensityImage(sitk.ReadImage(img_file_nii), "modality")
-    image_property = ImageProperties(sitk.ReadImage(img_file_nii))
+    image = IntensityImage(sitk_img_1, "modality")
+    image_property = ImageProperties(sitk_img_1)
     info = TransformInfo("trans_name", "filter", image_property, image_property)
     image.add_transform_info(info)
-    seg = SegmentationImage(sitk.ReadImage(seg_file_nii), "organ", "annotation")
+    seg = SegmentationImage(sitk_seg_1, "organ", "annotation")
     seg.add_transform_info(info)
     subject = Subject("subject", [image, seg])
     subject_writer.write(empty_folder, subject, True)

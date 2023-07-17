@@ -5,8 +5,14 @@ from warnings import warn
 import numpy as np
 import SimpleITK as sitk
 
-from pyradise.data import (IntensityImage, Modality, SegmentationImage,
-                           Subject, TransformInfo, seq_to_modalities)
+from pyradise.data import (
+    IntensityImage,
+    Modality,
+    SegmentationImage,
+    Subject,
+    TransformInfo,
+    seq_to_modalities,
+)
 
 from .base import Filter, FilterParams, LoopEntryFilter, LoopEntryFilterParams
 

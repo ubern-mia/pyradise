@@ -7,15 +7,24 @@ import itk
 from pydicom.tag import Tag
 
 from pyradise.data import Modality
-from pyradise.utils import (assume_is_segmentation, is_dicom_file,
-                            is_dir_and_exists, load_dataset_tag)
+from pyradise.utils import (
+    assume_is_segmentation,
+    is_dicom_file,
+    is_dir_and_exists,
+    load_dataset_tag,
+)
 
 from .extraction import AnnotatorExtractor, ModalityExtractor, OrganExtractor
 from .modality_config import ModalityConfiguration
-from .series_info import (DicomSeriesImageInfo, DicomSeriesInfo,
-                          DicomSeriesRegistrationInfo, DicomSeriesRTSSInfo,
-                          FileSeriesInfo, IntensityFileSeriesInfo,
-                          SegmentationFileSeriesInfo)
+from .series_info import (
+    DicomSeriesImageInfo,
+    DicomSeriesInfo,
+    DicomSeriesRegistrationInfo,
+    DicomSeriesRTSSInfo,
+    FileSeriesInfo,
+    IntensityFileSeriesInfo,
+    SegmentationFileSeriesInfo,
+)
 
 __all__ = ["Crawler", "SubjectFileCrawler", "DatasetFileCrawler", "SubjectDicomCrawler", "DatasetDicomCrawler"]
 

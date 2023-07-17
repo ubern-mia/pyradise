@@ -16,5 +16,5 @@ def test__init__2():
 
 
 def test__init__3():
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         OrganInfoSelector()

@@ -20,9 +20,7 @@ def test__init__2():
     i = ImageProperties(itk_img_1)
     assert i._spacing == itk_img_1.GetSpacing()
     assert i._origin == itk_img_1.GetOrigin()
-    assert i._direction == tuple(
-        itk.GetArrayFromMatrix(itk_img_1.GetDirection()).flatten()
-    )
+    assert i._direction == tuple(itk.GetArrayFromMatrix(itk_img_1.GetDirection()).flatten())
 
 
 def test__init__3():

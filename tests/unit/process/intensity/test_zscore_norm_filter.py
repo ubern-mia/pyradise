@@ -41,15 +41,11 @@ def test_modify_array_inverse():
     filter = ZScoreNormFilter()
     post_array = np.array([1, -1, 1, -1])
     params = HelperTransformInfo()
-    assert np.array_equal(
-        filter._modify_array_inverse(post_array, params), [1.0, 0.0, 1.0, 0.0]
-    )
+    assert np.array_equal(filter._modify_array_inverse(post_array, params), [1.0, 0.0, 1.0, 0.0])
 
 
 def test_execute():
-    image = IntensityImage(
-        sitk.GetImageFromArray(np.array([[1, 0], [1, 0]])), "modality"
-    )
+    image = IntensityImage(sitk.GetImageFromArray(np.array([[1, 0], [1, 0]])), "modality")
     s = Subject("test_name", image)
     filter = ZScoreNormFilter()
     filter_params = ZScoreNormFilterParams(0, ("modality",))
@@ -61,9 +57,7 @@ def test_execute():
 
 
 def test_execute_inverse():
-    image = IntensityImage(
-        sitk.GetImageFromArray(np.array([[1, -1], [1, -1]])), "modality"
-    )
+    image = IntensityImage(sitk.GetImageFromArray(np.array([[1, -1], [1, -1]])), "modality")
     s = Subject("test_name", image)
     filter = ZScoreNormFilter()
     params = HelperTransformInfo()

@@ -318,9 +318,13 @@ def show_polydata(
     polydata: vtk_dm.vtkPolyData, camera_origin: t.Tuple = (5, -110, 80), show_edges: bool = False, line_width: int = 4
 ) -> None:
     from vtkmodules.vtkCommonColor import vtkNamedColors
-    from vtkmodules.vtkRenderingCore import (vtkActor, vtkPolyDataMapper,
-                                             vtkRenderer, vtkRenderWindow,
-                                             vtkRenderWindowInteractor)
+    from vtkmodules.vtkRenderingCore import (
+        vtkActor,
+        vtkPolyDataMapper,
+        vtkRenderer,
+        vtkRenderWindow,
+        vtkRenderWindowInteractor,
+    )
 
     # Visualize
     colors = vtkNamedColors()

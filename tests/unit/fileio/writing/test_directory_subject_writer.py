@@ -23,14 +23,14 @@ def test__init__():
 def test__write_to_zip_1(img_series_dcm, empty_folder):
     ds = helper_get_ds(img_series_dcm)
     subject_writer = DirectorySubjectWriter()
-    subject_writer._write_to_zip((("dataset", ds),), img_series_dcm,  empty_folder, "folder_name")
+    subject_writer._write_to_zip((("dataset", ds),), img_series_dcm, empty_folder, "folder_name")
     assert os.path.exists(os.path.join(empty_folder, "folder_name.zip"))
 
 
 def test__write_to_zip_2(img_series_dcm, empty_folder):
     ds = helper_get_ds(img_series_dcm)
     subject_writer = DirectorySubjectWriter()
-    subject_writer._write_to_zip((("dataset", ds),), img_series_dcm,  empty_folder, "folder_name.zip")
+    subject_writer._write_to_zip((("dataset", ds),), img_series_dcm, empty_folder, "folder_name.zip")
     assert os.path.exists(os.path.join(empty_folder, "folder_name.zip"))
 
 
@@ -39,14 +39,14 @@ def test__write_to_zip_3(img_series_dcm, empty_folder):
     subject_writer = DirectorySubjectWriter()
     os.mkdir(os.path.join(empty_folder, "folder_name.zip"))
     with pytest.raises(Exception):
-        subject_writer._write_to_zip((("dataset", ds),), img_series_dcm,  empty_folder, "folder_name.zip")
+        subject_writer._write_to_zip((("dataset", ds),), img_series_dcm, empty_folder, "folder_name.zip")
 
 
 def test__write_to_zip_4(img_series_dcm, empty_folder):
     count_dcm = len(os.listdir(img_series_dcm))
     ds = helper_get_ds(img_series_dcm)
     subject_writer = DirectorySubjectWriter()
-    subject_writer._write_to_zip((("dataset", ds),), img_series_dcm,  empty_folder, "folder_name")
+    subject_writer._write_to_zip((("dataset", ds),), img_series_dcm, empty_folder, "folder_name")
     assert os.path.exists(os.path.join(empty_folder, "folder_name.zip"))
 
     with ZipFile(os.path.join(empty_folder, "folder_name.zip"), "r") as zip_ref:
@@ -59,7 +59,7 @@ def test__write_to_folder_1(img_series_dcm, empty_folder):
     count_dcm = len(os.listdir(img_series_dcm))
     ds = helper_get_ds(img_series_dcm)
     subject_writer = DirectorySubjectWriter()
-    subject_writer._write_to_folder((("dataset", ds),), img_series_dcm,  empty_folder, None)
+    subject_writer._write_to_folder((("dataset", ds),), img_series_dcm, empty_folder, None)
     assert count_dcm == len([x for x in os.listdir(empty_folder) if x.endswith(".dcm")]) - 1
 
 
@@ -69,20 +69,22 @@ def test__write_to_folder_2(img_series_dcm, empty_folder):
     subject_writer = DirectorySubjectWriter()
     subject_writer._write_to_folder((("dataset", ds),), img_series_dcm, empty_folder, "folder_name")
     assert os.path.exists(os.path.join(empty_folder, "folder_name"))
-    assert count_dcm == len([x for x in os.listdir(os.path.join(empty_folder, "folder_name")) if x.endswith(".dcm")]) - 1
+    assert (
+        count_dcm == len([x for x in os.listdir(os.path.join(empty_folder, "folder_name")) if x.endswith(".dcm")]) - 1
+    )
 
 
 def test__write_to_folder_3(img_series_dcm, empty_folder):
     ds = helper_get_ds(img_series_dcm)
     subject_writer = DirectorySubjectWriter()
     subject_writer._write_to_folder((("dataset", ds),), None, empty_folder, "folder_name")
-    assert 'dataset.dcm' in os.listdir(os.path.join(empty_folder, "folder_name"))
+    assert "dataset.dcm" in os.listdir(os.path.join(empty_folder, "folder_name"))
 
 
 def test__write_to_folder_4(img_series_dcm, empty_folder):
     subject_writer = DirectorySubjectWriter()
     subject_writer._write_to_folder(None, None, empty_folder, "folder_name")
-    assert 'folder_name' in os.listdir(empty_folder)
+    assert "folder_name" in os.listdir(empty_folder)
     assert len(os.listdir(os.path.join(empty_folder, "folder_name"))) == 0
 
 

@@ -2,10 +2,16 @@ import warnings
 from copy import deepcopy
 from typing import Optional, Tuple, Union
 
-from pyradise.data import (IntensityImage, Modality, OrganAnnotatorCombination,
-                           SegmentationImage, Subject, TransformInfo,
-                           seq_to_modalities,
-                           seq_to_organ_annotator_combinations)
+from pyradise.data import (
+    IntensityImage,
+    Modality,
+    OrganAnnotatorCombination,
+    SegmentationImage,
+    Subject,
+    TransformInfo,
+    seq_to_modalities,
+    seq_to_organ_annotator_combinations,
+)
 from pyradise.process import Filter, FilterParams
 
 __all__ = ["PlaybackTransformTapeFilterParams", "PlaybackTransformTapeFilter"]

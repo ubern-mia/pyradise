@@ -37,9 +37,7 @@ def test_get_abbreviation():
 
 
 def test_get_default():
-    a = Annotator(
-        Annotator.default_annotator_name, Annotator.default_annotator_abbreviation
-    )
+    a = Annotator(Annotator.default_annotator_name, Annotator.default_annotator_abbreviation)
     assert a.get_default().name == Annotator.default_annotator_name
     assert isinstance(a.get_default().name, str)
     assert a.get_default().abbreviation == Annotator.default_annotator_abbreviation

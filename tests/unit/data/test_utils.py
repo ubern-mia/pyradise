@@ -139,9 +139,7 @@ def test_str_to_organ_annotator_combination_3():
 def test_seq_to_organ_annotator_combination_1():
     organ_annotator_1 = OrganAnnotatorCombination("organ_1", "annotator_1")
     organ_annotator_2 = OrganAnnotatorCombination("organ_2", "annotator_2")
-    organ_annotator_combinations = seq_to_organ_annotator_combinations(
-        [organ_annotator_1, organ_annotator_2]
-    )
+    organ_annotator_combinations = seq_to_organ_annotator_combinations([organ_annotator_1, organ_annotator_2])
     assert len(organ_annotator_combinations) == 2
     assert organ_annotator_combinations[0].organ.name == "organ_1"
     assert organ_annotator_combinations[0].annotator.name == "annotator_1"
@@ -152,9 +150,7 @@ def test_seq_to_organ_annotator_combination_1():
 
 
 def test_seq_to_organ_annotator_combination_2():
-    organ_annotator = seq_to_organ_annotator_combinations(
-        [("organ_1", "annotator_1"), ("organ_2", "annotator_2")]
-    )
+    organ_annotator = seq_to_organ_annotator_combinations([("organ_1", "annotator_1"), ("organ_2", "annotator_2")])
     assert len(organ_annotator) == 2
     assert organ_annotator[0].organ.name == "organ_1"
     assert organ_annotator[0].annotator.name == "annotator_1"

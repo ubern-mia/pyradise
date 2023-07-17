@@ -178,9 +178,7 @@ dummy_meta_dicom = {
 def get_sitk_image(seed=0, low=0, high=101, meta="dcm") -> sitk.Image:
     """Returns a SimpleITK image with random intensities and the dummy meta data."""
     np.random.seed(seed)
-    image = sitk.GetImageFromArray(
-        np.random.randint(low=low, high=high, size=(182, 218, 182), dtype=np.uint8)
-    )
+    image = sitk.GetImageFromArray(np.random.randint(low=low, high=high, size=(182, 218, 182), dtype=np.uint8))
 
     if meta == "dcm":
         meta_data = dummy_meta_dicom
@@ -201,14 +199,10 @@ def get_itk_image(seed=0, low=0, high=101, meta="dcm") -> itk.Image:
     np.random.seed(seed)
     sitk_image = get_sitk_image(seed, low, high, meta)
     is_vector_image = sitk_image.GetNumberOfComponentsPerPixel() > 1
-    itk_image = itk.GetImageFromArray(
-        sitk.GetArrayFromImage(sitk_image), is_vector=is_vector_image
-    )
+    itk_image = itk.GetImageFromArray(sitk.GetArrayFromImage(sitk_image), is_vector=is_vector_image)
     itk_image.SetOrigin(sitk_image.GetOrigin())
     itk_image.SetSpacing(sitk_image.GetSpacing())
-    itk_image.SetDirection(
-        itk.GetMatrixFromArray(np.reshape(np.array(sitk_image.GetDirection()), [3] * 2))
-    )
+    itk_image.SetDirection(itk.GetMatrixFromArray(np.reshape(np.array(sitk_image.GetDirection()), [3] * 2)))
     return itk_image
 
 

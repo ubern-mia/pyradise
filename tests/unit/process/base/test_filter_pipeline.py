@@ -1,11 +1,13 @@
 import logging
 
 import pytest
-import SimpleITK as sitk
 
 from pyradise.data import IntensityImage, Subject
 from pyradise.process.base import FilterPipeline
 from pyradise.process.intensity import ZScoreNormFilter, ZScoreNormFilterParams
+from tests.conftest import get_sitk_image
+
+sitk_img_1 = get_sitk_image(seed=0, low=0, high=101, meta="nii")
 
 
 def test__init__1():
@@ -36,7 +38,7 @@ def test__init__3():
 def test__init__4():
     filter_ = ZScoreNormFilter()
     params = ZScoreNormFilterParams(1, ("modality",))
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         FilterPipeline(
             (
                 filter_,
@@ -99,14 +101,8 @@ def test_set_params_2():
     params_0 = ZScoreNormFilterParams(1, ("modality_0",))
     params_1 = ZScoreNormFilterParams(1, ("modality_1",))
     filter_pipeline = FilterPipeline(
-        (
-            filter_,
-            filter_,
-        ),
-        (
-            params_0,
-            params_1,
-        ),
+        (filter_, filter_),
+        (params_0, params_1),
         False,
     )
     filter_pipeline.set_param(params_0, -1)
@@ -126,7 +122,7 @@ def test_execute_iteratively_1(img_file_nii):
     filter_ = ZScoreNormFilter()
     params_0 = ZScoreNormFilterParams(1, ("modality_0",))
     params_1 = ZScoreNormFilterParams(1, ("modality_0",))
-    image = IntensityImage(sitk.ReadImage(img_file_nii), "modality_0")
+    image = IntensityImage(sitk_img_1, "modality_0")
     input_subject = Subject("test_name", [image])
     filter_pipeline = FilterPipeline((filter_, filter_), (params_0, params_1), False)
     for index, subject in enumerate(filter_pipeline.execute_iteratively(input_subject)):
@@ -138,7 +134,7 @@ def test_execute_iteratively_2(img_file_nii):
     filter_ = ZScoreNormFilter()
     params_0 = ZScoreNormFilterParams(1, ("modality_0",))
     params_1 = ZScoreNormFilterParams(1, ("modality_0",))
-    image = IntensityImage(sitk.ReadImage(img_file_nii), "modality_0")
+    image = IntensityImage(sitk_img_1, "modality_0")
     input_subject = Subject("test_name", [image])
     filter_pipeline = FilterPipeline((filter_, filter_), (params_0, params_1), True)
     logger = logging.getLogger("name1")
@@ -151,18 +147,15 @@ def test_execute_iteratively_2(img_file_nii):
 def test_execute_iteratively_3(img_file_nii):
     filter_ = ZScoreNormFilter()
     params = ZScoreNormFilterParams(1, ("modality_0",))
-    image = IntensityImage(sitk.ReadImage(img_file_nii), "modality_0")
+    image = IntensityImage(sitk_img_1, "modality_0")
     input_subject = Subject("test_name", [image])
     filter_pipeline = FilterPipeline(
         (filter_, filter_),
-        (
-            params,
-            params,
-        ),
+        (params, params),
         True,
     )
     filter_pipeline.params = (params,)
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         filter_pipeline.execute(input_subject)
 
 
@@ -170,7 +163,7 @@ def test_execute(img_file_nii):
     filter_ = ZScoreNormFilter()
     params_0 = ZScoreNormFilterParams(1, ("modality_0",))
     params_1 = ZScoreNormFilterParams(1, ("modality_0",))
-    image = IntensityImage(sitk.ReadImage(img_file_nii), "modality_0")
+    image = IntensityImage(sitk_img_1, "modality_0")
     input_subject = Subject("test_name", [image])
     filter_pipeline = FilterPipeline((filter_, filter_), (params_0, params_1), True)
     assert isinstance(filter_pipeline.execute(input_subject), Subject)

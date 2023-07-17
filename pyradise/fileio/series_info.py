@@ -9,10 +9,20 @@ import SimpleITK as sitk
 from pydicom import Dataset
 from pydicom.tag import Tag
 
-from pyradise.data import (Annotator, Modality, Organ, str_to_annotator,
-                           str_to_modality, str_to_organ)
-from pyradise.utils import (is_dir_and_exists, is_file_and_exists,
-                            load_dataset, load_dataset_tag)
+from pyradise.data import (
+    Annotator,
+    Modality,
+    Organ,
+    str_to_annotator,
+    str_to_modality,
+    str_to_organ,
+)
+from pyradise.utils import (
+    is_dir_and_exists,
+    is_file_and_exists,
+    load_dataset,
+    load_dataset_tag,
+)
 
 __all__ = [
     "SeriesInfo",

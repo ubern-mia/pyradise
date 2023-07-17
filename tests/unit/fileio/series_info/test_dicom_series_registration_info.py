@@ -64,23 +64,15 @@ def test_get_referenced_series_info(img_series_dcm):
         "StudyInstanceUID": "study_instance_uid",
         "StudiesContainingOtherReferencedInstancesSequence": [
             {
-                "ReferencedSeriesSequence": [
-                    {"SeriesInstanceUID": "series_instance_uid"}
-                ],
+                "ReferencedSeriesSequence": [{"SeriesInstanceUID": "series_instance_uid"}],
                 "StudyInstanceUID": "study_instance_uid",
             },
         ],
     }
 
     assert isinstance(dsri.get_referenced_series_info(dataset), tuple)
-    assert (
-        dsri.get_referenced_series_info(dataset)[0].series_instance_uid
-        == "series_instance_uid"
-    )
-    assert (
-        dsri.get_referenced_series_info(dataset)[0].study_instance_uid
-        == "study_instance_uid"
-    )
+    assert dsri.get_referenced_series_info(dataset)[0].series_instance_uid == "series_instance_uid"
+    assert dsri.get_referenced_series_info(dataset)[0].study_instance_uid == "study_instance_uid"
 
 
 def test_get_registration_sequence_info_1(img_series_dcm):
@@ -123,10 +115,7 @@ def test_get_registration_sequence_info_1(img_series_dcm):
             },
         ]
     }
-    assert (
-        dsri._get_registration_sequence_info(dataset)[0].frame_of_reference_uid
-        == "frame_of_reference_uid"
-    )
+    assert dsri._get_registration_sequence_info(dataset)[0].frame_of_reference_uid == "frame_of_reference_uid"
     assert isinstance(dsri._get_registration_sequence_info(dataset), tuple)
 
 
@@ -170,10 +159,7 @@ def test_get_registration_sequence_info_2(img_series_dcm):
             },
         ]
     }
-    assert (
-        dsri._get_registration_sequence_info(dataset)[0].frame_of_reference_uid
-        == "frame_of_reference_uid"
-    )
+    assert dsri._get_registration_sequence_info(dataset)[0].frame_of_reference_uid == "frame_of_reference_uid"
     assert isinstance(dsri._get_registration_sequence_info(dataset), tuple)
 
 
@@ -184,10 +170,7 @@ def test_get_unique_instance_uid_entries_1(img_series_dcm):
     dsri = DicomSeriesRegistrationInfo(paths[0], [dsii], False)
     dataset = {"SeriesInstanceUID": "series_instance_uid"}
     assert isinstance(dsri._get_unique_series_instance_uid_entries([dataset]), tuple)
-    assert (
-        dsri._get_unique_series_instance_uid_entries([dataset])[0]["SeriesInstanceUID"]
-        == "series_instance_uid"
-    )
+    assert dsri._get_unique_series_instance_uid_entries([dataset])[0]["SeriesInstanceUID"] == "series_instance_uid"
 
 
 def test_get_unique_instance_uid_entries_2(img_series_dcm):
@@ -196,9 +179,7 @@ def test_get_unique_instance_uid_entries_2(img_series_dcm):
     dsii = DicomSeriesImageInfo(paths)
     dsri = DicomSeriesRegistrationInfo(paths[0], [dsii], False)
     assert isinstance(dsri._get_unique_series_instance_uid_entries([dsii]), tuple)
-    assert dsri._get_unique_series_instance_uid_entries([dsii])[0].modality == Modality(
-        "UNKNOWN"
-    )
+    assert dsri._get_unique_series_instance_uid_entries([dsii])[0].modality == Modality("UNKNOWN")
 
 
 def test_get_registration_info_1(img_series_dcm):

@@ -5,11 +5,15 @@ import SimpleITK as sitk
 
 from pyradise.data import IntensityImage, SegmentationImage, Subject
 
-from .dicom_conversion import (DicomImageSeriesConverter,
-                               DicomRTSSSeriesConverter)
-from .series_info import (DicomSeriesImageInfo, DicomSeriesRegistrationInfo,
-                          DicomSeriesRTSSInfo, IntensityFileSeriesInfo,
-                          SegmentationFileSeriesInfo, SeriesInfo)
+from .dicom_conversion import DicomImageSeriesConverter, DicomRTSSSeriesConverter
+from .series_info import (
+    DicomSeriesImageInfo,
+    DicomSeriesRegistrationInfo,
+    DicomSeriesRTSSInfo,
+    IntensityFileSeriesInfo,
+    SegmentationFileSeriesInfo,
+    SeriesInfo,
+)
 
 __all__ = ["Loader", "ExplicitLoader", "SubjectLoader", "IterableSubjectLoader"]
 

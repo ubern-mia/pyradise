@@ -53,8 +53,6 @@ dependencies = [
 "GitHub" = "https://github.com/ubern-mia/pyradise/"
 
 [tool.pytest.ini_options]
-minversion = "7.0"
-addopts = "-ra -q"
 testpaths = [
     "tests",
 ]

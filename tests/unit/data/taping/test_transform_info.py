@@ -41,9 +41,7 @@ def test_get_subclasses():
 
 
 def test_get_filter():
-    tra_info = TransformInfo(
-        "ZScoreNormFilter", FilterParams, ImageProperties, ImageProperties
-    )
+    tra_info = TransformInfo("ZScoreNormFilter", FilterParams, ImageProperties, ImageProperties)
     assert isinstance(tra_info.get_filter(), ZScoreNormFilter)
 
 
@@ -68,9 +66,7 @@ def test_add_data():
 
 
 def test_get_data():
-    tra_info = TransformInfo(
-        "", filter_params, ImageProperties, ImageProperties, None, {"a": 1, "b": 2}
-    )
+    tra_info = TransformInfo("", filter_params, ImageProperties, ImageProperties, None, {"a": 1, "b": 2})
     assert tra_info.get_data("a") == 1
     assert tra_info.get_data("b") == 2
 
@@ -79,14 +75,9 @@ def test_get_transform_1():
     transform_params = (10, 20, 0)
     transform = sitk.TranslationTransform(3, transform_params)
     inverse_transform = transform.GetInverse()
-    tra_info = TransformInfo(
-        "", filter_params, ImageProperties, ImageProperties, None, None, transform
-    )
+    tra_info = TransformInfo("", filter_params, ImageProperties, ImageProperties, None, None, transform)
     assert tra_info.get_transform(inverse=False) == transform
-    assert (
-        tra_info.get_transform(inverse=True).GetParameters()
-        == inverse_transform.GetParameters()
-    )
+    assert tra_info.get_transform(inverse=True).GetParameters() == inverse_transform.GetParameters()
 
 
 def test_get_transform_2():

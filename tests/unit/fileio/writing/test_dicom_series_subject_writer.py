@@ -24,7 +24,7 @@ def test__write_to_folder_1(img_series_dcm, empty_folder):
     ds, dicom_path = helper_get_ds(img_series_dcm)
     info = DicomSeriesImageInfo((dicom_path,))
     subject_writer = DicomSeriesSubjectWriter()
-    subject_writer._write_to_folder((info,), (("dataset", ds),), empty_folder)
+    subject_writer._write_to_folder((info,), (("dataset", ds),), empty_folder, "folder_name")
     assert "dcm" not in os.listdir(empty_folder)
 
 

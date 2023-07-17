@@ -9,10 +9,19 @@ from typing import Any, Dict, Optional, Tuple, Union
 import numpy as np
 import SimpleITK as sitk
 
-from pyradise.data import (Annotator, IntensityImage, Modality, Organ,
-                           SegmentationImage, Subject, TransformInfo,
-                           seq_to_modalities, seq_to_organs, str_to_annotator,
-                           str_to_modality)
+from pyradise.data import (
+    Annotator,
+    IntensityImage,
+    Modality,
+    Organ,
+    SegmentationImage,
+    Subject,
+    TransformInfo,
+    seq_to_modalities,
+    seq_to_organs,
+    str_to_annotator,
+    str_to_modality,
+)
 
 from .base import Filter, FilterParams
 

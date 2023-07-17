@@ -5,10 +5,20 @@ from typing import Optional, Sequence, Tuple, Union
 import numpy as np
 import SimpleITK as sitk
 
-from pyradise.data import (Annotator, IntensityImage, Modality, Organ,
-                           SegmentationImage, Subject, TransformInfo,
-                           seq_to_annotators, seq_to_modalities, seq_to_organs,
-                           str_to_annotator, str_to_organ)
+from pyradise.data import (
+    Annotator,
+    IntensityImage,
+    Modality,
+    Organ,
+    SegmentationImage,
+    Subject,
+    TransformInfo,
+    seq_to_annotators,
+    seq_to_modalities,
+    seq_to_organs,
+    str_to_annotator,
+    str_to_organ,
+)
 
 from .base import Filter, FilterParams
 from .orientation import SpatialOrientation

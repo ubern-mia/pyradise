@@ -45,9 +45,9 @@ def test_modality_extractor_6(img_file_nii):
 
 def test_modality_extractor_7(img_file_dcm):
     me = SimpleModalityExtractor(("",))
-    assert me._get_next_default_modality_name() == "UnknownModality_0"
-    assert me._get_next_default_modality_name() == "UnknownModality_1"
-    assert me._get_next_default_modality_name() == "UnknownModality_2"
+    assert me._get_next_default_modality_name() == "UnknownModality0"
+    assert me._get_next_default_modality_name() == "UnknownModality1"
+    assert me._get_next_default_modality_name() == "UnknownModality2"
 
 
 def test_modality_extractor_8(img_file_dcm):
@@ -55,11 +55,11 @@ def test_modality_extractor_8(img_file_dcm):
     assert me.is_enumerated_default_modality(modality=None) is False
     assert me.is_enumerated_default_modality(modality=Modality("test")) is False
     assert (
-        me.is_enumerated_default_modality(modality=Modality("UnknownModality_0"))
+        me.is_enumerated_default_modality(modality=Modality("UnknownModality0"))
         is True
     )
     assert me.is_enumerated_default_modality(modality="test") is False
-    assert me.is_enumerated_default_modality(modality="UnknownModality_1") is True
+    assert me.is_enumerated_default_modality(modality="UnknownModality1") is True
 
 
 def test_modality_extractor_9(img_file_dcm):
@@ -74,7 +74,7 @@ def test_modality_extractor_10(png_file):
 
 def test_modality_extractor_11(png_file):
     te = SimpleModalityExtractor(("nii",), return_default=True)
-    assert te.extract(png_file) == Modality("UnknownModality_0")
+    assert te.extract(png_file) == Modality("UnknownModality0")
 
 
 def test_modality_extractor_12(img_file_dcm_no_meta):

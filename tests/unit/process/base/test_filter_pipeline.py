@@ -36,7 +36,7 @@ def test__init__3():
 def test__init__4():
     filter_ = ZScoreNormFilter()
     params = ZScoreNormFilterParams(1, ("modality",))
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         FilterPipeline(
             (
                 filter_,
@@ -162,7 +162,7 @@ def test_execute_iteratively_3(img_file_nii):
         True,
     )
     filter_pipeline.params = (params,)
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         filter_pipeline.execute(input_subject)
 
 

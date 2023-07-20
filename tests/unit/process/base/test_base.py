@@ -39,7 +39,7 @@ def test__register_tracked_data_1(img_file_nii):
     filter = TestFilter()
     sitk_image_1 = sitk.ReadImage(img_file_nii)
     img_1 = IntensityImage(sitk_image_1, "modality")
-    filter._register_tracked_data(img_1, sitk_image_1, sitk_image_1)
+    filter._register_tracked_data(img_1, sitk_image_1, sitk_image_1, None)
     assert filter.tracking_data == {}
 
 
@@ -63,12 +63,12 @@ def test_loop_entry_filter_params_1():
 
 
 def test_loop_entry_filter_params_2():
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         LoopEntryFilterParams(-1)
 
 
 def test_loop_entry_filter_params_3():
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         LoopEntryFilterParams(3)
 
 

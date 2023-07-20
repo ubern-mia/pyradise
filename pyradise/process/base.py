@@ -355,7 +355,7 @@ class LoopEntryFilterParams(FilterParams):
         if loop_axis is not None:
             if loop_axis < 0:
                 raise ValueError("The loop axis must be a non-negative integer.")
-            if loop_axis > 3:
+            if loop_axis > 2:
                 raise ValueError("The loop axis must be smaller than 3, PyRaDiSe only supports 2D and 3D images.")
 
         self.loop_axis: Optional[int] = loop_axis
@@ -543,7 +543,7 @@ class FilterPipeline:
         Returns:
             None
         """
-        if filter_index >= len(self.filters) - 1:
+        if filter_index >= len(self.filters):
             raise ValueError(
                 f"The filter index ({filter_index}) must be smaller than the number of filters ({len(self.filters)})!"
             )

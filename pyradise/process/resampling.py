@@ -123,12 +123,17 @@ class ResampleFilter(Filter):
             for label_idx in label_ids:
                 bounds = filter_.GetBoundingBox(label_idx)
                 physical_bound_0 = image_sitk.TransformIndexToPhysicalPoint(bounds[0:num_dims])
-                physical_bound_1 = image_sitk.TransformIndexToPhysicalPoint(bounds[num_dims : 2 * num_dims])
-                bounding_box.append([physical_bound_0, physical_bound_1])
+                bounds2 = tuple([
+                    int(x) for x in np.array(bounds[0:num_dims]) + np.array(bounds[num_dims: 2 * num_dims])
+                ])
+                physical_bound_1 = image_sitk.TransformIndexToPhysicalPoint(bounds2)
+                bounding_box.append(physical_bound_0)
+                bounding_box.append(physical_bound_1)
 
         bounding_box = np.array(bounding_box)
-        label_centers = (bounding_box[:, 0, :] + bounding_box[:, 1, :]) / 2
-        label_center = np.mean(label_centers, axis=0)
+        extreme_pt_0 = np.min(bounding_box, axis=0)
+        extreme_pt_1 = np.max(bounding_box, axis=0)
+        label_center = (extreme_pt_0 + extreme_pt_1) / 2
 
         return label_center
 

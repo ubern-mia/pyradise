@@ -129,9 +129,10 @@ def test_execute_iteratively_1(img_file_nii):
     image = IntensityImage(sitk.ReadImage(img_file_nii), "modality_0")
     input_subject = Subject("test_name", [image])
     filter_pipeline = FilterPipeline((filter_, filter_), (params_0, params_1), False)
-    for index, subject in enumerate(filter_pipeline.execute_iteratively(input_subject)):
+    for index, (subject, filter_name) in enumerate(filter_pipeline.execute_iteratively(input_subject)):
         assert index < 2
         assert isinstance(subject, Subject)
+        assert filter_name == "ZScoreNormFilter"
 
 
 def test_execute_iteratively_2(img_file_nii):
@@ -143,9 +144,10 @@ def test_execute_iteratively_2(img_file_nii):
     filter_pipeline = FilterPipeline((filter_, filter_), (params_0, params_1), True)
     logger = logging.getLogger("name1")
     filter_pipeline.add_logger(logger)
-    for index, subject in enumerate(filter_pipeline.execute_iteratively(input_subject)):
+    for index, (subject, filter_name) in enumerate(filter_pipeline.execute_iteratively(input_subject)):
         assert index < 2
         assert isinstance(subject, Subject)
+        assert filter_name == "ZScoreNormFilter"
 
 
 def test_execute_iteratively_3(img_file_nii):

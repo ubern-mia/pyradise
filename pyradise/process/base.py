@@ -566,14 +566,14 @@ class FilterPipeline:
         """
         self.logger = logger
 
-    def execute_iteratively(self, subject: Subject) -> GeneratorExit(Subject):
+    def execute_iteratively(self, subject: Subject) -> GeneratorExit(Subject, str):
         """Execute iteratively in the filter pipeline on the provided :class:`~pyradise.data.subject.Subject` instance.
 
         Args:
             subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed by the pipeline.
 
         Returns:
-            Subject: The currently processed Subject iteration.
+            tuple: (Subject: The currently processed Subject iteration, String: Currently executed filter name)
         """
         if len(self.filters) != len(self.params):
             raise ValueError(
@@ -593,7 +593,7 @@ class FilterPipeline:
                 filter_.set_warning_on_non_invertible(False)
 
             subject = filter_.execute(subject, param)
-            yield subject
+            yield subject, filter_.__class__.__name__
 
     def execute(self, subject: Subject) -> Subject:
         """Execute the filter pipeline on the provided :class:`~pyradise.data.subject.Subject` instance.
@@ -604,5 +604,5 @@ class FilterPipeline:
         Returns:
             Subject: The processed subject.
         """
-        *_, subject = self.execute_iteratively(subject)  # iterate over the generator and get the last subject
+        *_, (subject, _) = self.execute_iteratively(subject)  # iterate over the generator and get the last subject
         return subject

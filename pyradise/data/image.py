@@ -16,7 +16,7 @@ from .utils import str_to_annotator, str_to_modality, str_to_organ
 
 TransformInfo = TypeVar("TransformInfo")
 
-__all__ = ["Image", "IntensityImage", "SegmentationImage", "ImageProperties"]
+__all__ = ["Image", "IntensityImage", "SegmentationImage", "DoseImage", "ImageProperties"]
 
 
 class ImageProperties:
@@ -742,6 +742,30 @@ class SegmentationImage(Image):
             return f"SegmentationImage: {self.organ.get_name()}"
 
         return f"SegmentationImage: {self.organ.get_name()} / {self.annotator.get_name()}"
+
+
+class DoseImage(IntensityImage):
+    """A dose image class to specialize for properties of RTDose volumes.
+
+    Args:
+        image (Union[sitk.Image, itk.Image]): The image data as :class:`itk.Image` or :class:`SimpleITK.Image`.
+        modality (Union[Modality, str]): The image :class:`~pyradise.data.modality.Modality` or the modality's name.
+    """
+
+    def __init__(self, image: Union[sitk.Image, itk.Image], modality: Union[Modality, str]) -> None:
+
+        # Handle situation where RTDose intensity images are 4D - with a singleton dimensions.
+        if image.GetDimension() == 4:
+            if image.GetSize()[0] == 1:
+                image = image[0, :, :, :]
+            elif image.GetSize()[1] == 1:
+                image = image[:, 0, :, :]
+            elif image.GetSize()[2] == 1:
+                image = image[:, :, 0, :]
+            elif image.GetSize()[3] == 1:
+                image = image[:, :, :, 0]
+
+        super().__init__(image, modality)
 
 
 # Preparation for next release

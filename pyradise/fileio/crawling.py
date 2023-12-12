@@ -14,8 +14,8 @@ from .extraction import AnnotatorExtractor, ModalityExtractor, OrganExtractor
 from .modality_config import ModalityConfiguration
 from .series_info import (DicomSeriesImageInfo, DicomSeriesInfo,
                           DicomSeriesRegistrationInfo, DicomSeriesRTSSInfo,
-                          FileSeriesInfo, IntensityFileSeriesInfo,
-                          SegmentationFileSeriesInfo)
+                          DicomSeriesDoseInfo, FileSeriesInfo,
+                          IntensityFileSeriesInfo, SegmentationFileSeriesInfo)
 
 __all__ = ["Crawler", "SubjectFileCrawler", "DatasetFileCrawler", "SubjectDicomCrawler", "DatasetDicomCrawler"]
 
@@ -451,6 +451,28 @@ class SubjectDicomCrawler(Crawler):
 
         return tuple(rtss_files)
 
+
+    @staticmethod
+    def _get_rtdose_files(paths: Tuple[str, ...]) -> Tuple[str, ...]:
+        """Get all DICOM RTDOSE files in the subject directory.
+
+        Args:
+            paths (Tuple[str, ...]): The DICOM file paths to check if they specify a DICOM RTDOSE file.
+
+        Returns:
+            Tuple[str, ...]: The DICOM RTDOSE file paths.
+        """
+        valid_sop_class_uid = "1.2.840.10008.5.1.4.1.1.481.2"  # RT Structure Set Storage
+
+        rtdose_files = []
+        for path in paths:
+            dataset = load_dataset_tag(path, (Tag(0x0008, 0x0016),))
+
+            if dataset.get("SOPClassUID", None) == valid_sop_class_uid:
+                rtdose_files.append(path)
+
+        return tuple(rtdose_files)
+
     @staticmethod
     def _generate_image_infos(image_paths: Tuple[Tuple[str, ...], ...]) -> Tuple[DicomSeriesImageInfo]:
         """Generate the :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` entries for the DICOM file paths
@@ -504,7 +526,7 @@ class SubjectDicomCrawler(Crawler):
             rtss_paths (Tuple[str, ...]): The DICOM RTSS file paths.
 
         Returns:
-            Tuple[DicomSeriesRTStructureSetInfo, ...]: AThe retrieved
+            Tuple[DicomSeriesRTStructureSetInfo, ...]: The retrieved
              :class:`~pyradise.fileio.series_info.DicomSeriesRTStructureSetInfo` entries.
         """
         infos = []
@@ -512,6 +534,27 @@ class SubjectDicomCrawler(Crawler):
         for path in rtss_paths:
             rtss_info = DicomSeriesRTSSInfo(path)
             infos.append(rtss_info)
+
+        return tuple(infos)
+
+
+    @staticmethod
+    def _generate_rtdose_info(rtdose_paths: Tuple[str, ...]) -> Tuple[DicomSeriesImageInfo]:
+        """Generate the :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` entries for the DICOM file
+        paths specified.
+
+        Args:
+            rtdose_paths (Tuple[str, ...]): The DICOM RTDOSE file paths.
+
+        Returns:
+            Tuple[DicomSeriesImageInfo, ...]: The retrieved
+             :class:`~pyradise.fileio.series_info.DicomSeriesImageInfo` entries.
+        """
+        infos = []
+
+        for path in rtdose_paths:
+            rtdose_info = DicomSeriesDoseInfo(path)
+            infos.append(rtdose_info)
 
         return tuple(infos)
 
@@ -647,16 +690,20 @@ class SubjectDicomCrawler(Crawler):
         remaining_paths = tuple(set(remaining_paths) - set(registration_paths))
 
         rtss_paths = self._get_rtss_files(remaining_paths)
+        remaining_paths = tuple(set(remaining_paths) - set(rtss_paths))
+
+        rtdose_paths = self._get_rtdose_files(remaining_paths)
 
         # generate the series infos
         image_infos = self._generate_image_infos(image_paths)
         registration_infos = self._generate_registration_infos(registration_paths, image_infos)
         rtss_infos = self._generate_rtss_info(rtss_paths)
+        rtdose_infos = self._generate_rtdose_info(rtdose_paths)
 
         # apply the modality config and write it to disk if requested
-        self._apply_modality_config(image_infos)
+        self._apply_modality_config(image_infos + rtdose_infos)
 
-        return image_infos + registration_infos + rtss_infos
+        return image_infos + registration_infos + rtss_infos + rtdose_infos
 
 
 class DatasetDicomCrawler(Crawler):

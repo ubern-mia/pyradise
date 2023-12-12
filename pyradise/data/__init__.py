@@ -1,5 +1,5 @@
 from .annotator import Annotator
-from .image import Image, ImageProperties, IntensityImage, SegmentationImage
+from .image import Image, ImageProperties, IntensityImage, DoseImage, SegmentationImage
 from .modality import Modality
 from .organ import Organ, OrganAnnotatorCombination
 from .subject import Subject

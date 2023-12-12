@@ -21,6 +21,7 @@ __all__ = [
     "SegmentationFileSeriesInfo",
     "DicomSeriesInfo",
     "DicomSeriesImageInfo",
+    "DicomSeriesDoseInfo",
     "DicomSeriesRegistrationInfo",
     "DicomSeriesRTSSInfo",
     "ReferenceInfo",
@@ -415,6 +416,19 @@ class DicomSeriesImageInfo(DicomSeriesInfo):
             None
         """
         self._is_updated = True
+
+
+class DicomSeriesDoseInfo(DicomSeriesImageInfo):
+    """A :class:`DicomSeriesDoseInfo` class for DICOM Dose images. In addition to the information provided by the
+    :class:`DicomSeriesImageInfo` class, this class contains a flag to indicate the image is a Dose volume.
+
+    Args:
+        paths (Tuple[str, ...]): The paths to the DICOM image files to load.
+    """
+
+    def __init__(self, paths: Tuple[str, ...]) -> None:
+        super().__init__(paths)
+        self.is_dose_image = True
 
 
 # noinspection PyUnresolvedReferences

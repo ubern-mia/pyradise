@@ -428,6 +428,10 @@ class DicomSeriesDoseInfo(DicomSeriesImageInfo):
 
     def __init__(self, paths: Tuple[str, ...]) -> None:
         super().__init__(paths)
+        scaling_tag = [Tag(0x3004,0x000E)]
+        dataset = load_dataset_tag(self.path[0], scaling_tag)
+
+        self.scaling_value = str(dataset.get("DoseGridScaling", 1.0))
         self.is_dose_image = True
 
 

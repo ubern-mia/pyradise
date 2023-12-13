@@ -2595,7 +2595,7 @@ class DicomImageSeriesConverter(Converter):
             # if no registration info is available, the image is added as is
             if reg_info is None:
                 if isinstance(info, DicomSeriesDoseInfo):
-                    image_ = DoseImage(image, info.modality)
+                    image_ = DoseImage(image, info.modality, info.scaling_value)
                 else:
                     image_ = IntensityImage(image, info.modality)
                 image_.add_data({"SeriesInstanceUID": info.series_instance_uid})
@@ -2614,7 +2614,7 @@ class DicomImageSeriesConverter(Converter):
 
                 image = self._transform_image(image, reg_info.transform, is_intensity=True)
                 if isinstance(info, DicomSeriesDoseInfo):
-                    image_ = DoseImage(image, info.modality)
+                    image_ = DoseImage(image, info.modality, info.scaling_value)
                 else:
                     image_ = IntensityImage(image, info.modality)
                 image_.add_data({"SeriesInstanceUID": info.series_instance_uid})

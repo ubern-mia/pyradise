@@ -752,7 +752,7 @@ class DoseImage(IntensityImage):
         modality (Union[Modality, str]): The image :class:`~pyradise.data.modality.Modality` or the modality's name.
     """
 
-    def __init__(self, image: Union[sitk.Image, itk.Image], modality: Union[Modality, str]) -> None:
+    def __init__(self, image: Union[sitk.Image, itk.Image], modality: Union[Modality, str], scaling_value: float) -> None:
 
         # Handle situation where RTDose intensity images are 4D - with a singleton dimensions.
         if image.GetDimension() == 4:
@@ -764,6 +764,10 @@ class DoseImage(IntensityImage):
                 image = image[:, :, 0, :]
             elif image.GetSize()[3] == 1:
                 image = image[:, :, :, 0]
+
+        # See here for why scaling is needed: https://dicom.innolitics.com/ciods/rt-dose/rt-dose/3004000e
+        image = sitk.Cast(image, sitk.sitkFloat32)
+        image = image * scaling_value
 
         super().__init__(image, modality)
 

@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 from warnings import warn
 
 from .annotator import Annotator
-from .image import Image, IntensityImage, SegmentationImage
+from .image import Image, IntensityImage, DoseImage, SegmentationImage
 from .modality import Modality
 from .organ import Organ
 
@@ -385,7 +385,7 @@ class Subject:
         Returns:
             List[Image]: A list of all images of the specified type.
         """
-        if image_type == IntensityImage:
+        if image_type == IntensityImage or image_type == DoseImage:
             return self.intensity_images
         elif image_type == SegmentationImage:
             return self.segmentation_images

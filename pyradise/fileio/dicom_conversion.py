@@ -24,14 +24,14 @@ from pydicom.tag import Tag
 from pydicom.uid import (PYDICOM_IMPLEMENTATION_UID, ImplicitVRLittleEndian,
                          generate_uid)
 
-from pyradise.data import (IntensityImage, Modality, Organ, SegmentationImage,
+from pyradise.data import (IntensityImage, Modality, Organ, SegmentationImage, DoseImage,
                            Subject, str_to_modality)
 from pyradise.utils import (chunkify, convert_to_itk_image,
                             get_slice_direction, get_slice_position,
                             get_spacing_between_slices, load_dataset,
                             load_dataset_tag, load_datasets)
 
-from .series_info import (DicomSeriesImageInfo, DicomSeriesRegistrationInfo,
+from .series_info import (DicomSeriesImageInfo, DicomSeriesDoseInfo, DicomSeriesRegistrationInfo,
                           DicomSeriesRTSSInfo, RegistrationInfo, SeriesInfo)
 
 __all__ = [
@@ -2594,7 +2594,10 @@ class DicomImageSeriesConverter(Converter):
 
             # if no registration info is available, the image is added as is
             if reg_info is None:
-                image_ = IntensityImage(image, info.modality)
+                if isinstance(info, DicomSeriesDoseInfo):
+                    image_ = DoseImage(image, info.modality, info.scaling_value)
+                else:
+                    image_ = IntensityImage(image, info.modality)
                 image_.add_data({"SeriesInstanceUID": info.series_instance_uid})
                 images.append(image_)
 
@@ -2610,7 +2613,10 @@ class DicomImageSeriesConverter(Converter):
                     )
 
                 image = self._transform_image(image, reg_info.transform, is_intensity=True)
-                image_ = IntensityImage(image, info.modality)
+                if isinstance(info, DicomSeriesDoseInfo):
+                    image_ = DoseImage(image, info.modality, info.scaling_value)
+                else:
+                    image_ = IntensityImage(image, info.modality)
                 image_.add_data({"SeriesInstanceUID": info.series_instance_uid})
                 images.append(image_)
 

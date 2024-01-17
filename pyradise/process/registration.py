@@ -14,6 +14,8 @@ __all__ = [
     "IntraSubjectRegistrationFilter",
     "InterSubjectRegistrationFilterParams",
     "InterSubjectRegistrationFilter",
+    "IntraInterSubjectRegistrationFilterParams",
+    "IntraInterSubjectRegistrationFilter",
     "RegistrationType",
 ]
 
@@ -45,10 +47,9 @@ def get_interpolator(image: Image) -> Optional[int]:
     """
     if isinstance(image, IntensityImage):
         return sitk.sitkBSpline
-    elif isinstance(image, SegmentationImage):
+
+    if isinstance(image, SegmentationImage):
         return sitk.sitkNearestNeighbor
-    else:
-        return None
 
 
 def get_registration_method(
@@ -169,7 +170,7 @@ def register_images(
             fixed_image_f32, moving_image_f32, transform_type, sitk.CenteredTransformInitializerFilter.GEOMETRY
         )
 
-    registration_method.SetInitialTransform(initial_transform, inPlace=True)
+    registration_method.SetInitialTransform(initial_transform, inPlace=False)
 
     transform = registration_method.Execute(fixed_image_f32, moving_image_f32)
 
@@ -192,7 +193,6 @@ class IntraSubjectRegistrationFilterParams(FilterParams):
         smoothing_sigmas (Tuple[float, ...]): The smoothing sigmas (default: (2, 1, 0))).
         sampling_percentage (float): The sampling percentage of the voxels to incorporate into the optimization
          (default: 0.2).
-        resampling_interpolator (int): The resampling interpolator (default: sitk.sitkBSpline).
         deterministic (bool): Deterministic processing with a fixed seed and a single thread (default: True).
     """
 
@@ -208,7 +208,6 @@ class IntraSubjectRegistrationFilterParams(FilterParams):
         shrink_factors: Tuple[int, ...] = (2, 2, 1),
         smoothing_sigmas: Tuple[float, ...] = (2, 1, 0),
         sampling_percentage: float = 0.2,
-        resampling_interpolator: int = sitk.sitkBSpline,
         deterministic: bool = True,
     ) -> None:
         super().__init__()
@@ -226,7 +225,6 @@ class IntraSubjectRegistrationFilterParams(FilterParams):
         self.shrink_factors: Tuple[int, ...] = shrink_factors
         self.smoothing_sigmas: Tuple[float, ...] = smoothing_sigmas
         self.sampling_percentage = sampling_percentage
-        self.resampling_interpolator = resampling_interpolator
         self.deterministic = deterministic
 
 
@@ -423,7 +421,6 @@ class InterSubjectRegistrationFilterParams(FilterParams):
         smoothing_sigmas (Tuple[float, ...]): The smoothing sigmas (default: (2, 1, 0))).
         sampling_percentage (float): The sampling percentage of the voxels to incorporate into the optimization
          (default: 0.2).
-        resampling_interpolator (int): The interpolator to use for resampling the image.
         deterministic (bool): Deterministic processing with a fixed seed and a single thread (default: True).
     """
 
@@ -442,7 +439,6 @@ class InterSubjectRegistrationFilterParams(FilterParams):
         shrink_factors: Tuple[int, ...] = (2, 2, 1),
         smoothing_sigmas: Tuple[float, ...] = (2, 1, 0),
         sampling_percentage: float = 0.2,
-        resampling_interpolator: int = sitk.sitkBSpline,
         deterministic: bool = True,
     ) -> None:
         super().__init__()
@@ -464,7 +460,6 @@ class InterSubjectRegistrationFilterParams(FilterParams):
         self.shrink_factors: Tuple[int, ...] = shrink_factors
         self.smoothing_sigmas: Tuple[float, ...] = smoothing_sigmas
         self.sampling_percentage = sampling_percentage
-        self.resampling_interpolator = resampling_interpolator
         self.deterministic = deterministic
 
 
@@ -658,6 +653,307 @@ class InterSubjectRegistrationFilter(Filter):
         subject: Subject,
         transform_info: TransformInfo,
         target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
+        """Execute the inverse of the inter-subject registration procedure.
+
+        Args:
+            subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
+            transform_info (TransformInfo): The transform information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
+
+        Returns:
+            Subject: The :class:`~pyradise.data.subject.Subject` instance with unregistered
+            :class:`~pyradise.data.image.IntensityImage` instances.
+        """
+        subject = self._apply_inverse_transform(subject, transform_info, target_image)
+
+        return subject
+
+
+# pylint: disable = too-few-public-methods
+class IntraInterSubjectRegistrationFilterParams(FilterParams):
+    """A filter parameter class for the :class:`~pyradise.process.registration.IntraInterSubjectRegistrationFilter` class.
+
+    Args:
+        reference_subject (Subject): The reference subject to which the subject will be registered.
+        reference_modality (Union[Modality, str]): The modality of the reference image (fixed image) to be used for
+         registration.
+        subject_inter_modality (Optional[Union[Modality, str]]): The modality of the subject image (moving image) to be used
+         for the inter-subject registration. None is not an option here (default: None).
+        subject_intra_modalities (Optional[Tuple[Union[Modality, str], ...]]): The modalities of the subject images to be
+         registered to the subject_inter_modality. If ``None``, all modalities of the subject will be registered to the subject_inter_modality (default: None).
+        registration_type (RegistrationType): The type of registration (default: RegistrationType.RIGID).
+        number_of_histogram_bins (int): The number of histogram bins for registration (default: 200).
+        learning_rate (float): The learning rate of the optimizer (default: 1.0).
+        step_size (float): The step size of the optimizer (default: 0.001).
+        number_of_iterations (int): The maximal number of optimization iterations (default: 1500).
+        relaxation_factor (float): The relaxation factor (default: 0.5).
+        shrink_factors (Tuple[int, ...): The shrink factors for the image pyramid (default: (2, 2, 1))).
+        smoothing_sigmas (Tuple[float, ...]): The smoothing sigmas (default: (2, 1, 0))).
+        sampling_percentage (float): The sampling percentage of the voxels to incorporate into the optimization
+         (default: 0.2).
+        resampling_interpolator (int): The interpolator to use for resampling the image.
+        deterministic (bool): Deterministic processing with a fixed seed and a single thread (default: True).
+    """
+
+    # pylint: disable=too-many-instance-attributes, too-many-arguments
+    def __init__(
+            self,
+            reference_subject: Subject,
+            reference_modality: Union[Modality, str],
+            subject_inter_modality: Optional[Union[Modality, str]] = None,
+            subject_intra_modalities: Tuple[Optional[Union[Modality, str]], ...] = None,
+            registration_type: RegistrationType = RegistrationType.RIGID,
+            number_of_histogram_bins: int = 200,
+            learning_rate: float = 1.0,
+            step_size: float = 0.001,
+            number_of_iterations: int = 1500,
+            relaxation_factor: float = 0.5,
+            shrink_factors: Tuple[int, ...] = (2, 2, 1),
+            smoothing_sigmas: Tuple[float, ...] = (2, 1, 0),
+            sampling_percentage: float = 0.2,
+            deterministic: bool = True,
+    ) -> None:
+        super().__init__()
+
+        if len(shrink_factors) != len(smoothing_sigmas):
+            raise ValueError("The shrink_factors and smoothing_sigmas need to have the same length!")
+
+        self.reference_subject = reference_subject
+        self.reference_modality: Modality = str_to_modality(reference_modality)
+        if subject_inter_modality is None:
+            raise ValueError("The subject_inter_modality cannot be None!")
+        self.subject_inter_modality: Modality = str_to_modality(subject_inter_modality)
+        self.subject_intra_modalities: Tuple[Modality, ...] = (
+            tuple(str_to_modality(modality) for modality in
+                  subject_intra_modalities) if subject_intra_modalities is not None else None)
+        self.registration_type = registration_type
+        self.number_of_histogram_bins = number_of_histogram_bins
+        self.learning_rate = learning_rate
+        self.step_size = step_size
+        self.number_of_iterations = number_of_iterations
+        self.relaxation_factor = relaxation_factor
+        self.shrink_factors: Tuple[int, ...] = shrink_factors
+        self.smoothing_sigmas: Tuple[float, ...] = smoothing_sigmas
+        self.sampling_percentage = sampling_percentage
+        self.deterministic = deterministic
+
+
+class IntraInterSubjectRegistrationFilter(Filter):
+    """An invertible intra-inter-subject registration filter class
+    - inter-registration of a defined subject sequence to a reference subject (presumably atlas)
+    - intra-registration of subject images to the previously registered subject sequence
+
+    Important:
+        This filter assumes that all :class:`~pyradise.data.image.Image` instances of the provided
+        :class:`~pyradise.data.subject.Subject` are co-registered such that the
+        :class:`~pyradise.data.image.SegmentationImage` instances do not require special treatment.
+
+    Warning:
+        The inverse registration procedure may not yield the expected results if successive
+        :class:`~pyradise.process.base.Filter` s are applied to the same :class:`~pyradise.data.image.Image` instances.
+        Thus, it's recommended to use the invertibility feature with appropriate caution.
+    """
+
+    @staticmethod
+    def is_invertible() -> bool:
+        """Return whether the filter is invertible.
+
+        Returns:
+            bool: True because the inter-subject registration is invertible.
+        """
+        return True
+
+    def _transform(self, subject, reference_image, params):
+        # get the reference image
+        reference_image_sitk = reference_image.get_image_data()
+
+        # register the subject to the reference image
+        transform = self._register_image(subject, reference_image_sitk, params)
+
+        # apply the transform to the other images of the subject
+        subject = self._apply_transform(subject, transform, reference_image_sitk, params)
+
+        return subject
+
+    # noinspection DuplicatedCode
+    def _apply_transform(
+            self,
+            subject: Subject,
+            modality: Modality,
+            transform: sitk.Transform,
+            reference_image: sitk.Image,
+            params: IntraInterSubjectRegistrationFilterParams,
+    ) -> Subject:
+        """Apply the provided transformation to the subject.
+
+        Args:
+            subject (Subject): The subject.
+            transform (sitk.Transform): The transformation to apply to the subject.
+            reference_image (sitk.Image): The reference image.
+            params (InterSubjectRegistrationFilterParams): The filters parameters.
+
+        Returns:
+            Subject: The :class:`~pyradise.data.subject.Subject` instance with transformed
+            :class:`~pyradise.data.image.Image` instances.
+        """
+        image = subject.get_image_by_modality(modality)
+        interpolator = get_interpolator(image)
+
+        image_sitk = image.get_image_data()
+        if isinstance(image, IntensityImage):
+            image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
+
+        # resample the image
+        min_intensity = float(np.min(sitk.GetArrayFromImage(image_sitk)))
+        new_image_sitk = sitk.Resample(
+            image_sitk, reference_image, transform, interpolator, min_intensity, image_sitk.GetPixelIDValue()
+        )
+
+        # set the new image data to the image
+        image.set_image_data(new_image_sitk)
+
+        # track the necessary data
+        self._register_tracked_data(image, image_sitk, new_image_sitk, params, transform)
+
+        return subject
+
+    # noinspection DuplicatedCode
+    @staticmethod
+    def _apply_inverse_transform(
+            subject: Subject,
+            transform_info: TransformInfo,
+            target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
+    ) -> Subject:
+        """Apply the inverse transformation to the subject.
+
+        Args:
+            subject (Subject): The subject.
+            transform_info (TransformInfo): The transformation information.
+            target_image (Optional[Union[SegmentationImage, IntensityImage]]): The target image to which the inverse
+             transformation should be applied. If None, the inverse transformation is applied to all images (default:
+             None).
+
+        Returns:
+            Subject: The :class:`~pyradise.data.subject.Subject` instance with back-transformed
+            :class:`~pyradise.data.image.Image` instances.
+        """
+        # construct the original image as a reference
+        original_image_props = transform_info.get_image_properties(pre_transform=True)
+
+        reference_image_np = np.zeros(original_image_props.size[::-1], dtype=float)
+        reference_image_sitk = sitk.GetImageFromArray(reference_image_np)
+        reference_image_sitk.SetOrigin(original_image_props.origin)
+        reference_image_sitk.SetSpacing(original_image_props.spacing)
+        reference_image_sitk.SetDirection(original_image_props.direction)
+
+        # get the inverse transform
+        transform = transform_info.get_transform(True)
+
+        # transform and resample the images
+        for image in subject.get_images():
+            if target_image is not None and image != target_image:
+                continue
+
+                # the interpolator
+            interpolator = get_interpolator(image)
+            if interpolator is None:
+                continue
+
+            # get the image data and cast if necessary
+            image_sitk = image.get_image_data()
+            if isinstance(image, IntensityImage):
+                image_sitk = sitk.Cast(image_sitk, sitk.sitkFloat32)
+
+            # resample the image
+            min_intensity = float(np.min(sitk.GetArrayFromImage(image_sitk)))
+            new_image_sitk = sitk.Resample(
+                image_sitk, reference_image_sitk, transform, interpolator, min_intensity, image_sitk.GetPixelIDValue()
+            )
+
+            # set the new image data to the image
+            image.set_image_data(new_image_sitk)
+
+        return subject
+
+    @staticmethod
+    def _register_image(
+            subject: Subject,
+            modality: Modality,
+            reference_image: sitk.Image,
+            params: IntraInterSubjectRegistrationFilterParams
+    ) -> sitk.Transform:
+        """Register the subject image to the specific modality of the reference subject.
+
+        Args:
+            subject (Subject): The subject to register.
+            modality (Modality): The modality of the subject image to be registered.
+            reference_image (sitk.Image): The reference image.
+            params (InterSubjectRegistrationFilterParams): The filters parameters.
+
+        Returns:
+            sitk.Transform: The registration transformation.
+        """
+        moving_image = subject.get_image_by_modality(modality)
+        moving_image_sitk = moving_image.get_image_data()
+
+        # get the registration method
+        registration_method = get_registration_method(
+            params.registration_type,
+            params.number_of_histogram_bins,
+            params.learning_rate,
+            params.step_size,
+            params.number_of_iterations,
+            params.relaxation_factor,
+            params.shrink_factors,
+            params.smoothing_sigmas,
+            params.sampling_percentage,
+            params.deterministic,
+        )
+
+        return register_images(moving_image_sitk, reference_image, params.registration_type, registration_method)
+
+    def execute(self, subject: Subject, params: IntraInterSubjectRegistrationFilterParams) -> Subject:
+        """Executes the inter-subject registration procedure.
+
+        Args:
+            subject (Subject): The :class:`~pyradise.data.subject.Subject` instance to be processed.
+            params (InterSubjectRegistrationFilterParams): The filter parameters.
+
+        Returns:
+            Subject: The :class:`~pyradise.data.subject.Subject` instance with all
+            :class:`~pyradise.data.image.IntensityImage` instances registered to the reference subject
+            :class:`~pyradise.data.image.IntensityImage` instance.
+        """
+        # inter-subject registration
+        reference_image = params.reference_subject.get_image_by_modality(params.reference_modality)
+        reference_image_sitk = reference_image.get_image_data()
+        transform = self._register_image(subject, params.subject_inter_modality, reference_image_sitk, params)
+        subject = self._apply_transform(subject, params.subject_inter_modality, transform, reference_image_sitk, params)
+
+        # intra-subject registration
+        reference_image = subject.get_image_by_modality(params.subject_inter_modality)
+        reference_image_sitk = reference_image.get_image_data()
+
+        modalities = params.subject_intra_modalities
+        if params.subject_intra_modalities is None:
+            all_modalities = subject.get_modalities()
+            modalities = [str_to_modality(modality) for modality in all_modalities if
+                          modality != params.subject_inter_modality]
+
+        for modality in modalities:
+            transform = self._register_image(subject, modality, reference_image_sitk, params)
+            subject = self._apply_transform(subject, modality, transform, reference_image_sitk, params)
+
+        return subject
+
+    def execute_inverse(
+            self,
+            subject: Subject,
+            transform_info: TransformInfo,
+            target_image: Optional[Union[SegmentationImage, IntensityImage]] = None,
     ) -> Subject:
         """Execute the inverse of the inter-subject registration procedure.
 

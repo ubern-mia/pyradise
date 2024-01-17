@@ -33,5 +33,7 @@ from .registration import (InterSubjectRegistrationFilter,
                            InterSubjectRegistrationFilterParams,
                            IntraSubjectRegistrationFilter,
                            IntraSubjectRegistrationFilterParams,
+                           IntraInterSubjectRegistrationFilter,
+                           IntraInterSubjectRegistrationFilterParams,
                            RegistrationType)
 from .resampling import ResampleFilter, ResampleFilterParams

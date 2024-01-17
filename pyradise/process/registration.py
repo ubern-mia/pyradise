@@ -46,7 +46,7 @@ def get_interpolator(image: Image) -> Optional[int]:
         Optional[int]: The interpolator.
     """
     if isinstance(image, IntensityImage):
-        return sitk.sitkBSpline
+        return sitk.sitkLinear
 
     if isinstance(image, SegmentationImage):
         return sitk.sitkNearestNeighbor

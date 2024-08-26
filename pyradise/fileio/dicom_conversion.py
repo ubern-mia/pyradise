@@ -2313,7 +2313,10 @@ class SegmentToRTSSConverter3D(SegmentToRTSSConverterBase):
                     contour_points = []
 
                     for idx in range(indices.GetNumberOfIds()):
-                        contour_points.append(points.GetPoint(indices.GetId(idx)))
+                        # limit the precision to 3 decimal places to avoid loading issues
+                        points_ = points.GetPoint(indices.GetId(idx))
+                        points_ = (round(point_, 3) for point_ in points_)
+                        contour_points.append(points_)
 
                     if isinstance(contours_points[slice_idx], list):
                         contours_points[slice_idx].append(contour_points)

@@ -7,4 +7,5 @@ black
 pylint
 isort
 --find-links https://download.pytorch.org/whl/torch_stable.html
-torch >= 1.10.0
+torch>=2.10.0
+wheel>=0.46.2 # not directly required, pinned by Snyk to avoid a vulnerability

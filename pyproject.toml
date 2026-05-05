@@ -47,6 +47,18 @@ dependencies = [
     'vtk',
 ]
 
+[project.optional-dependencies]
+# RTMaskConformanceTest -- analytical RTSTRUCT->NIfTI accuracy gate.
+# Opt-in: install with `pip install -e .[conformance]` to enable
+# tests/test_conformance.py and the Conformance CI job.
+# rtmask-conformance itself requires Python >= 3.10; pip will refuse to
+# install the extra on the older interpreters PyRaDiSe still supports,
+# which is the intended behavior.
+conformance = [
+    "rtmask-conformance @ git+https://github.com/brianmanderson/RTMaskConformanceTest",
+    "pytest>=7",
+]
+
 [project.urls]
 "Homepage" = "https://pyradise.readthedocs.io/"
 "Bug Tracker" = "https://github.com/ubern-mia/pyradise/issues"

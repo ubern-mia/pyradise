@@ -1,0 +1,65 @@
+name: Conformance
+
+# Runs the RTMaskConformanceTest analytical accuracy gate against
+# PyRaDiSe's RTSTRUCT->mask extraction path. The fixture (synthetic CT +
+# RTSTRUCT + analytic per-ROI ground-truth NIfTIs) is generated at the
+# start of the job -- no test data is committed to the repo.
+#
+# This is intentionally a separate job (not bolted onto an existing
+# test workflow) so the Conformance status appears as its own check on
+# PRs -- accuracy regressions are easy to spot and can be gated
+# independently of any other tests.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:  # manual "Run workflow" button on any branch
+
+env:
+  # Opt the JS actions used below into the Node.js 24 runtime ahead of
+  # GitHub's 2026-06-02 forced switch. Silences the end-of-job
+  # "Node.js 20 actions are deprecated" warning.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  conformance:
+    name: RTSTRUCT->mask conformance (PyRaDiSe)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          # rtmask-conformance requires Python >= 3.10. PyRaDiSe itself
+          # supports 3.8-3.11; we run conformance on 3.12 to match the
+          # cohort the rtmask-conformance fixture is published against.
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install package + conformance extra
+        # PyRaDiSe imports `distutils`, removed from stdlib in 3.12;
+        # installing setuptools first provides the shim. (Same workaround
+        # used by the upstream benchmark harness's pyradise subenv.)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install setuptools
+          python -m pip install -e ".[conformance]"
+
+      - name: Run conformance suite
+        run: pytest tests/test_conformance.py -v
+
+      - name: Upload conformance report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conformance-debug
+          path: |
+            /tmp/pytest-of-runner/**/*.nii.gz
+            /tmp/pytest-of-runner/**/manifest.json
+          retention-days: 14
+          if-no-files-found: warn
